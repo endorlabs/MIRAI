@@ -1,15 +1,7 @@
-# MIRAI [![codecov](https://codecov.io/gh/facebookexperimental/MIRAI/branch/main/graph/badge.svg?token=q4jzL09Ahl)](https://codecov.io/gh/facebookexperimental/MIRAI) [![deps.rs](https://deps.rs/repo/github/facebookexperimental/MIRAI/status.svg)](https://deps.rs/repo/github/facebookexperimental/MIRAI)
+# MIRAI [![codecov](https://codecov.io/gh/endorlabs/MIRAI/branch/main/graph/badge.svg?token=q4jzL09Ahl)](https://codecov.io/gh/endorlabs/MIRAI) [![deps.rs](https://deps.rs/repo/github/endorlabs/MIRAI/status.svg)](https://deps.rs/repo/github/endorlabs/MIRAI)
 MIRAI is an abstract interpreter for the [Rust](https://www.rust-lang.org/) compiler's [mid-level intermediate
 representation](https://github.com/rust-lang/rfcs/blob/master/text/1211-mir.md) (MIR).
 It is intended to become a widely used static analysis tool for Rust.
-
-## Request for Proposals
-
-The Web3 Foundation has an 
-[RFP](https://github.com/w3f/Grants-Program/blob/master/docs/RFPs/Open/Static-Analysis-for-Runtime-Pallets.md) 
-for extending MIRAI. If you are interested in making a proposal, feel free to do so and expect to count on support
-with design reviews, coding and merging your contributions. Contact herman_venter@msn.com if you want to discuss this
-further.
 
 ## Who should use MIRAI
 
@@ -29,13 +21,13 @@ become security problems (denial of service, undefined behavior).
 ## How to use MIRAI
 
 You'll need to install MIRAI as described 
-[here](https://github.com/facebookexperimental/MIRAI/blob/main/documentation/InstallationGuide.md).
+[here](https://github.com/endorlabs/MIRAI/blob/main/documentation/InstallationGuide.md).
 
 Then use `cargo mirai` to run MIRAI over your current package. This works much like `cargo check` but uses MIRAI rather
 than rustc to analyze the targets of your current package.
 
 `cargo mirai` does a top-down full-program path sensitive analysis of the 
-[entry points](https://github.com/facebookexperimental/MIRAI/blob/main/documentation/Overview.md#entry-points) of your 
+[entry points](https://github.com/endorlabs/MIRAI/blob/main/documentation/Overview.md#entry-points) of your 
 package. To analyze test functions instead, use `cargo mirai --tests`.
 
 This will likely produce some warnings. Some of these will be real issues (true positives) that you'll fix by changing
@@ -62,21 +54,21 @@ You can get some insight into the inner workings of MIRAI by setting the verbosi
 `warn`, `info`, `debug`, or `trace`, via the environment variable `MIRAI_LOG`.
 
 ## Developing MIRAI
-See the [developer guide](https://github.com/facebookexperimental/MIRAI/blob/main/documentation//DeveloperGuide.md)
+See the [developer guide](https://github.com/endorlabs/MIRAI/blob/main/documentation//DeveloperGuide.md)
 for instructions on how to build, run and debug MIRAI.
 
 ## Full documentation
-* [Overview of project](https://github.com/facebookexperimental/MIRAI/blob/main/documentation/Overview.md).
-* [Architecture](https://github.com/facebookexperimental/MIRAI/blob/main/documentation/Architecture.md).
-* [Design discussions](https://github.com/facebookexperimental/MIRAI/blob/main/documentation/DesignDiscussions.md).
-* [Further reading](https://github.com/facebookexperimental/MIRAI/blob/main/documentation/FurtherReading.md).
+* [Overview of project](https://github.com/endorlabs/MIRAI/blob/main/documentation/Overview.md).
+* [Architecture](https://github.com/endorlabs/MIRAI/blob/main/documentation/Architecture.md).
+* [Design discussions](https://github.com/endorlabs/MIRAI/blob/main/documentation/DesignDiscussions.md).
+* [Further reading](https://github.com/endorlabs/MIRAI/blob/main/documentation/FurtherReading.md).
 
 ## Join the MIRAI community
 <!-- * Website:
 * Facebook page:
 * Mailing list
 * irc:  -->
-See the [CONTRIBUTING](https://github.com/facebookexperimental/MIRAI/blob/main/CONTRIBUTING.md) file for how to help out.
+See the [CONTRIBUTING](https://github.com/endorlabs/MIRAI/blob/main/CONTRIBUTING.md) file for how to help out.
 
 ## License
-MIRAI is MIT licensed, as found in the [LICENSE](https://github.com/facebookexperimental/MIRAI/blob/main/LICENSE) file.
+MIRAI is MIT licensed, as found in the [LICENSE](https://github.com/endorlabs/MIRAI/blob/main/LICENSE) file.

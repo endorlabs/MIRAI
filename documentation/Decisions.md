@@ -196,7 +196,7 @@ trickier because of the dependency on a nightly build of the compiler.
 Not a good idea for such a complicated language, but this is pretty much what has been done for C++.
 #### Analyze the output of the rust compiler.
 For example LLVM bitcode. This is not a terrible idea, but see 
-[Why plug into the Rust compiler?](https://github.com/facebookexperimental/MIRAI/blob/main/documentation/WhyPlugIn.md).
+[Why plug into the Rust compiler?](https://github.com/endorlabs/MIRAI/blob/main/documentation/WhyPlugIn.md).
 
 ## Use MIR
 The Mid-level Intermediate Representation is the last intermediate data structure produced by the rust compiler before
@@ -221,7 +221,7 @@ more functions.
 ### Alternatives
 #### Use LLVM bitcode
 But see
-[Why plug into the Rust compiler?](https://github.com/facebookexperimental/MIRAI/blob/main/documentation/WhyPlugIn.md).
+[Why plug into the Rust compiler?](https://github.com/endorlabs/MIRAI/blob/main/documentation/WhyPlugIn.md).
 #### Lower MIR into a well-defined and stable LIR where operations are simple
 For example, the Common Intermediate Language of .NET.
 
@@ -293,7 +293,7 @@ abstract domains.
 
 ## Symbolic expression domain
 The abstract domain used by default uses a symbolic expression as its representation. 
-See [Abstract Values](https://github.com/facebookexperimental/MIRAI/blob/main/documentation/AbstractValues.md). 
+See [Abstract Values](https://github.com/endorlabs/MIRAI/blob/main/documentation/AbstractValues.md). 
 ### Positives
 The most precise way to specify which values an expression can result in is the expression itself.
 ### Negatives

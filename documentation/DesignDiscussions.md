@@ -1,20 +1,20 @@
 # Design Discussions
 
-[Abstract Values](https://github.com/facebookexperimental/MIRAI/blob/main/documentation/AbstractValues.md)
+[Abstract Values](https://github.com/endorlabs/MIRAI/blob/main/documentation/AbstractValues.md)
 
-[Caching](https://github.com/facebookexperimental/MIRAI/blob/main/documentation/Caching.md)
+[Caching](https://github.com/endorlabs/MIRAI/blob/main/documentation/Caching.md)
 
-[Incremental Analysis](https://github.com/facebookexperimental/MIRAI/blob/main/documentation/IncrementalAnalysis.md)
+[Incremental Analysis](https://github.com/endorlabs/MIRAI/blob/main/documentation/IncrementalAnalysis.md)
 
-[Parallelism](https://github.com/facebookexperimental/MIRAI/blob/main/documentation/Parallelism.md)
+[Parallelism](https://github.com/endorlabs/MIRAI/blob/main/documentation/Parallelism.md)
 
-[Why MIR?](https://github.com/facebookexperimental/MIRAI/blob/main/documentation/WhyMir.md)
+[Why MIR?](https://github.com/endorlabs/MIRAI/blob/main/documentation/WhyMir.md)
 
-[Why plug into the Rust compiler?](https://github.com/facebookexperimental/MIRAI/blob/main/documentation/WhyPlugIn.md)
+[Why plug into the Rust compiler?](https://github.com/endorlabs/MIRAI/blob/main/documentation/WhyPlugIn.md)
 
-[Why Rust?](https://github.com/facebookexperimental/MIRAI/blob/main/documentation/WhyRust.md)
+[Why Rust?](https://github.com/endorlabs/MIRAI/blob/main/documentation/WhyRust.md)
 
-[Why top down?](https://github.com/facebookexperimental/MIRAI/blob/main/documentation/WhyTopDown.md)
+[Why top down?](https://github.com/endorlabs/MIRAI/blob/main/documentation/WhyTopDown.md)
 
 Devirtualization
 

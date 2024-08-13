@@ -16,5 +16,5 @@ analysis of pathological functions that are widely used will quickly cause other
 duplicate work.
 
 Pursuing this at the moment does not seem to be the best use of resources. Future work should probably concentrate on 
-[incremental analysis](https://github.com/facebookexperimental/MIRAI/blob/main/documentation/IncrementalAnalysis.md).
+[incremental analysis](https://github.com/endorlabs/MIRAI/blob/main/documentation/IncrementalAnalysis.md).
 

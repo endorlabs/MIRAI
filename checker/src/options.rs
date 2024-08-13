@@ -56,7 +56,7 @@ fn make_options_parser(running_test_harness: bool) -> Command {
             .long("call_graph_config")
             .num_args(1)
             .help("Path call graph config.")
-            .long_help(r#"Path to a JSON file that configures call graph output. Please see the documentation for details (https://github.com/facebookexperimental/MIRAI/blob/main/documentation/CallGraph.md)."#))
+            .long_help(r#"Path to a JSON file that configures call graph output. Please see the documentation for details (https://github.com/endorlabs/MIRAI/blob/main/documentation/CallGraph.md)."#))
         .arg(Arg::new("print_function_names")
             .long("print_function_names")
             .num_args(0)

@@ -50,7 +50,7 @@ investigated and fixed as appropriate. There are currently no plans for a v2.
 
 ## How to use MIRAI
 
-You'll need to build and install MIRAI as described [here](https://github.com/facebookexperimental/MIRAI#using-mirai).
+You'll need to build and install MIRAI as described [here](https://github.com/endorlabs/MIRAI#using-mirai).
 That done, just run `cargo mirai` in the root directory of your project.
 
 When run this way, MIRAI, will statically analyze all the code reachable from entry
@@ -184,7 +184,7 @@ is missing or the good tag is present.
 To prevent intermediate code from accidentally adding "good" tags, this can be made a privileged operation by making
 the tag constructor private.
 
-More details and examples can be found [here](https://github.com/facebookexperimental/MIRAI/blob/main/documentation/TagAnalysis.md).
+More details and examples can be found [here](https://github.com/endorlabs/MIRAI/blob/main/documentation/TagAnalysis.md).
 
 ## Constant time analysis
 
@@ -316,7 +316,7 @@ thus never trigger the path with the unresolvable call.
 
 The approached used to deal with to these hard problems is to infer preconditions that preclude the unresolvable calls
 from being reached, as already discussed 
-[above](https://github.com/facebookexperimental/MIRAI/blob/main/documentation/Overview.md#incomplete-analysis).
+[above](https://github.com/endorlabs/MIRAI/blob/main/documentation/Overview.md#incomplete-analysis).
 
 ## Foreign functions
 
@@ -327,7 +327,7 @@ written in languages other than Rust, or just calls to Rust standard library fun
 
 These functions need to have some kind of "model" that can be summarized and used in the analysis when calls to them
 are encountered. Models for many of the standard library foreign functions are included with the MIRAI sources and
-can be found [here](https://github.com/facebookexperimental/MIRAI/blob/main/standard_contracts/src/foreign_contracts.rs).
+can be found [here](https://github.com/endorlabs/MIRAI/blob/main/standard_contracts/src/foreign_contracts.rs).
 
 Most of these are uninteresting because they have no preconditions and their results are inputs to the program and must
 thus be treated as fully unknown by the analysis. Others are just trivial re-implementations of the library functions.
