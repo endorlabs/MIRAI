@@ -15,7 +15,7 @@ Please ensure that all of the following dependencies are installed:
 The best way to install MIRAI into cargo is to clone the MIRAI repository:
 
 ```bash
-git clone https://github.com/facebookexperimental/MIRAI.git
+git clone https://github.com/endorlabs/MIRAI.git
 cd MIRAI
 ```
 
@@ -28,4 +28,4 @@ cargo install --locked --path ./checker
 ## Contributing to MIRAI
 
 If you want to help develop MIRAI see
-the [developer guide](https://github.com/facebookexperimental/MIRAI/blob/main/documentation/DeveloperGuide.md)
+the [developer guide](https://github.com/endorlabs/MIRAI/blob/main/documentation/DeveloperGuide.md)

@@ -29,7 +29,7 @@ use crate::path::{Path, PathEnum, PathSelector};
 use crate::path::{PathRefinement, PathRoot};
 use crate::tag_domain::{Tag, TagDomain};
 
-// See https://github.com/facebookexperimental/MIRAI/blob/main/documentation/AbstractValues.md.
+// See https://github.com/endorlabs/MIRAI/blob/main/documentation/AbstractValues.md.
 
 /// Mirai is an abstract interpreter and thus produces abstract values.
 /// In general, an abstract value is a value that is not fully known.

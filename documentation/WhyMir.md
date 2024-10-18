@@ -11,9 +11,9 @@ the [High-Level Intermediate Representation](https://rustc-dev-guide.rust-lang.o
 All of these approaches would require some form of lowering in order to perform an analysis of the execution of the
 project of interest. This would provide flexibility and more control, but it also involves a substantial amount
 of largely duplicated work 
-([see also](https://github.com/facebookexperimental/MIRAI/blob/main/documentation/WhyPlugIn.md)).
+([see also](https://github.com/endorlabs/MIRAI/blob/main/documentation/WhyPlugIn.md)).
 
 There is another consideration: Unlike the AST, HIR and THIR, MIR is
 serialized into the compiler output for dependencies. Since MIRAI does a top-down analysis 
-([see also](https://github.com/facebookexperimental/MIRAI/blob/main/documentation/WhyTopDown.md)), the convenience
+([see also](https://github.com/endorlabs/MIRAI/blob/main/documentation/WhyTopDown.md)), the convenience
 and performance benefit of not re-compiling every dependency, are factors of overriding importance.

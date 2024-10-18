@@ -1,7 +1,7 @@
 # MIRAI Annotations
 
 This crate provides a set of macros that can be used in the place of the standard RUST assert and debug_assert macros.
-They add value by allowing [MIRAI](https://github.com/facebookexperimental/MIRAI) to:
+They add value by allowing [MIRAI](https://github.com/endorlabs/MIRAI) to:
 * distinguish between path conditions and verification conditions
 * distinguish between conditions that it should assume as true and conditions that it should verify
 * check conditions at compile time that should not be checked at runtime because they are too expensive
