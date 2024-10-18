@@ -224,10 +224,14 @@ fn call_mirai() {
 }
 
 fn call_rustc() {
-    // todo: invoke the rust compiler for the appropriate tool chain?
-    let mut cmd =
-        Command::new(std::env::var_os("RUSTC").unwrap_or_else(|| OsString::from("rustc")));
-    cmd.args(std::env::args().skip(2));
+    let mut args = std::env::args_os().skip(1);
+    // The rustc to use is passed by Cargo as the first argument to RUSTC_WRAPPER
+    let mut cmd = Command::new(
+        args.next()
+            .or_else(|| std::env::var_os("RUSTC"))
+            .unwrap_or_else(|| OsString::from("rustc")),
+    );
+    cmd.args(args);
     let exit_status = cmd
         .spawn()
         .expect("could not run rustc")
