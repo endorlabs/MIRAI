@@ -2163,7 +2163,12 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             mir::CastKind::Transmute => {
                 let source_type = self.get_operand_rustc_type(operand);
                 let source_value = self.visit_operand(operand);
-                let source_path = Path::get_as_path(source_value);
+                let source_path = Path::get_as_path(source_value.clone());
+                let path = if source_value.is_function() {
+                    Path::new_function(path)
+                } else {
+                    path
+                };
                 self.bv.copy_and_transmute(
                     source_path,
                     source_type,
@@ -2973,16 +2978,40 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         // The Rust compiler should ensure this.
                         assume!(alloc_len > offset_bytes);
                         let size = alloc_len - offset_bytes;
-                        let bytes = alloc
-                            .inner()
-                            .get_bytes_strip_provenance(
-                                &self.bv.tcx,
-                                alloc_range(
-                                    ptr.into_parts().1,
-                                    rustc_target::abi::Size::from_bytes(size),
-                                ),
-                            )
-                            .unwrap();
+                        let range = alloc_range(
+                            ptr.into_parts().1,
+                            rustc_target::abi::Size::from_bytes(size),
+                        );
+                        let bytes = if size > 0
+                            && alloc.inner().provenance().range_empty(range, &self.bv.tcx)
+                        {
+                            alloc
+                                .inner()
+                                .get_bytes_strip_provenance(&self.bv.tcx, range)
+                                .unwrap()
+                        } else {
+                            let mut bytes = alloc.inner().get_bytes_unchecked(range);
+                            if let Some(p) = alloc.inner().provenance().provenances().next() {
+                                match self.bv.tcx.try_get_global_alloc(p.alloc_id()) {
+                                    Some(GlobalAlloc::Memory(alloc)) => {
+                                        let size = alloc.inner().len() as u64;
+                                        let range = alloc_range(
+                                            rustc_target::abi::Size::from_bytes(0),
+                                            rustc_target::abi::Size::from_bytes(size),
+                                        );
+                                        bytes = alloc
+                                            .inner()
+                                            .get_bytes_strip_provenance(&self.bv.tcx, range)
+                                            .unwrap();
+                                    }
+                                    _ => assume_unreachable!(
+                                        "ConstValue::Scalar with type {:?}",
+                                        lty
+                                    ),
+                                }
+                            }
+                            bytes
+                        };
                         match lty.kind() {
                             TyKind::Array(elem_type, length) => {
                                 let length = self.bv.get_array_length(length);
@@ -2993,8 +3022,8 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                                 );
                                 array_value
                             }
-                            TyKind::Ref(_, t, _) => {
-                                if let TyKind::Array(elem_type, length) = t.kind() {
+                            TyKind::Ref(_, t, _) => match t.kind() {
+                                TyKind::Array(elem_type, length) => {
                                     let length = self.bv.get_array_length(length);
                                     let (_, array_path) =
                                         self.get_heap_array_and_path(lty, size as usize);
@@ -3005,10 +3034,34 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                                         *elem_type,
                                     );
                                     AbstractValue::make_reference(array_path)
-                                } else {
-                                    assume_unreachable!("ConstValue::Ptr with type {:?}", lty);
                                 }
-                            }
+                                TyKind::Adt(..) => {
+                                    let (_heap_val, heap_path) = self.bv.get_new_heap_block(
+                                        Rc::new((bytes.len() as u128).into()),
+                                        Rc::new(1u128.into()),
+                                        false,
+                                        lty,
+                                    );
+                                    let bytes_left_to_deserialize = self
+                                        .deserialize_constant_bytes(heap_path.clone(), bytes, *t);
+                                    if !bytes_left_to_deserialize.is_empty() {
+                                        debug!("span: {:?}", self.bv.current_span);
+                                        debug!("type kind {:?}", lty.kind());
+                                        debug!(
+                                            "constant value did not serialize correctly {:?}",
+                                            val
+                                        );
+                                    }
+                                    AbstractValue::make_reference(heap_path)
+                                }
+                                _ => {
+                                    assume_unreachable!(
+                                        "ConstValue::Ptr with type {:?} {:?}",
+                                        lty,
+                                        t.kind()
+                                    );
+                                }
+                            },
                             _ => {
                                 assume_unreachable!("ConstValue::Scalar with type {:?}", lty);
                             }
@@ -3376,6 +3429,23 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 self.bv.update_value_at(target_path, Rc::new(f.into()));
                 &bytes[8..]
             },
+            TyKind::Ref(_, t, _) if matches!(t.kind(), TyKind::Str) => {
+                let s = std::str::from_utf8(bytes).expect("string should be serialized as utf8");
+                let string_const = &mut self.bv.cv.constant_value_cache.get_string_for(s);
+                let string_val: Rc<AbstractValue> = Rc::new(string_const.clone().into());
+                let len_val: Rc<AbstractValue> =
+                    Rc::new(ConstantDomain::U128(s.len() as u128).into());
+
+                let str_path = Path::new_computed(string_val.clone());
+                self.bv.update_value_at(str_path.clone(), string_val);
+
+                let len_path = Path::new_length(str_path.clone());
+                self.bv.update_value_at(len_path, len_val);
+
+                self.bv
+                    .update_value_at(target_path, AbstractValue::make_reference(str_path));
+                &[]
+            }
             TyKind::RawPtr(rustc_middle::ty::TypeAndMut { .. }) | TyKind::Ref(..) => {
                 // serialized pointers are not the values pointed to, just some number.
                 // todo: figure out how to deference that number and deserialize the
