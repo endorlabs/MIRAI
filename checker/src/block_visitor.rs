@@ -1412,7 +1412,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                                 tag_name
                             ),
                         );
-                        self.bv.emit_diagnostic(warning.clone());
+                        self.bv.emit_diagnostic(warning);
                     } else if promotable_entry_condition.is_none()
                         || tag_check.extract_promotable_disjuncts(false).is_none()
                     {
@@ -1425,7 +1425,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                                 because it contains local variables",
                             ),
                         );
-                        self.bv.emit_diagnostic(warning.clone());
+                        self.bv.emit_diagnostic(warning);
                     }
                 }
 
