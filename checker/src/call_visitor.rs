@@ -3035,6 +3035,8 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                     }
                 }
             }
+        } else {
+            return Rc::from("dummy argument");
         }
         if self.block_visitor.bv.check_for_errors {
             let warning = self.block_visitor.bv.cv.session.dcx().struct_span_warn(

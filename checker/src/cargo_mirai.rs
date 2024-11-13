@@ -26,21 +26,24 @@ pub fn main() {
         println!("{CARGO_MIRAI_HELP}");
         return;
     }
-    if std::env::args().any(|a| a == "--version" || a == "-V") {
-        let version_info = rustc_tools_util::get_version_info!();
-        println!("{version_info}");
-        return;
-    }
-
     match std::env::args().nth(1).as_ref().map(AsRef::<str>::as_ref) {
         Some(s) if s.ends_with("mirai") || s.ends_with("mirai.exe") => {
             // Get here for the top level cargo execution, i.e. "cargo mirai".
+            if std::env::args().any(|a| a == "--version" || a == "-V") {
+                let version_info = rustc_tools_util::get_version_info!();
+                println!("{version_info}");
+                return;
+            }
             call_cargo();
         }
         Some(s) if s.ends_with("rustc") || s.ends_with("rustc.exe") => {
             // 'cargo rustc ..' redirects here because RUSTC_WRAPPER points to this binary.
             // execute rustc with MIRAI applicable parameters for dependencies and call MIRAI
             // to analyze targets in the current package.
+            if std::env::args().any(|a| a == "--version" || a == "-V") {
+                call_rustc();
+                return;
+            }
             call_rustc_or_mirai();
         }
         Some(arg) => {
