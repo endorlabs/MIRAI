@@ -490,18 +490,12 @@ impl<'tcx> TypeVisitor<'tcx> {
                             }
                             TyKind::Closure(def_id, args) => {
                                 let closure_substs = args.as_closure();
-                                if closure_substs.is_valid() {
-                                    return *closure_substs
-                                        .upvar_tys()
-                                        .get(*ordinal)
-                                        .unwrap_or_else(|| {
-                                            info!(
-                                                "closure field not found {:?} {:?}",
-                                                def_id, ordinal
-                                            );
-                                            &self.tcx.types.never
-                                        });
-                                }
+                                return *closure_substs.upvar_tys().get(*ordinal).unwrap_or_else(
+                                    || {
+                                        info!("closure field not found {:?} {:?}", def_id, ordinal);
+                                        &self.tcx.types.never
+                                    },
+                                );
                             }
                             TyKind::Coroutine(def_id, args) => {
                                 let mut tuple_types =
