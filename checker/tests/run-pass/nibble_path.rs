@@ -8,6 +8,7 @@
 
 // MIRAI_FLAGS --diag=verify
 
+#[allow(dead_code)]
 pub struct Nibble(u8);
 
 impl From<u8> for Nibble {
