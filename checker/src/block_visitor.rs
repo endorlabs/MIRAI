@@ -2612,6 +2612,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             }
             mir::AggregateKind::Closure(def_id, args)
             | mir::AggregateKind::Coroutine(def_id, args) => {
+                //| mir::AggregateKind::CoroutineClosure(def_id, args) => {
                 let ty = self.bv.tcx.type_of(*def_id).skip_binder();
                 let func_const = self.visit_function_reference(*def_id, ty, Some(args));
                 let func_val = Rc::new(func_const.clone().into());

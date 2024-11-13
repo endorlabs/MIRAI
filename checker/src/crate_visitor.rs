@@ -9,19 +9,18 @@
 
 use log::*;
 use log_derive::{logfn, logfn_inputs};
-use std::cell::RefCell;
-use std::cmp::Ordering;
-use std::collections::HashMap;
-use std::fmt::{Debug, Formatter, Result};
-use std::rc::Rc;
-use std::time::Instant;
-
 use mirai_annotations::*;
 use rustc_errors::DiagnosticBuilder;
 use rustc_hir::def_id::{DefId, DefIndex};
 use rustc_middle::mir;
 use rustc_middle::ty::{GenericArgsRef, TyCtxt};
 use rustc_session::Session;
+use std::cell::RefCell;
+use std::cmp::Ordering;
+use std::collections::HashMap;
+use std::fmt::{Debug, Formatter, Result};
+use std::rc::Rc;
+use std::time::Instant;
 
 use crate::body_visitor::BodyVisitor;
 use crate::call_graph::CallGraph;
@@ -255,13 +254,16 @@ impl<'compilation, 'tcx> CrateVisitor<'compilation, 'tcx> {
             let mut diags = vec![];
             for (_, dbs) in self.diagnostics_for.drain() {
                 for db in dbs.into_iter() {
-                    diags.push(db.into_diagnostic());
+                    diags.push(db);
                 }
             }
-            if !expected_errors.check_messages(diags) {
+            if !expected_errors.check_messages(&diags) {
                 self.session
                     .dcx()
                     .fatal(format!("test failed: {}", self.file_name));
+            }
+            for db in diags.into_iter() {
+                db.cancel();
             }
         } else {
             let mut diagnostics = vec![];

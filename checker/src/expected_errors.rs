@@ -3,6 +3,7 @@
 // This source code is licensed under the MIT license found in the
 // LICENSE file in the root directory of this source tree.
 
+use rustc_errors::DiagnosticBuilder;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
@@ -12,7 +13,7 @@ use std::str::FromStr;
 use log_derive::logfn_inputs;
 
 use mirai_annotations::assume;
-use rustc_errors::{Diagnostic, DiagnosticMessage, MultiSpan};
+use rustc_errors::{DiagnosticMessage, MultiSpan};
 
 /// A collection of error strings that are expected for a test case.
 #[derive(Debug)]
@@ -33,9 +34,9 @@ impl ExpectedErrors {
 
     /// Checks if the given set of diagnostics matches the expected diagnostics.
     #[logfn_inputs(TRACE)]
-    pub fn check_messages(&mut self, diagnostics: Vec<Diagnostic>) -> bool {
+    pub fn check_messages(&mut self, diagnostics: &[DiagnosticBuilder<'_, ()>]) -> bool {
         for diag in diagnostics.iter() {
-            if !self.remove_message(&diag.span, Self::expect_str(&diag.messages()[0].0)) {
+            if !self.remove_message(&diag.span, Self::expect_str(&diag.messages[0].0)) {
                 return false;
             }
             for child in &diag.children {
