@@ -3775,6 +3775,9 @@ pub mod core {
                 default_contract!(closure);
             }
         }
+        pub fn unwrap_failed() {
+            panic!("called `Option::unwrap()` on a `None` value");
+        }
     }
 
     pub mod ptr {

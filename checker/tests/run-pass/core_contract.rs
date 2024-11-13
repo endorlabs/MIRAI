@@ -11,4 +11,5 @@ pub fn main() {
     let _y = x.unwrap();
     let z: Option<i64> = None;
     let _ = z.unwrap(); //~ called `Option::unwrap()` on a `None` value
+    //~ related location
 }
