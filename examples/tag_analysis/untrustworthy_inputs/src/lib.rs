@@ -38,6 +38,7 @@ type Sanitized = SanitizedKind<SANITIZED_MASK>;
 type Sanitized = ();
 
 /// A structure for public keys.
+#[allow(dead_code)]
 pub struct PublicKey(u32);
 
 /// A public key that we already know is valid. This key does not have the Tainted tag.

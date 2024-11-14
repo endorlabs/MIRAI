@@ -1237,7 +1237,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
             // if the called function actually expects it.
             let tcx = self.block_visitor.bv.tcx;
             let callee_ty = self.actual_argument_types[0];
-            if !callee_ty.is_fn() || tcx.is_closure(def_id) {
+            if !callee_ty.is_fn() || tcx.is_closure_or_coroutine(def_id) {
                 actual_args.insert(0, self.actual_args[0].clone());
                 actual_argument_types.insert(0, callee_ty);
                 if self.callee_known_name == KnownNames::StdOpsFunctionFnOnceCallOnce

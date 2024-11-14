@@ -22,6 +22,7 @@ use rustc_middle::ty::{
     Const, FloatTy, IntTy, ParamConst, ScalarInt, Ty, TyKind, UintTy, ValTree, VariantDef,
 };
 use rustc_middle::ty::{GenericArg, GenericArgsRef};
+use rustc_span::source_map::Spanned;
 use rustc_target::abi::{FieldIdx, Primitive, TagEncoding, VariantIdx, Variants};
 
 use crate::abstract_value;
@@ -586,7 +587,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
     fn visit_call(
         &mut self,
         func: &mir::Operand<'tcx>,
-        args: &[mir::Operand<'tcx>],
+        args: &[Spanned<mir::Operand<'tcx>>],
         destination: mir::Place<'tcx>,
         target: Option<mir::BasicBlock>,
         unwind: mir::UnwindAction,
@@ -642,12 +643,17 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             .specialize_generic_args(generic_args, &self.type_visitor().generic_argument_map);
         let actual_args: Vec<(Rc<Path>, Rc<AbstractValue>)> = args
             .iter()
-            .map(|arg| (self.get_operand_path(arg), self.visit_operand(arg)))
+            .map(|arg| {
+                (
+                    self.get_operand_path(&arg.node),
+                    self.visit_operand(&arg.node),
+                )
+            })
             .collect();
         let actual_argument_types: Vec<Ty<'tcx>> = args
             .iter()
             .map(|arg| {
-                let arg_ty = self.get_operand_rustc_type(arg);
+                let arg_ty = self.get_operand_rustc_type(&arg.node);
                 if utils::is_concrete(arg_ty.kind()) {
                     arg_ty
                 } else {
@@ -658,9 +664,8 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     if utils::is_concrete(specialized_ty.kind()) {
                         specialized_ty
                     } else {
-                        let path = self.get_operand_path(arg);
-                        self.type_visitor()
-                            .get_path_rustc_type(&path, self.bv.current_span)
+                        let path = self.get_operand_path(&arg.node);
+                        self.type_visitor().get_path_rustc_type(&path, arg.span)
                     }
                 }
             })
@@ -1412,7 +1417,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                                 tag_name
                             ),
                         );
-                        self.bv.emit_diagnostic(warning.clone());
+                        self.bv.emit_diagnostic(warning);
                     } else if promotable_entry_condition.is_none()
                         || tag_check.extract_promotable_disjuncts(false).is_none()
                     {
@@ -1425,7 +1430,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                                 because it contains local variables",
                             ),
                         );
-                        self.bv.emit_diagnostic(warning.clone());
+                        self.bv.emit_diagnostic(warning);
                     }
                 }
 
@@ -2607,6 +2612,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             }
             mir::AggregateKind::Closure(def_id, args)
             | mir::AggregateKind::Coroutine(def_id, args) => {
+                //| mir::AggregateKind::CoroutineClosure(def_id, args) => {
                 let ty = self.bv.tcx.type_of(*def_id).skip_binder();
                 let func_const = self.visit_function_reference(*def_id, ty, Some(args));
                 let func_val = Rc::new(func_const.clone().into());

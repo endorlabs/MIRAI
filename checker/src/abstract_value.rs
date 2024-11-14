@@ -85,6 +85,7 @@ impl Hash for AbstractValue {
 
 impl PartialEq for AbstractValue {
     #[logfn_inputs(TRACE)]
+    #[allow(clippy::unconditional_recursion)]
     fn eq(&self, other: &Self) -> bool {
         self.expression.eq(&other.expression)
     }

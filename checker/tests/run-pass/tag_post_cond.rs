@@ -16,8 +16,10 @@ const SECRET_TAINT: TagPropagationSet = tag_propagation_set!(TagPropagation::Sup
 
 type SecretTaint = SecretTaintKind<SECRET_TAINT>;
 
+#[allow(dead_code)]
 pub struct A(u32);
 
+#[allow(dead_code)]
 pub struct B(u32);
 
 pub fn a_to_b(a: A) -> B {

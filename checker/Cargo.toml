@@ -43,7 +43,7 @@ rayon = "*"
 regex = "*"
 rpds = { version = "*", features = ["serde"] }
 rustc_tools_util = "*"
-serde = { version = "*", features = ["derive", "alloc", "rc"] }
+serde = { version = "=1.0.203", features = ["derive", "alloc", "rc"] }
 serde_json = "*"
 shellwords = "*"
 sled = "*"
