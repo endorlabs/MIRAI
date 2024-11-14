@@ -12,8 +12,6 @@
 
 use mirai_annotations::*;
 
-use mirai_annotations::{TagPropagationSet, TAG_PROPAGATION_ALL};
-
 struct ConstantTimeTaintKind<const MASK: TagPropagationSet> {}
 
 type ConstantTimeTaint = ConstantTimeTaintKind<TAG_PROPAGATION_ALL>;

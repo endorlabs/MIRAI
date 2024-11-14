@@ -5,7 +5,6 @@
 
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
-use std::convert::TryFrom;
 use std::fmt::{Debug, Formatter, Result};
 use std::rc::Rc;
 use std::time::Instant;
@@ -14,7 +13,7 @@ use log_derive::*;
 use rpds::HashTrieMap;
 
 use mirai_annotations::*;
-use rustc_errors::DiagnosticBuilder;
+use rustc_errors::Diag;
 use rustc_hir::def_id::DefId;
 use rustc_middle::mir;
 use rustc_middle::ty::{AdtDef, Const, GenericArgsRef, Ty, TyCtxt, TyKind, TypeAndMut, UintTy};
@@ -47,7 +46,7 @@ pub struct BodyVisitor<'analysis, 'compilation, 'tcx> {
     pub tcx: TyCtxt<'tcx>,
     pub def_id: DefId,
     pub mir: &'tcx mir::Body<'tcx>,
-    pub buffered_diagnostics: &'analysis mut Vec<DiagnosticBuilder<'compilation, ()>>,
+    pub buffered_diagnostics: &'analysis mut Vec<Diag<'compilation, ()>>,
     pub active_calls_map: &'analysis mut HashMap<DefId, u64>,
 
     pub already_reported_errors_for_call_to: HashSet<Rc<AbstractValue>>,
@@ -100,7 +99,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
     pub fn new(
         crate_visitor: &'analysis mut CrateVisitor<'compilation, 'tcx>,
         def_id: DefId,
-        buffered_diagnostics: &'analysis mut Vec<DiagnosticBuilder<'compilation, ()>>,
+        buffered_diagnostics: &'analysis mut Vec<Diag<'compilation, ()>>,
         active_calls_map: &'analysis mut HashMap<DefId, u64>,
         type_cache: Rc<RefCell<TypeCache<'tcx>>>,
     ) -> BodyVisitor<'analysis, 'compilation, 'tcx> {
@@ -330,7 +329,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
     /// Buffering diagnostics gives us the chance to sort them before printing them out,
     /// which is desirable for tools that compare the diagnostics from one run of MIRAI with another.
     #[logfn_inputs(TRACE)]
-    pub fn emit_diagnostic(&mut self, diagnostic_builder: DiagnosticBuilder<'compilation, ()>) {
+    pub fn emit_diagnostic(&mut self, diagnostic_builder: Diag<'compilation, ()>) {
         if (self.treat_as_foreign || !self.def_id.is_local())
             && !matches!(self.cv.options.diag_level, DiagLevel::Paranoid)
         {

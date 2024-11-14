@@ -139,7 +139,7 @@ impl KnownNamesCache {
 
     /// Uses information obtained from tcx to figure out which well known name (if any)
     /// this def id corresponds to.
-    fn get_known_name_for(tcx: TyCtxt<'_>, def_id: DefId) -> KnownNames {
+    pub fn get_known_name_for(tcx: TyCtxt<'_>, def_id: DefId) -> KnownNames {
         use DefPathData::*;
 
         let def_path = &tcx.def_path(def_id);
@@ -281,6 +281,7 @@ impl KnownNamesCache {
                         "sqrtf32" => KnownNames::StdIntrinsicsSqrtf32,
                         "sqrtf64" => KnownNames::StdIntrinsicsSqrtf64,
                         "transmute" => KnownNames::StdIntrinsicsTransmute,
+                        "transmute_unchecked" => KnownNames::StdIntrinsicsTransmute,
                         "truncf32" => KnownNames::StdIntrinsicsTruncf32,
                         "truncf64" => KnownNames::StdIntrinsicsTruncf64,
                         _ => KnownNames::None,
@@ -317,7 +318,13 @@ impl KnownNamesCache {
                             .unwrap_or(KnownNames::None)
                     }
                 }
-                _ => KnownNames::None,
+                _ =>  {
+                    if is_foreign_module(current_elem) {
+                        get_known_name_for_instrinsics_foreign_namespace(def_path_data_iter)
+                    } else {
+                        KnownNames::None
+                    }
+                }
             }
         };
 

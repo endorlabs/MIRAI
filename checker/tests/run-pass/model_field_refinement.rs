@@ -10,8 +10,6 @@
 
 use mirai_annotations::*;
 
-use mirai_annotations::TagPropagationSet;
-
 struct Foo {}
 
 fn func1(foo: &Foo) {

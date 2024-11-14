@@ -10,7 +10,7 @@
 use log::*;
 use log_derive::{logfn, logfn_inputs};
 use mirai_annotations::*;
-use rustc_errors::DiagnosticBuilder;
+use rustc_errors::Diag;
 use rustc_hir::def_id::{DefId, DefIndex};
 use rustc_middle::mir;
 use rustc_middle::ty::{GenericArgsRef, TyCtxt};
@@ -40,11 +40,11 @@ use crate::utils;
 // 'compilation is the lifetime of the call to MiraiCallbacks::after_analysis.
 // 'tcx is the lifetime of the closure call that calls analyze_with_mirai, which calls analyze_some_bodies.
 pub struct CrateVisitor<'compilation, 'tcx> {
-    pub buffered_diagnostics: Vec<DiagnosticBuilder<'compilation, ()>>,
+    pub buffered_diagnostics: Vec<Diag<'compilation, ()>>,
     pub constant_time_tag_cache: Option<Tag>,
     pub constant_time_tag_not_found: bool,
     pub constant_value_cache: ConstantValueCache<'tcx>,
-    pub diagnostics_for: HashMap<DefId, Vec<DiagnosticBuilder<'compilation, ()>>>,
+    pub diagnostics_for: HashMap<DefId, Vec<Diag<'compilation, ()>>>,
     pub file_name: &'compilation str,
     pub generic_args_cache: HashMap<DefId, GenericArgsRef<'tcx>>,
     pub known_names_cache: KnownNamesCache,
@@ -169,7 +169,7 @@ impl<'compilation, 'tcx> CrateVisitor<'compilation, 'tcx> {
     /// and collect any diagnostics into the buffer.
     #[logfn(TRACE)]
     fn analyze_body(&mut self, def_id: DefId) {
-        let mut diagnostics: Vec<DiagnosticBuilder<'compilation, ()>> = Vec::new();
+        let mut diagnostics: Vec<Diag<'compilation, ()>> = Vec::new();
         let mut active_calls_map: HashMap<DefId, u64> = HashMap::new();
         let mut body_visitor = BodyVisitor::new(
             self,
@@ -273,8 +273,8 @@ impl<'compilation, 'tcx> CrateVisitor<'compilation, 'tcx> {
                 }
             }
             fn compare_diagnostics<'a>(
-                x: &DiagnosticBuilder<'a, ()>,
-                y: &DiagnosticBuilder<'a, ()>,
+                x: &Diag<'a, ()>,
+                y: &Diag<'a, ()>,
             ) -> Ordering {
                 if x.span.primary_spans().lt(y.span.primary_spans()) {
                     Ordering::Less

@@ -17,7 +17,6 @@ use lazy_static::lazy_static;
 use log::debug;
 use log_derive::*;
 use mirai_annotations::*;
-use std::convert::TryFrom;
 use std::ffi::{CStr, CString};
 use std::fmt::{Debug, Formatter, Result};
 use std::rc::Rc;

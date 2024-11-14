@@ -14,7 +14,6 @@ use rustc_hir::def_id::DefId;
 use rustc_middle::ty::TyCtxt;
 use serde::ser::{SerializeMap, Serializer};
 use serde::{Deserialize, Serialize};
-use serde_json;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs;

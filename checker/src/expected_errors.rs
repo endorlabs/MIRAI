@@ -3,7 +3,7 @@
 // This source code is licensed under the MIT license found in the
 // LICENSE file in the root directory of this source tree.
 
-use rustc_errors::DiagnosticBuilder;
+use rustc_errors::Diag;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
@@ -34,7 +34,7 @@ impl ExpectedErrors {
 
     /// Checks if the given set of diagnostics matches the expected diagnostics.
     #[logfn_inputs(TRACE)]
-    pub fn check_messages(&mut self, diagnostics: &[DiagnosticBuilder<'_, ()>]) -> bool {
+    pub fn check_messages(&mut self, diagnostics: &[Diag<'_, ()>]) -> bool {
         for diag in diagnostics.iter() {
             if !self.remove_message(&diag.span, Self::expect_str(&diag.messages[0].0)) {
                 return false;

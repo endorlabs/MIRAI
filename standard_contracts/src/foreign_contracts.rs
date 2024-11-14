@@ -2856,13 +2856,11 @@ pub mod core {
             atomic_store!(move_val_init__usize, usize);
             atomic_store!(move_val_init__i128, i128);
             atomic_store!(move_val_init__u128, u128);
-            pub fn min_align_of<T>() -> usize {
-                4
-            }
-            // pub fn pref_align_of<T>() -> usize {
-            //     result!()
-            // }
-            //todo: implement these inside MIRAI
+
+            // Call to these are not present in optimized MIR
+            // default_contract!(min_align_of);
+            // default_contract!(pref_align_of);
+
             pub fn type_name<T: ?Sized>() -> &'static str {
                 result!()
             }
@@ -3160,6 +3158,10 @@ pub mod core {
             // pub fn nontemporal_store<T>(ptr: *mut T, val: T) {
             //     *ptr = val;
             // }
+            pub fn ptr_mask<T>(ptr: *const T, mask: usize) -> *const T {
+                // todo: implement this inside MIRAI
+                result!()
+            }
             pub fn ptr_offset_from<T>(ptr: *const T, base: *const T) -> isize {
                 // todo: implement this inside MIRAI
                 result!()

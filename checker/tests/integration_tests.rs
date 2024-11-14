@@ -25,7 +25,6 @@ extern crate tempfile;
 use std::collections::HashMap;
 use std::fs;
 use std::fs::read_to_string;
-use std::iter::FromIterator;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 

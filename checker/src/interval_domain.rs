@@ -9,7 +9,6 @@ use crate::expression::ExpressionType::{self, *};
 use log_derive::*;
 use serde::{Deserialize, Serialize};
 use std::cmp;
-use std::convert::TryFrom;
 
 /// An element of the Interval domain is a range of i128 numbers denoted by a lower bound and
 /// upper bound. A lower bound of i128::MIN denotes -infinity and an upper bound of
