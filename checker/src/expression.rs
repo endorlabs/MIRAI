@@ -1209,7 +1209,7 @@ impl Expression {
         )
     }
 
-    #[logfn_inputs(DEBUG)]
+    #[logfn_inputs(TRACE)]
     pub fn is_memory_reference(&self) -> bool {
         match self {
             Expression::Cast {

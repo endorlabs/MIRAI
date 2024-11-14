@@ -136,8 +136,7 @@ fn main() {
         let compiler =
             rustc_driver::RunCompiler::new(&rustc_command_line_arguments, &mut callbacks);
         compiler.run()
-    })
-    .and_then(|result| result);
+    });
     let exit_code = match result {
         Ok(_) => rustc_driver::EXIT_SUCCESS,
         Err(_) => rustc_driver::EXIT_FAILURE,

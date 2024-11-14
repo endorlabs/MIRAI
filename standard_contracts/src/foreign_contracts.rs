@@ -1213,7 +1213,23 @@ pub mod core {
         }
     }
 
+    pub mod hint {
+        pub mod assert_unchecked {
+            pub fn precondition_check() {
+
+            }
+        }
+    }
+
     pub mod intrinsics {
+        pub mod copy_nonoverlapping {
+            pub fn precondition_check() {}
+        }
+
+        pub mod write_bytes {
+            pub fn precondition_check() {}
+        }
+
         pub mod foreign {
             // pub unsafe fn atomic_cxchg_seqcst_seqcst<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
             //     if abstract_value!(true) {
@@ -3780,8 +3796,23 @@ pub mod core {
         }
     }
 
+    pub mod panicking {
+        pub fn panic_nounwind_fmt() {
+
+        }
+    }
+
     pub mod ptr {
         pub fn drop_in_place() {}
+
+        pub mod non_null {
+            pub mod implement {
+                pub mod new_unchecked {
+                    pub fn precondition_check() {
+                    }
+                }
+            }
+        }
 
         pub unsafe fn swap<T>(x: *mut T, y: *mut T)
         where
@@ -3819,6 +3850,14 @@ pub mod core {
             T: Copy,
         {
             *src
+        }
+
+        pub mod read_volatile {
+            pub fn precondition_check(message: &str, condition: bool) {
+                if !condition {
+                    panic!("{}", message);
+                }
+            }
         }
 
         pub unsafe fn write<T>(dst: *mut T, src: T)
@@ -3918,6 +3957,16 @@ pub mod core {
         pub mod memchr {
             default_contract!(memchr);
             default_contract!(memrchr);
+        }
+
+        pub mod raw {
+            pub mod from_raw_parts {
+                pub fn precondition_check() {}
+            }
+
+            pub mod from_raw_parts_mut {
+                pub fn precondition_check() {}
+            }
         }
     }
 

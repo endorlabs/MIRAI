@@ -299,9 +299,19 @@ impl KnownNamesCache {
                             .map(|n| match n.as_str() {
                                 "copy" => KnownNames::StdIntrinsicsCopy,
                                 "copy_nonoverlapping" => {
-                                    KnownNames::StdIntrinsicsCopyNonOverlapping
+                                    if def_path_data_iter.next().is_some() {
+                                        KnownNames::None
+                                    } else {
+                                        KnownNames::StdIntrinsicsCopyNonOverlapping
+                                    }
                                 }
-                                "write_bytes" => KnownNames::StdIntrinsicsWriteBytes,
+                                "write_bytes" => {
+                                    if def_path_data_iter.next().is_some() {
+                                        KnownNames::None
+                                    } else {
+                                        KnownNames::StdIntrinsicsWriteBytes
+                                    }
+                                }
                                 _ => KnownNames::None,
                             })
                             .unwrap_or(KnownNames::None)
@@ -373,7 +383,13 @@ impl KnownNamesCache {
             ) {
                 Some(0) => get_path_data_elem_name(def_path_data_iter.next())
                     .map(|n| match n.as_str() {
-                        "write_bytes" => KnownNames::StdIntrinsicsWriteBytes,
+                        "write_bytes" => {
+                            if def_path_data_iter.next().is_some() {
+                                KnownNames::None
+                            } else {
+                                KnownNames::StdIntrinsicsWriteBytes
+                            }
+                        },
                         _ => KnownNames::None,
                     })
                     .unwrap_or(KnownNames::None),

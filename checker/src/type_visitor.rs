@@ -230,7 +230,7 @@ impl<'tcx> TypeVisitor<'tcx> {
 
     /// Returns a parameter environment for the current function.
     pub fn get_param_env(&self) -> rustc_middle::ty::ParamEnv<'tcx> {
-        let env_def_id = if self.tcx.is_closure_or_coroutine(self.def_id) {
+        let env_def_id = if self.tcx.is_closure_like(self.def_id) {
             self.tcx.typeck_root_def_id(self.def_id)
         } else {
             self.def_id
@@ -1098,7 +1098,7 @@ impl<'tcx> TypeVisitor<'tcx> {
                     if projection_trait == self.tcx.lang_items().pointee_trait() {
                         assume!(!specialized_substs.is_empty());
                         if let GenericArgKind::Type(ty) = specialized_substs[0].unpack() {
-                            return ty.ptr_metadata_ty(self.tcx, |ty| ty).0;
+                            return ty.ptr_metadata_ty(self.tcx, |ty| ty);
                         }
                     } else if projection_trait == self.tcx.lang_items().discriminant_kind_trait() {
                         assume!(!specialized_substs.is_empty());

@@ -2087,6 +2087,18 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                     // discard higher order bits since they wont fit into the target field
                     val = val.unsigned_modulo(target_bits_to_write);
                 }
+                if let Expression::Reference(p) = &val.expression {
+                    if target_expression_type == ExpressionType::Usize {
+                        if matches!(p.value, PathEnum::HeapBlock {..}) {
+                            let layout_path = Path::new_layout(p.clone());
+                            if let Some(layout) = self.current_environment.value_at(&layout_path) {
+                                if let Expression::HeapBlockLayout { alignment, ..} = &layout.expression {
+                                    val = alignment.clone();
+                                }
+                            }
+                        }
+                    }
+                }
                 if source_expression_type != target_expression_type {
                     val = val.transmute(target_expression_type);
                 }
