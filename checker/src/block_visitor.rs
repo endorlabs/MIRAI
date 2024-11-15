@@ -328,8 +328,8 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             mir::TerminatorKind::CoroutineDrop => assume_unreachable!(),
             mir::TerminatorKind::FalseEdge { .. } => assume_unreachable!(),
             mir::TerminatorKind::FalseUnwind { .. } => assume_unreachable!(),
-            mir::TerminatorKind::InlineAsm { destination, .. } => {
-                self.visit_inline_asm(destination);
+            mir::TerminatorKind::InlineAsm { targets, .. } => {
+                self.visit_inline_asm(targets);
             }
         }
     }
@@ -1665,7 +1665,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
 
     /// Execute a piece of inline Assembly.
     #[logfn_inputs(TRACE)]
-    fn visit_inline_asm(&mut self, target: &Option<mir::BasicBlock>) {
+    fn visit_inline_asm(&mut self, targets: &[mir::BasicBlock]) {
         let span = self.bv.current_span;
         let warning = self
             .bv
@@ -1676,7 +1676,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         self.bv.emit_diagnostic(warning);
         // Don't stop the analysis if we are building a call graph.
         self.bv.analysis_is_incomplete = self.bv.cv.options.call_graph_config.is_none();
-        if let Some(target) = target {
+        if let Some(target) = targets.get(0) {
             // Propagate the entry condition to the successor block.
             self.bv
                 .current_environment
@@ -2481,7 +2481,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     )
                 }
             }
-            mir::NullOp::DebugAssertions => {
+            mir::NullOp::UbCheck(_) => {
                 let val = self.bv.tcx.sess.opts.debug_assertions;
                 Rc::new(val.into())
             }

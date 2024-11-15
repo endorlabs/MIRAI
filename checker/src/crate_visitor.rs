@@ -181,7 +181,7 @@ impl<'compilation, 'tcx> CrateVisitor<'compilation, 'tcx> {
         // Analysis local foreign contracts are not summarized and cached on demand, so we need to do it here.
         let summary = body_visitor.visit_body(&[]);
         let kind = self.tcx.def_kind(def_id);
-        if matches!(kind, rustc_hir::def::DefKind::Static(..))
+        if matches!(kind, rustc_hir::def::DefKind::Static{..})
             || utils::is_foreign_contract(self.tcx, def_id)
         {
             self.summary_cache.set_summary_for(def_id, summary);

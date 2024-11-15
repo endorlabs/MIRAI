@@ -206,8 +206,10 @@ fn append_mangled_type<'tcx>(str: &mut String, ty: Ty<'tcx>, tcx: TyCtxt<'tcx>) 
         }
         TyKind::Float(float_ty) => {
             str.push_str(match float_ty {
+                FloatTy::F16 => "f16",
                 FloatTy::F32 => "f32",
                 FloatTy::F64 => "f64",
+                FloatTy::F128 => "f128",
             });
         }
         TyKind::Adt(def, subs) => {

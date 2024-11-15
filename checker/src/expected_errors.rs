@@ -13,7 +13,7 @@ use std::str::FromStr;
 use log_derive::logfn_inputs;
 
 use mirai_annotations::assume;
-use rustc_errors::{DiagnosticMessage, MultiSpan};
+use rustc_errors::{DiagMessage, MultiSpan};
 
 /// A collection of error strings that are expected for a test case.
 #[derive(Debug)]
@@ -52,9 +52,9 @@ impl ExpectedErrors {
         true
     }
 
-    fn expect_str(diag: &DiagnosticMessage) -> &str {
+    fn expect_str(diag: &DiagMessage) -> &str {
         match diag {
-            DiagnosticMessage::Str(s) => s,
+            DiagMessage::Str(s) => s,
             _ => panic!("expected non-translatable diagnostic message"),
         }
     }
