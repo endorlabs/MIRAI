@@ -1361,7 +1361,7 @@ impl CallSiteOutput {
         let mut calls = vec![];
         let mut sites: Vec<(&rustc_span::Span, &(DefId, DefId))> =
             call_graph.call_sites.iter().collect();
-        sites.sort();
+        sites.sort_by(|a, b| a.0.cmp(b.0));
         for (loc, (caller, callee)) in sites.iter() {
             let source_loc = loc.source_callsite();
             if let Ok(line_and_file) = source_map.span_to_lines(source_loc) {

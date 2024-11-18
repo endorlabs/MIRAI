@@ -1619,12 +1619,46 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         }
 
         fn get_assert_msg_description<'tcx>(msg: &mir::AssertMessage<'tcx>) -> &'tcx str {
+            use mir::AssertKind::*;
+            use rustc_hir::CoroutineKind;
+            use rustc_hir::CoroutineDesugaring;
+            use mir::BinOp;
             match msg {
-                mir::AssertKind::BoundsCheck { .. } => "index out of bounds",
-                mir::AssertKind::MisalignedPointerDereference { .. } => {
+                BoundsCheck { .. } => "index out of bounds",
+                MisalignedPointerDereference { .. } => {
                     "misaligned pointer dereference"
                 }
-                _ => msg.description(),
+                Overflow(BinOp::Add, _, _) => "attempt to add with overflow",
+                Overflow(BinOp::Sub, _, _) => "attempt to subtract with overflow",
+                Overflow(BinOp::Mul, _, _) => "attempt to multiply with overflow",
+                Overflow(BinOp::Div, _, _) => "attempt to divide with overflow",
+                Overflow(BinOp::Rem, _, _) => "attempt to calculate the remainder with overflow",
+                OverflowNeg(_) => "attempt to negate with overflow",
+                Overflow(BinOp::Shr, _, _) => "attempt to shift right with overflow",
+                Overflow(BinOp::Shl, _, _) => "attempt to shift left with overflow",
+                Overflow(..) => "bug, op cannot overflow",
+                DivisionByZero(_) => "attempt to divide by zero",
+                RemainderByZero(_) => "attempt to calculate the remainder with a divisor of zero",
+                ResumedAfterReturn(CoroutineKind::Coroutine(_)) => "coroutine resumed after completion",
+                ResumedAfterReturn(CoroutineKind::Desugared(CoroutineDesugaring::Async, _)) => {
+                    "`async fn` resumed after completion"
+                }
+                ResumedAfterReturn(CoroutineKind::Desugared(CoroutineDesugaring::AsyncGen, _)) => {
+                    "`async gen fn` resumed after completion"
+                }
+                ResumedAfterReturn(CoroutineKind::Desugared(CoroutineDesugaring::Gen, _)) => {
+                    "`gen fn` should just keep returning `None` after completion"
+                }
+                ResumedAfterPanic(CoroutineKind::Coroutine(_)) => "coroutine resumed after panicking",
+                ResumedAfterPanic(CoroutineKind::Desugared(CoroutineDesugaring::Async, _)) => {
+                    "`async fn` resumed after panicking"
+                }
+                ResumedAfterPanic(CoroutineKind::Desugared(CoroutineDesugaring::AsyncGen, _)) => {
+                    "`async gen fn` resumed after panicking"
+                }
+                ResumedAfterPanic(CoroutineKind::Desugared(CoroutineDesugaring::Gen, _)) => {
+                    "`gen fn` should just keep returning `None` after panicking"
+                }
             }
         }
     }
@@ -1906,10 +1940,8 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         let deref_ty = self.type_visitor().get_dereferenced_type(target_type);
                         let thin_ptr_ty = Ty::new_ptr(
                             self.bv.tcx,
-                            rustc_middle::ty::TypeAndMut {
-                                ty: deref_ty,
-                                mutbl: rustc_hir::Mutability::Not,
-                            },
+                            deref_ty,
+                            rustc_hir::Mutability::Not,
                         );
                         let ptr_val = self
                             .bv
@@ -2481,7 +2513,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     )
                 }
             }
-            mir::NullOp::UbCheck(_) => {
+            mir::NullOp::UbChecks => {
                 let val = self.bv.tcx.sess.opts.debug_assertions;
                 Rc::new(val.into())
             }
@@ -3461,7 +3493,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     .update_value_at(target_path, AbstractValue::make_reference(str_path));
                 &[]
             }
-            TyKind::RawPtr(rustc_middle::ty::TypeAndMut { .. }) | TyKind::Ref(..) => {
+            TyKind::RawPtr(..) | TyKind::Ref(..) => {
                 // serialized pointers are not the values pointed to, just some number.
                 // todo: figure out how to deference that number and deserialize the
                 // value to which this pointer refers.

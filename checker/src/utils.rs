@@ -294,13 +294,13 @@ fn append_mangled_type<'tcx>(str: &mut String, ty: Ty<'tcx>, tcx: TyCtxt<'tcx>) 
             str.push_str("slice_");
             append_mangled_type(str, *ty, tcx);
         }
-        TyKind::RawPtr(ty_and_mut) => {
+        TyKind::RawPtr(ty, mutbl) => {
             str.push_str("pointer_");
-            match ty_and_mut.mutbl {
+            match mutbl {
                 rustc_hir::Mutability::Mut => str.push_str("mut_"),
                 rustc_hir::Mutability::Not => str.push_str("const_"),
             }
-            append_mangled_type(str, ty_and_mut.ty, tcx);
+            append_mangled_type(str, *ty, tcx);
         }
         TyKind::Ref(_, ty, mutability) => {
             str.push_str("ref_");

@@ -4,6 +4,7 @@
 // LICENSE file in the root directory of this source tree.
 #![allow(clippy::float_cmp)]
 
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter, Result};
 use std::rc::Rc;
@@ -82,7 +83,7 @@ impl Debug for ConstantDomain {
 
 /// Information that identifies a function or generic function instance.
 /// Used to find cached function summaries.
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialOrd, PartialEq, Hash, Ord)]
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct FunctionReference {
     /// The crate specific key that is used to identify the function in the current crate.
     /// This is not available for functions returned by calls to functions from other crates,
@@ -104,6 +105,28 @@ pub struct FunctionReference {
     /// a summary. This is necessary when a trait method cannot be accurately summarized
     /// in a generic way. For example std::ops::eq.
     pub argument_type_key: Rc<str>,
+}
+
+impl PartialOrd for FunctionReference {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        let mut result = self.generic_arguments.partial_cmp(&other.generic_arguments);
+        if matches!(result, Some(Ordering::Equal)) {
+            result = self.known_name.partial_cmp(&other.known_name);
+            if matches!(result, Some(Ordering::Equal)) {
+                result = self.summary_cache_key.partial_cmp(&other.summary_cache_key);
+                if matches!(result, Some(Ordering::Equal)) {
+                    result = self.argument_type_key.partial_cmp(&other.argument_type_key);
+                }
+            }
+        }
+        result
+    }
+}
+
+impl Ord for FunctionReference {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
+    }
 }
 
 /// Constructors

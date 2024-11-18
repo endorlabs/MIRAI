@@ -18,7 +18,6 @@ use rustc_middle::mir;
 use rustc_middle::ty::{
     AdtDef, Const, ConstKind, ExistentialPredicate, ExistentialProjection, ExistentialTraitRef,
     FnSig, GenericArg, GenericArgKind, GenericArgs, GenericArgsRef, ParamTy, Ty, TyCtxt, TyKind,
-    TypeAndMut,
 };
 use rustc_target::abi::VariantIdx;
 
@@ -198,7 +197,7 @@ impl<'tcx> TypeVisitor<'tcx> {
     pub fn get_elem_type_size(&self, ty: Ty<'tcx>) -> u64 {
         match ty.kind() {
             TyKind::Array(ty, _) | TyKind::Slice(ty) => self.get_type_size(*ty),
-            TyKind::RawPtr(t) => self.get_type_size(t.ty),
+            TyKind::RawPtr(ty, _) => self.get_type_size(*ty),
             _ => 1,
         }
     }
@@ -288,7 +287,7 @@ impl<'tcx> TypeVisitor<'tcx> {
     #[logfn_inputs(TRACE)]
     pub fn is_slice_pointer(&self, ty_kind: &TyKind<'tcx>) -> bool {
         match ty_kind {
-            TyKind::RawPtr(TypeAndMut { ty: target, .. }) | TyKind::Ref(_, target, _) => {
+            TyKind::RawPtr(target, _) | TyKind::Ref(_, target, _) => {
                 trace!("target type {:?}", target.kind());
                 // Pointers to sized arrays are thin pointers.
                 matches!(target.kind(), TyKind::Slice(..) | TyKind::Str)
@@ -311,7 +310,7 @@ impl<'tcx> TypeVisitor<'tcx> {
     #[logfn_inputs(TRACE)]
     pub fn is_thin_pointer(&self, ty_kind: &TyKind<'tcx>) -> bool {
         match ty_kind {
-            TyKind::RawPtr(TypeAndMut { ty: target, .. }) | TyKind::Ref(_, target, _) => {
+            TyKind::RawPtr(target, _) | TyKind::Ref(_, target, _) => {
                 !matches!(target.kind(), TyKind::Slice(..) | TyKind::Str)
             }
             _ => false,
@@ -379,10 +378,8 @@ impl<'tcx> TypeVisitor<'tcx> {
             }
             PathEnum::HeapBlock { .. } => Ty::new_ptr(
                 self.tcx,
-                rustc_middle::ty::TypeAndMut {
-                    ty: self.tcx.types.u8,
-                    mutbl: rustc_hir::Mutability::Not,
-                },
+                self.tcx.types.u8,
+                rustc_hir::Mutability::Not,
             ),
             PathEnum::Offset { value } => {
                 if let Expression::Offset { left, .. } = &value.expression {
@@ -476,10 +473,8 @@ impl<'tcx> TypeVisitor<'tcx> {
                                         // Field 0 of a sized array is a raw pointer to the array element type
                                         return Ty::new_ptr(
                                             self.tcx,
-                                            rustc_middle::ty::TypeAndMut {
-                                                ty: *elem_ty,
-                                                mutbl: rustc_hir::Mutability::Not,
-                                            },
+                                            *elem_ty,
+                                            rustc_hir::Mutability::Not,
                                         );
                                     }
                                     1 => {
@@ -535,10 +530,8 @@ impl<'tcx> TypeVisitor<'tcx> {
                                         // Field 0 of a str is a raw pointer to char
                                         return Ty::new_ptr(
                                             self.tcx,
-                                            rustc_middle::ty::TypeAndMut {
-                                                ty: self.tcx.types.char,
-                                                mutbl: rustc_hir::Mutability::Not,
-                                            },
+                                            self.tcx.types.char,
+                                            rustc_hir::Mutability::Not,
                                         );
                                     }
                                     1 => {
@@ -562,10 +555,8 @@ impl<'tcx> TypeVisitor<'tcx> {
                                             // Field 0 of a slice pointer is a raw pointer to the slice element type
                                             return Ty::new_ptr(
                                                 self.tcx,
-                                                rustc_middle::ty::TypeAndMut {
-                                                    ty: self.get_element_type(t),
-                                                    mutbl: rustc_hir::Mutability::Mut,
-                                                },
+                                                self.get_element_type(t),
+                                                rustc_hir::Mutability::Mut,
                                             );
                                         }
                                         1 => {
@@ -680,7 +671,7 @@ impl<'tcx> TypeVisitor<'tcx> {
     #[logfn_inputs(TRACE)]
     pub fn get_dereferenced_type(&self, ty: Ty<'tcx>) -> Ty<'tcx> {
         match ty.kind() {
-            TyKind::RawPtr(ty_and_mut) => ty_and_mut.ty,
+            TyKind::RawPtr(ty, _) => *ty,
             TyKind::Ref(_, t, _) => *t,
             _ => {
                 if ty.is_box() {
@@ -697,7 +688,7 @@ impl<'tcx> TypeVisitor<'tcx> {
     pub fn get_element_type(&self, ty: Ty<'tcx>) -> Ty<'tcx> {
         match &ty.kind() {
             TyKind::Array(t, _) => *t,
-            TyKind::RawPtr(TypeAndMut { ty: t, .. }) | TyKind::Ref(_, t, _) => match t.kind() {
+            TyKind::RawPtr(t, _) | TyKind::Ref(_, t, _) => match t.kind() {
                 TyKind::Array(t, _) => *t,
                 TyKind::Slice(t) => *t,
                 TyKind::Str => self.tcx.types.char,
@@ -754,10 +745,8 @@ impl<'tcx> TypeVisitor<'tcx> {
                             let param_path = p.replace_root(arg_path, Path::new_parameter(i + 1));
                             let ptr_ty = Ty::new_ptr(
                                 self.tcx,
-                                rustc_middle::ty::TypeAndMut {
-                                    ty: *ty,
-                                    mutbl: rustc_hir::Mutability::Not,
-                                },
+                                *ty,
+                                rustc_hir::Mutability::Not,
                             );
                             result.insert(param_path, ptr_ty);
                         }
@@ -880,10 +869,8 @@ impl<'tcx> TypeVisitor<'tcx> {
                         return Ty::new_ref(
                             self.tcx,
                             *region,
-                            rustc_middle::ty::TypeAndMut {
-                                ty: self.actual_argument_types[0],
-                                mutbl: *mutbl,
-                            },
+                            self.actual_argument_types[0],
+                            *mutbl,
                         );
                     }
                 }
@@ -906,7 +893,7 @@ impl<'tcx> TypeVisitor<'tcx> {
             .fold(base_ty, |base_ty, projection_elem| match projection_elem {
                 mir::ProjectionElem::Deref => match base_ty.kind() {
                     TyKind::Adt(..) => base_ty,
-                    TyKind::RawPtr(ty_and_mut) => ty_and_mut.ty,
+                    TyKind::RawPtr(ty, _) => *ty,
                     TyKind::Ref(_, ty, _) => *ty,
                     _ => {
                         info!(
@@ -1130,14 +1117,12 @@ impl<'tcx> TypeVisitor<'tcx> {
                 let specialized_elem_ty = self.specialize_generic_argument_type(*elem_ty, map);
                 Ty::new_slice(self.tcx, specialized_elem_ty)
             }
-            TyKind::RawPtr(rustc_middle::ty::TypeAndMut { ty, mutbl }) => {
+            TyKind::RawPtr(ty, mutbl) => {
                 let specialized_ty = self.specialize_generic_argument_type(*ty, map);
                 Ty::new_ptr(
                     self.tcx,
-                    rustc_middle::ty::TypeAndMut {
-                        ty: specialized_ty,
-                        mutbl: *mutbl,
-                    },
+                    specialized_ty,
+                    *mutbl,
                 )
             }
             TyKind::Ref(region, ty, mutbl) => {
@@ -1145,10 +1130,8 @@ impl<'tcx> TypeVisitor<'tcx> {
                 Ty::new_ref(
                     self.tcx,
                     *region,
-                    rustc_middle::ty::TypeAndMut {
-                        ty: specialized_ty,
-                        mutbl: *mutbl,
-                    },
+                    specialized_ty,
+                    *mutbl,
                 )
             }
             TyKind::FnDef(def_id, args) => {

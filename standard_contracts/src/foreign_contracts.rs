@@ -117,6 +117,8 @@ pub mod alloc {
             assume_unreachable!("capacity overflow");
         }
 
+        default_contract!(handle_error);
+
         pub mod implement_alloc_raw_vec_RawVec_generic_par_T_alloc_alloc_Global {
             use std::ptr::Unique;
 
@@ -3799,10 +3801,9 @@ pub mod core {
     }
 
     pub mod panicking {
-        pub fn panic_nounwind_fmt() {
-
-        }
-    }
+        default_contract!(panic_nounwind);
+        default_contract!(panic_nounwind_fmt);
+   }
 
     pub mod ptr {
         pub fn drop_in_place() {}

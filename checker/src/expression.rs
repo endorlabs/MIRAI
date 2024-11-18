@@ -11,7 +11,7 @@ use log_derive::*;
 use serde::{Deserialize, Serialize};
 
 use mirai_annotations::*;
-use rustc_middle::ty::{FloatTy, IntTy, Ty, TyCtxt, TyKind, TypeAndMut, UintTy};
+use rustc_middle::ty::{FloatTy, IntTy, Ty, TyCtxt, TyKind, UintTy};
 
 use crate::abstract_value::{AbstractValue, AbstractValueTrait};
 use crate::constant_domain::ConstantDomain;
@@ -1428,7 +1428,7 @@ impl ExpressionType {
             TyKind::Uint(UintTy::U128) => ExpressionType::U128,
             TyKind::Float(FloatTy::F32) => ExpressionType::F32,
             TyKind::Float(FloatTy::F64) => ExpressionType::F64,
-            TyKind::RawPtr(TypeAndMut { ty: target, .. }) | TyKind::Ref(_, target, _) => {
+            TyKind::RawPtr(target, _) | TyKind::Ref(_, target, _) => {
                 if matches!(target.kind(), TyKind::Slice(..) | TyKind::Str) {
                     // Such pointer types are non primitive because they are (pointer, length) tuples.
                     ExpressionType::NonPrimitive

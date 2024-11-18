@@ -38,6 +38,7 @@ log = "*"
 log-derive = "*"
 mirai-annotations = { path = "../annotations" }
 petgraph = "*"
+proc-macro2 = "=1.0.79"
 rand = "*"
 rayon = "*"
 regex = "*"
