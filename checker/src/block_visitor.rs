@@ -2108,10 +2108,10 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             // An exposing pointer to address cast. A cast between a pointer and an integer type, or
             // between a function pointer and an integer type.
             // See the docs on `expose_addr` for more details.
-            mir::CastKind::PointerExposeAddress
+            mir::CastKind::PointerExposeProvenance
             // An address-to-pointer cast that picks up an exposed provenance.
             // See the docs on `from_exposed_addr` for more details.
-            | mir::CastKind::PointerFromExposedAddress
+            | mir::CastKind::PointerWithExposedProvenance
             // All sorts of pointer-to-pointer casts. Note that reference-to-raw-ptr casts are
             // translated into `&raw mut/const *r`, i.e., they are not actually casts.
             | mir::CastKind::PointerCoercion(..)
@@ -2295,7 +2295,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
     #[logfn_inputs(TRACE)]
     fn visit_binary_op(
         &mut self,
-        path: Rc<Path>,
+        mut path: Rc<Path>,
         bin_op: mir::BinOp,
         left_operand: &mir::Operand<'tcx>,
         right_operand: &mir::Operand<'tcx>,
@@ -2308,6 +2308,10 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             mir::BinOp::BitAnd => left.bit_and(right),
             mir::BinOp::BitOr => left.bit_or(right),
             mir::BinOp::BitXor => left.bit_xor(right),
+            mir::BinOp::Cmp => {
+                path = Path::new_discriminant(path);
+                left.compare(right)
+            },
             mir::BinOp::Div => left.divide(right),
             mir::BinOp::Eq => left.equals(right),
             mir::BinOp::Ge => left.greater_or_equal(right),
@@ -3109,6 +3113,28 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                                     );
                                 }
                             },
+                            TyKind::Adt(def, _) if def.is_enum() => {
+                                assume_unreachable!("ConstValue::Scalar with type {:?}", lty);
+                            }
+                            TyKind::Adt(..) => {
+                                let (heap_val, heap_path) = self.bv.get_new_heap_block(
+                                    Rc::new((bytes.len() as u128).into()),
+                                    Rc::new(1u128.into()),
+                                    false,
+                                    lty,
+                                );
+                                let bytes_left_to_deserialize = self
+                                    .deserialize_constant_bytes(heap_path.clone(), bytes, lty);
+                                if !bytes_left_to_deserialize.is_empty() {
+                                    debug!("span: {:?}", self.bv.current_span);
+                                    debug!("type kind {:?}", lty.kind());
+                                    debug!(
+                                            "constant value did not serialize correctly {:?}",
+                                            val
+                                        );
+                                }
+                                heap_val
+                            }
                             _ => {
                                 assume_unreachable!("ConstValue::Scalar with type {:?}", lty);
                             }

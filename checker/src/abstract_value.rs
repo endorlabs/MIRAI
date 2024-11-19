@@ -762,6 +762,8 @@ pub trait AbstractValueTrait: Sized {
     #[must_use]
     fn cast(&self, target_type: ExpressionType) -> Self;
     #[must_use]
+    fn compare(&self, other: Self) -> Self;
+    #[must_use]
     fn conditional_expression(&self, consequent: Self, alternate: Self) -> Self;
     #[must_use]
     fn dereference(&self, target_type: ExpressionType) -> Self;
@@ -1985,6 +1987,18 @@ impl AbstractValueTrait for Rc<AbstractValue> {
                 }
             }
         }
+    }
+
+    /// Returns an element that is "self.cmp(other)".
+    #[logfn_inputs(TRACE)]
+    #[must_use]
+    fn compare(&self, other: Self) -> Self {
+        let zero = Rc::new(ConstantDomain::I128(0).into());
+        let one = Rc::new(ConstantDomain::I128(1).into());
+        let minus_one = Rc::new(ConstantDomain::I128(-1).into());
+        let eq = self.equals(other.clone());
+        let lt = self.less_than(other.clone());
+        eq.conditional_expression(zero, lt.conditional_expression(minus_one, one))
     }
 
     /// Returns an element that is "if self { consequent } else { alternate }".
@@ -6596,7 +6610,9 @@ impl AbstractValueTrait for Rc<AbstractValue> {
                 length,
             } => {
                 let refined_length = length.refine_with(path_condition, depth + 1);
-                AbstractValue::make_memcmp(left.clone(), right.clone(), refined_length)
+                let refined_left = left.refine_with(path_condition, depth + 1);
+                let refined_right = right.refine_with(path_condition, depth + 1);
+                AbstractValue::make_memcmp(refined_left, refined_right, refined_length)
             }
             Expression::Mul { left, right } => left
                 .refine_with(path_condition, depth + 1)
