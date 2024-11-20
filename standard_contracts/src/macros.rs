@@ -99,7 +99,6 @@ macro_rules! atomic_xchg {
         pub unsafe fn $n(dst: *mut $t, src: $t) -> $t {
             let bw = std::intrinsics::size_of::<$t>();
             precondition!((dst as usize) & (bw - 1) == 0);
-            precondition!((src as usize) & (bw - 1) == 0);
             let result = *dst;
             *dst = src;
             result

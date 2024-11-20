@@ -1799,6 +1799,16 @@ impl AbstractValueTrait for Rc<AbstractValue> {
             // [0 & y] -> 0
             return self.clone();
         }
+        if matches!(other.expression, Expression::Reference(..)) {
+            if let Expression::CompileTimeConstant(ConstantDomain::U128(1))
+            | Expression::CompileTimeConstant(ConstantDomain::U128(3)) | Expression::CompileTimeConstant(ConstantDomain::U128(7)) = self.expression
+            {
+                // [1 & (&y)] -> 0
+                // [3 & (&y)] -> 0
+                // [7 & (&y)] -> 0
+                return Rc::new(ConstantDomain::U128(0).into())
+            }
+        }
         // [x & x] -> x
         if self.eq(&other) {
             return other;
@@ -3267,7 +3277,18 @@ impl AbstractValueTrait for Rc<AbstractValue> {
     fn intrinsic_bit_vector_unary(&self, bit_length: u8, name: KnownNames) -> Self {
         match &self.expression {
             Expression::CompileTimeConstant(v1) => {
-                let result = v1.intrinsic_bit_vector_unary(bit_length, name);
+                let result = match name {
+                    KnownNames::StdIntrinsicsBitreverse |
+                    KnownNames::StdIntrinsicsBswap =>
+                        v1.intrinsic_bit_vector_unary(bit_length, name),
+                    KnownNames::StdIntrinsicsCtlz |
+                    KnownNames::StdIntrinsicsCtlzNonzero |
+                    KnownNames::StdIntrinsicsCtpop |
+                    KnownNames::StdIntrinsicsCttz |
+                    KnownNames::StdIntrinsicsCttzNonzero =>
+                        v1.intrinsic_bit_counting_unary(bit_length, name),
+                    _ => assume_unreachable!("invalid name for intrinsic {:?}", name),
+                };
                 if result != ConstantDomain::Bottom {
                     return Rc::new(result.into());
                 }

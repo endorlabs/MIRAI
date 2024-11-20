@@ -8,6 +8,7 @@
 
 #![allow(unused)]
 #![feature(coroutines)]
+#![feature(stmt_expr_attributes)]
 
 use mirai_annotations::*;
 
@@ -148,7 +149,7 @@ fn test9() {
 }
 
 fn test10() {
-    let _a = || {
+    let _a =  #[coroutine] || {
         yield;
         let a = String::new();
         a.len()

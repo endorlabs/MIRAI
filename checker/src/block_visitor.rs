@@ -2664,6 +2664,34 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     self.visit_use(field_path, operand);
                 }
             }
+
+            // Construct a raw pointer from the data pointer and metadata.
+            //
+            // The `Ty` here is the type of the *pointee*, not the pointer itself.
+            // The `Mutability` indicates whether this produces a `*const` or `*mut`.
+            //
+            // The [`Rvalue::Aggregate`] operands for thus must be
+            //
+            // 0. A raw pointer of matching mutability with any [`core::ptr::Thin`] pointee
+            // 1. A value of the appropriate [`core::ptr::Pointee::Metadata`] type
+            //
+            // *Both* operands must always be included, even the unit value if this is
+            // creating a thin pointer. If you're just converting between thin pointers,
+            // you may want an [`Rvalue::Cast`] with [`CastKind::PtrToPtr`] instead.
+            mir::AggregateKind::RawPtr(ty, mutbl) => {
+                let thin_pointer_path = Path::new_field(path.clone(), 0);
+                let pointer_type =
+                    Ty::new_ptr(
+                        self.bv.tcx,
+                        *ty,
+                        *mutbl,
+                    );
+                self.type_visitor_mut()
+                    .set_path_rustc_type(thin_pointer_path.clone(), pointer_type);
+                self.visit_use(thin_pointer_path, &operands[0usize.into()]);
+                let metadata_path = Path::new_field(path, 1);
+                self.visit_use(metadata_path, &operands[1usize.into()]);
+            }
         }
     }
 
@@ -2997,7 +3025,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
 
     fn get_scalar_int_data(scalar_int: &ScalarInt) -> (u128, usize) {
         let size = scalar_int.size();
-        let data: u128 = scalar_int.to_bits(size).unwrap();
+        let data: u128 = scalar_int.try_to_bits(size).unwrap();
         (data, size.bytes() as usize)
     }
 

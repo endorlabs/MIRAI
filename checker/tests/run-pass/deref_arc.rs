@@ -27,9 +27,7 @@ impl Block {
             return;
         }
         verify!(proposed_block.round() > self.round());
-    } //~ possible unsatisfied precondition
-      //~ related location
-      // todo: fix this
+    }
 }
 
 pub fn main() {}

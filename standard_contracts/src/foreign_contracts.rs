@@ -5308,6 +5308,18 @@ pub mod std {
     }
 
     pub mod sys {
+        pub mod pal {
+            pub mod unix {
+                pub mod thread_parking {
+                    pub mod darwin {
+                        pub mod implement_std_sys_pal_unix_thread_parking_darwin_Parker {
+                            default_contract!(unpark);
+                        }
+                    }
+                }
+            }
+        }
+
         pub mod unix {
             pub mod fast_thread_local {
                 default_contract!(register_dtor);

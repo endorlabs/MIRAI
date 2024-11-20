@@ -579,25 +579,25 @@ impl ConstantDomain {
         }
     }
 
-    /// Returns self.f() where f is an intrinsic unary function.
+    /// Returns self.f() where f is an intrinsic bit vector unary function.
     #[logfn_inputs(TRACE)]
     #[must_use]
     pub fn intrinsic_bit_vector_unary(&self, bit_length: u8, name: KnownNames) -> Self {
         match self {
             ConstantDomain::I128(val) => match bit_length {
-                8 => ConstantDomain::I128(Self::call_intrinsic_unary(*val as i8, name) as i128),
-                16 => ConstantDomain::I128(Self::call_intrinsic_unary(*val as i16, name) as i128),
-                32 => ConstantDomain::I128(Self::call_intrinsic_unary(*val as i32, name) as i128),
-                64 => ConstantDomain::I128(Self::call_intrinsic_unary(*val as i64, name) as i128),
-                128 => ConstantDomain::I128(Self::call_intrinsic_unary(*val, name)),
+                8 => ConstantDomain::I128(Self::call_intrinsic_bit_vector_unary(*val as i8, name) as i128),
+                16 => ConstantDomain::I128(Self::call_intrinsic_bit_vector_unary(*val as i16, name) as i128),
+                32 => ConstantDomain::I128(Self::call_intrinsic_bit_vector_unary(*val as i32, name) as i128),
+                64 => ConstantDomain::I128(Self::call_intrinsic_bit_vector_unary(*val as i64, name) as i128),
+                128 => ConstantDomain::I128(Self::call_intrinsic_bit_vector_unary(*val, name) as i128),
                 _ => assume_unreachable!("invalid bit length for intrinsic {:?}", name),
             },
             ConstantDomain::U128(val) => match bit_length {
-                8 => ConstantDomain::U128(Self::call_intrinsic_unary(*val as u8, name) as u128),
-                16 => ConstantDomain::U128(Self::call_intrinsic_unary(*val as u16, name) as u128),
-                32 => ConstantDomain::U128(Self::call_intrinsic_unary(*val as u32, name) as u128),
-                64 => ConstantDomain::U128(Self::call_intrinsic_unary(*val as u64, name) as u128),
-                128 => ConstantDomain::U128(Self::call_intrinsic_unary(*val, name)),
+                8 => ConstantDomain::U128(Self::call_intrinsic_bit_vector_unary(*val as u8, name) as u128),
+                16 => ConstantDomain::U128(Self::call_intrinsic_bit_vector_unary(*val as u16, name) as u128),
+                32 => ConstantDomain::U128(Self::call_intrinsic_bit_vector_unary(*val as u32, name) as u128),
+                64 => ConstantDomain::U128(Self::call_intrinsic_bit_vector_unary(*val as u64, name) as u128),
+                128 => ConstantDomain::U128(Self::call_intrinsic_bit_vector_unary(*val, name)),
                 _ => assume_unreachable!("invalid bit length for intrinsic {:?}", name),
             },
             _ => {
@@ -608,14 +608,51 @@ impl ConstantDomain {
     }
 
     /// Dispatches val to the named intrinsic function
-    fn call_intrinsic_unary<T>(val: T, name: KnownNames) -> T
+    fn call_intrinsic_bit_vector_unary<T: ?Sized>(val: T, name: KnownNames) -> T
+    where
+        T: Copy,
+    {
+        match name {
+            KnownNames::StdIntrinsicsBitreverse => std::intrinsics::bitreverse(val),
+            KnownNames::StdIntrinsicsBswap => std::intrinsics::bswap(val),
+            _ => assume_unreachable!("invalid argument for intrinsic {:?}", name),
+        }
+    }
+
+    /// Returns self.f() where f is an intrinsic counting unary function.
+    #[logfn_inputs(TRACE)]
+    #[must_use]
+    pub fn intrinsic_bit_counting_unary(&self, bit_length: u8, name: KnownNames) -> Self {
+        match self {
+            ConstantDomain::I128(val) => match bit_length {
+                8 => ConstantDomain::I128(Self::call_intrinsic_bit_counting_unary(*val as i8, name) as i128),
+                16 => ConstantDomain::I128(Self::call_intrinsic_bit_counting_unary(*val as i16, name) as i128),
+                32 => ConstantDomain::I128(Self::call_intrinsic_bit_counting_unary(*val as i32, name) as i128),
+                64 => ConstantDomain::I128(Self::call_intrinsic_bit_counting_unary(*val as i64, name) as i128),
+                128 => ConstantDomain::I128(Self::call_intrinsic_bit_counting_unary(*val, name) as i128),
+                _ => assume_unreachable!("invalid bit length for intrinsic {:?}", name),
+            },
+            ConstantDomain::U128(val) => match bit_length {
+                8 => ConstantDomain::U128(Self::call_intrinsic_bit_counting_unary(*val as u8, name) as u128),
+                16 => ConstantDomain::U128(Self::call_intrinsic_bit_counting_unary(*val as u16, name) as u128),
+                32 => ConstantDomain::U128(Self::call_intrinsic_bit_counting_unary(*val as u32, name) as u128),
+                64 => ConstantDomain::U128(Self::call_intrinsic_bit_counting_unary(*val as u64, name) as u128),
+                128 => ConstantDomain::U128(Self::call_intrinsic_bit_counting_unary(*val, name) as u128),
+                _ => assume_unreachable!("invalid bit length for intrinsic {:?}", name),
+            },
+            _ => {
+                debug!("invalid argument {:?} for intrinsic {:?}", self, name);
+                ConstantDomain::Bottom
+            }
+        }
+    }
+
+    fn call_intrinsic_bit_counting_unary<T: ?Sized>(val: T, name: KnownNames) -> u32
     where
         T: Copy,
     {
         unsafe {
             match name {
-                KnownNames::StdIntrinsicsBitreverse => std::intrinsics::bitreverse(val),
-                KnownNames::StdIntrinsicsBswap => std::intrinsics::bswap(val),
                 KnownNames::StdIntrinsicsCtlz => std::intrinsics::ctlz(val),
                 KnownNames::StdIntrinsicsCtlzNonzero => std::intrinsics::ctlz_nonzero(val),
                 KnownNames::StdIntrinsicsCtpop => std::intrinsics::ctpop(val),
