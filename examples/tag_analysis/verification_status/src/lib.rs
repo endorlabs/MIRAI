@@ -6,6 +6,7 @@
 // This is an example of using tag analysis to record verification status of objects.
 // The code is extracted from a blockchain codebase.
 
+#![allow(unexpected_cfgs)]
 #![cfg_attr(mirai, allow(incomplete_features), feature(generic_const_exprs))]
 
 #[macro_use]

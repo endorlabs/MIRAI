@@ -188,7 +188,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
     ) -> Summary {
         let diag_level = self.cv.options.diag_level;
         let max_analysis_time_for_body = self.cv.options.max_analysis_time_for_body;
-        if cfg!(DEBUG) {
+        if option_env!("PRETTY_PRINT_MIR").is_some() {
             utils::pretty_print_mir(self.tcx, self.def_id);
         }
         debug!("entered body of {:?}", self.def_id);

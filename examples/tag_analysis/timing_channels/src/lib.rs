@@ -7,6 +7,7 @@
 // Use the following flag of MIRAI to enable constant-time verification:
 // MIRAI_FLAGS --constant_time SecretTaintKind
 
+#![allow(unexpected_cfgs)]
 #![cfg_attr(mirai, allow(incomplete_features), feature(generic_const_exprs))]
 
 #[macro_use]

@@ -5,6 +5,7 @@
 
 // This is an example of adding tag-related annotations to trait methods.
 
+#![allow(unexpected_cfgs)]
 #![cfg_attr(mirai, allow(incomplete_features), feature(generic_const_exprs))]
 
 #[macro_use]
