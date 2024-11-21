@@ -49,6 +49,9 @@ impl ThreadRng {
         let src = rng.results;
         const SIZE: usize = core::mem::size_of::<u32>();
         let _chunk_size_u8 = min(src.len() * SIZE, dest.len());
+        //~ possible incomplete analysis of call because of failure to resolve a nested call
+        //~ related location
+        //~ related location
     }
 }
 

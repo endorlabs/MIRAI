@@ -1746,10 +1746,11 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 self.visit_cast(path, *cast_kind, operand, specialized_ty);
             }
             mir::Rvalue::BinaryOp(bin_op, box (left_operand, right_operand)) => {
-                self.visit_binary_op(path, *bin_op, left_operand, right_operand);
-            }
-            mir::Rvalue::CheckedBinaryOp(bin_op, box (left_operand, right_operand)) => {
-                self.visit_checked_binary_op(path, *bin_op, left_operand, right_operand);
+                if let Some(bin_op) = bin_op.overflowing_to_wrapping() {
+                    self.visit_checked_binary_op(path, bin_op, left_operand, right_operand);
+                } else {
+                    self.visit_binary_op(path, *bin_op, left_operand, right_operand);
+                };
             }
             mir::Rvalue::NullaryOp(null_op, ty) => {
                 let specialized_ty = self.type_visitor().specialize_generic_argument_type(
@@ -2133,7 +2134,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         return;
                     }
                 };
-                if matches!(cast_kind, mir::CastKind::PointerCoercion(PointerCoercion::Unsize)){
+                if matches!(cast_kind, mir::CastKind::PointerCoercion(PointerCoercion::Unsize)) {
                     // Unsize a pointer/reference value, e.g., `&[T; n]` to
                     // `&[T]`. Note that the source could be a thin or fat pointer.
                     // This will do things like convert thin pointers to fat
@@ -2192,7 +2193,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     return;
                 }
                 let mut source_path = self.visit_rh_place(place);
-                if matches!(cast_kind, mir::CastKind::PointerCoercion(PointerCoercion::ClosureFnPointer(_))){
+                if matches!(cast_kind, mir::CastKind::PointerCoercion(PointerCoercion::ClosureFnPointer(_))) {
                     source_path = Path::new_function(source_path)
                 }
                 self.bv
@@ -2303,23 +2304,23 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         let left = self.visit_operand(left_operand);
         let right = self.visit_operand(right_operand);
         let mut result = match bin_op {
-            mir::BinOp::Add => left.addition(right),
-            mir::BinOp::AddUnchecked => left.addition(right),
+            mir::BinOp::Add |
+            mir::BinOp::AddUnchecked |
+            mir::BinOp::AddWithOverflow => left.addition(right),
             mir::BinOp::BitAnd => left.bit_and(right),
             mir::BinOp::BitOr => left.bit_or(right),
             mir::BinOp::BitXor => left.bit_xor(right),
             mir::BinOp::Cmp => {
                 path = Path::new_discriminant(path);
                 left.compare(right)
-            },
+            }
             mir::BinOp::Div => left.divide(right),
             mir::BinOp::Eq => left.equals(right),
             mir::BinOp::Ge => left.greater_or_equal(right),
             mir::BinOp::Gt => left.greater_than(right),
             mir::BinOp::Le => left.less_or_equal(right),
             mir::BinOp::Lt => left.less_than(right),
-            mir::BinOp::Mul => left.multiply(right),
-            mir::BinOp::MulUnchecked => left.multiply(right),
+            mir::BinOp::Mul | mir::BinOp::MulUnchecked | mir::BinOp::MulWithOverflow => left.multiply(right),
             mir::BinOp::Ne => left.not_equals(right),
             mir::BinOp::Offset => {
                 let r = left.offset(right);
@@ -2331,8 +2332,8 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             mir::BinOp::ShlUnchecked => left.shift_left(right),
             mir::BinOp::Shr => left.shr(right),
             mir::BinOp::ShrUnchecked => left.shr(right),
-            mir::BinOp::Sub => left.subtract(right),
-            mir::BinOp::SubUnchecked => left.subtract(right),
+            mir::BinOp::Sub |
+            mir::BinOp::SubUnchecked | mir::BinOp::SubWithOverflow => left.subtract(right),
         };
         if let Expression::BitAnd { left, right } = &result.expression {
             if right.expression.is_memory_reference() {
@@ -2540,6 +2541,11 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 } else {
                     operand.logical_not()
                 }
+            }
+            mir::UnOp::PtrMetadata => {
+                let p = Path::new_field(Path::get_as_path(operand), 1);
+                let t = self.type_visitor().get_path_rustc_type(&path, self.bv.current_span);
+                self.bv.lookup_path_and_refine_result(p, t)
             }
         };
         self.bv.update_value_at(path, result);
@@ -3799,8 +3805,8 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                             }
                             _ => assume_unreachable!(),
                         }
-                        .map(|i| i.0)
-                        .unwrap_or_else(|| VariantIdx::new(0));
+                            .map(|i| i.0)
+                            .unwrap_or_else(|| VariantIdx::new(0));
 
                         discr_has_data = false;
                     }
@@ -3951,8 +3957,8 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     return heap_val;
                 }
             }
-            .clone()
-            .into(),
+                .clone()
+                .into(),
         )
     }
 

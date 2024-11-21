@@ -21,12 +21,12 @@ use rustc_middle::ty::{
 };
 use rustc_target::abi::VariantIdx;
 
+use crate::{type_visitor, utils};
 use crate::abstract_value::AbstractValue;
 use crate::constant_domain::ConstantDomain;
 use crate::environment::Environment;
 use crate::expression::{Expression, ExpressionType};
 use crate::path::{Path, PathEnum, PathRefinement, PathRoot, PathSelector};
-use crate::{type_visitor, utils};
 
 #[derive(Debug)]
 pub struct TypeCache<'tcx> {
@@ -1148,7 +1148,7 @@ impl<'tcx> TypeVisitor<'tcx> {
                     FnSig {
                         inputs_and_output: specialized_inputs_and_output,
                         c_variadic: fn_sig.c_variadic,
-                        unsafety: fn_sig.unsafety,
+                        safety: fn_sig.safety,
                         abi: fn_sig.abi,
                     }
                 };
@@ -1166,10 +1166,10 @@ impl<'tcx> TypeVisitor<'tcx> {
                                 })
                             }
                             ExistentialPredicate::Projection(ExistentialProjection {
-                                def_id,
-                                args,
-                                term,
-                            }) => {
+                                                                 def_id,
+                                                                 args,
+                                                                 term,
+                                                             }) => {
                                 if let Some(ty) = term.ty() {
                                     ExistentialPredicate::Projection(ExistentialProjection {
                                         def_id,
