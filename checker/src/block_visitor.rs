@@ -18,7 +18,7 @@ use rustc_middle::mir::{ConstValue, UnwindTerminateReason};
 use rustc_middle::ty::adjustment::PointerCoercion;
 use rustc_middle::ty::layout::LayoutCx;
 use rustc_middle::ty::{
-    Const, FloatTy, IntTy, ParamConst, ScalarInt, Ty, TyKind, UintTy, ValTree, VariantDef,
+    Const, CoroutineArgsExt, FloatTy, IntTy, ParamConst, ScalarInt, Ty, TyKind, UintTy, ValTree, VariantDef,
 };
 use rustc_middle::ty::{GenericArg, GenericArgsRef};
 use rustc_span::source_map::Spanned;
