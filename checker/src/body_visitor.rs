@@ -18,7 +18,6 @@ use rustc_hir::def_id::DefId;
 use rustc_middle::mir;
 use rustc_middle::ty::{AdtDef, Const, GenericArgsRef, Ty, TyCtxt, TyKind, UintTy};
 
-use crate::{k_limits, utils};
 use crate::abstract_value::{self, AbstractValue, AbstractValueTrait, BOTTOM};
 use crate::block_visitor::BlockVisitor;
 use crate::call_visitor::CallVisitor;
@@ -30,15 +29,16 @@ use crate::fixed_point_visitor::FixedPointVisitor;
 use crate::options::DiagLevel;
 use crate::path::{Path, PathEnum, PathSelector};
 use crate::path::{PathRefinement, PathRoot};
-use crate::smt_solver::{SmtResult, SmtSolver};
 #[cfg(not(feature = "z3"))]
 use crate::smt_solver::SolverStub;
+use crate::smt_solver::{SmtResult, SmtSolver};
 use crate::summaries;
 use crate::summaries::{Precondition, Summary};
 use crate::tag_domain::Tag;
 use crate::type_visitor::{self, TypeCache, TypeVisitor};
 #[cfg(feature = "z3")]
 use crate::z3_solver::Z3Solver;
+use crate::{k_limits, utils};
 
 /// Holds the state for the function body visitor.
 pub struct BodyVisitor<'analysis, 'compilation, 'tcx> {
@@ -228,7 +228,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
         };
         if !fixed_point_visitor.bv.analysis_is_incomplete
             || (elapsed_time_in_seconds < max_analysis_time_for_body
-            && diag_level == DiagLevel::Paranoid)
+                && diag_level == DiagLevel::Paranoid)
         {
             // Now traverse the blocks again, doing checks and emitting diagnostics.
             // terminator_state[bb] is now complete for every basic block bb in the body.
@@ -550,7 +550,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
         if (result_type != ExpressionType::ThinPointer
             && result_type != ExpressionType::NonPrimitive)
             && (expression_type == ExpressionType::ThinPointer
-            || expression_type == ExpressionType::NonPrimitive)
+                || expression_type == ExpressionType::NonPrimitive)
         {
             result.dereference(result_type)
         } else {
@@ -1191,13 +1191,13 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                     tpath = tpath.canonicalize(pre_environment)
                 }
                 PathEnum::QualifiedPath { selector, .. }
-                if matches!(
+                    if matches!(
                         selector.as_ref(),
                         PathSelector::Deref | PathSelector::Layout
                     ) =>
-                    {
-                        tpath = tpath.canonicalize(pre_environment)
-                    }
+                {
+                    tpath = tpath.canonicalize(pre_environment)
+                }
                 PathEnum::QualifiedPath {
                     qualifier,
                     selector,
@@ -1630,9 +1630,9 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
             }
             if !cond_as_bool.unwrap_or(true)
                 || self
-                .current_environment
-                .entry_condition
-                .implies_not(cond_val)
+                    .current_environment
+                    .entry_condition
+                    .implies_not(cond_val)
             {
                 return (Some(false), entry_cond_as_bool);
             }
@@ -1864,18 +1864,12 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                     s_path = Path::new_field(s_path, 0);
                     ty = self.type_visitor().remove_transparent_wrapper(ty);
                 }
-                let source_rustc_type = Ty::new_ref(
-                    self.tcx,
-                    *region,
-                    ty,
-                    *mutbl,
-                );
+                let source_rustc_type = Ty::new_ref(self.tcx, *region, ty, *mutbl);
                 let s_ref_val = AbstractValue::make_reference(s_path);
                 let source_path = Path::new_computed(s_ref_val);
                 if self.type_visitor.is_slice_pointer(source_rustc_type.kind()) {
                     let pointer_path = Path::new_field(source_path.clone(), 0);
-                    let pointer_type =
-                        Ty::new_ptr(self.tcx, ty, *mutbl);
+                    let pointer_type = Ty::new_ptr(self.tcx, ty, *mutbl);
                     source_fields.push((pointer_path, pointer_type));
                     let len_path = Path::new_length(source_path);
                     source_fields.push((len_path, self.tcx.types.usize));
@@ -1939,12 +1933,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                     t_path = Path::new_field(t_path, 0);
                     ty = self.type_visitor().remove_transparent_wrapper(ty);
                 }
-                let target_rustc_type = Ty::new_ref(
-                    self.tcx,
-                    *region,
-                    ty,
-                    *mutbl,
-                );
+                let target_rustc_type = Ty::new_ref(self.tcx, *region, ty, *mutbl);
                 let t_ref_val = AbstractValue::make_reference(t_path);
                 let target_path = Path::new_computed(t_ref_val);
                 if self
@@ -2045,7 +2034,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                                         source_path.clone(),
                                         ExpressionType::NonPrimitive,
                                     )
-                                        .canonicalize(&self.current_environment);
+                                    .canonicalize(&self.current_environment);
                                     for (i, ch) in s.as_bytes().iter().enumerate() {
                                         let index = Rc::new((i as u128).into());
                                         let ch_const: Rc<AbstractValue> =
@@ -2084,10 +2073,12 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                 }
                 if let Expression::Reference(p) = &val.expression {
                     if target_expression_type == ExpressionType::Usize {
-                        if matches!(p.value, PathEnum::HeapBlock {..}) {
+                        if matches!(p.value, PathEnum::HeapBlock { .. }) {
                             let layout_path = Path::new_layout(p.clone());
                             if let Some(layout) = self.current_environment.value_at(&layout_path) {
-                                if let Expression::HeapBlockLayout { alignment, .. } = &layout.expression {
+                                if let Expression::HeapBlockLayout { alignment, .. } =
+                                    &layout.expression
+                                {
                                     val = alignment.clone();
                                 }
                             }

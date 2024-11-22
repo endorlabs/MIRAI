@@ -318,7 +318,7 @@ impl KnownNamesCache {
                             .unwrap_or(KnownNames::None)
                     }
                 }
-                _ =>  {
+                _ => {
                     if is_foreign_module(current_elem) {
                         get_known_name_for_instrinsics_foreign_namespace(def_path_data_iter)
                     } else {
@@ -396,7 +396,7 @@ impl KnownNamesCache {
                             } else {
                                 KnownNames::StdIntrinsicsWriteBytes
                             }
-                        },
+                        }
                         _ => KnownNames::None,
                     })
                     .unwrap_or(KnownNames::None),

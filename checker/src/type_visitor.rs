@@ -16,17 +16,18 @@ use rustc_hir::def_id::DefId;
 use rustc_index::Idx;
 use rustc_middle::mir;
 use rustc_middle::ty::{
-    AdtDef, Const, ConstKind, CoroutineArgsExt, ExistentialPredicate, ExistentialProjection, ExistentialTraitRef,
-    FnSig, GenericArg, GenericArgKind, GenericArgs, GenericArgsRef, ParamTy, Ty, TyCtxt, TyKind,
+    AdtDef, Const, ConstKind, CoroutineArgsExt, ExistentialPredicate, ExistentialProjection,
+    ExistentialTraitRef, FnSig, GenericArg, GenericArgKind, GenericArgs, GenericArgsRef, ParamTy,
+    Ty, TyCtxt, TyKind,
 };
 use rustc_target::abi::VariantIdx;
 
-use crate::{type_visitor, utils};
 use crate::abstract_value::AbstractValue;
 use crate::constant_domain::ConstantDomain;
 use crate::environment::Environment;
 use crate::expression::{Expression, ExpressionType};
 use crate::path::{Path, PathEnum, PathRefinement, PathRoot, PathSelector};
+use crate::{type_visitor, utils};
 
 #[derive(Debug)]
 pub struct TypeCache<'tcx> {
@@ -376,11 +377,9 @@ impl<'tcx> TypeVisitor<'tcx> {
                     self.get_type_from_index(*type_index)
                 }
             }
-            PathEnum::HeapBlock { .. } => Ty::new_ptr(
-                self.tcx,
-                self.tcx.types.u8,
-                rustc_hir::Mutability::Not,
-            ),
+            PathEnum::HeapBlock { .. } => {
+                Ty::new_ptr(self.tcx, self.tcx.types.u8, rustc_hir::Mutability::Not)
+            }
             PathEnum::Offset { value } => {
                 if let Expression::Offset { left, .. } = &value.expression {
                     let base_path = Path::get_as_path(left.clone());
@@ -743,11 +742,7 @@ impl<'tcx> TypeVisitor<'tcx> {
                     if let Some(ty) = self.path_ty_cache.get(rp) {
                         if ty.is_adt() {
                             let param_path = p.replace_root(arg_path, Path::new_parameter(i + 1));
-                            let ptr_ty = Ty::new_ptr(
-                                self.tcx,
-                                *ty,
-                                rustc_hir::Mutability::Not,
-                            );
+                            let ptr_ty = Ty::new_ptr(self.tcx, *ty, rustc_hir::Mutability::Not);
                             result.insert(param_path, ptr_ty);
                         }
                     }
@@ -1119,20 +1114,11 @@ impl<'tcx> TypeVisitor<'tcx> {
             }
             TyKind::RawPtr(ty, mutbl) => {
                 let specialized_ty = self.specialize_generic_argument_type(*ty, map);
-                Ty::new_ptr(
-                    self.tcx,
-                    specialized_ty,
-                    *mutbl,
-                )
+                Ty::new_ptr(self.tcx, specialized_ty, *mutbl)
             }
             TyKind::Ref(region, ty, mutbl) => {
                 let specialized_ty = self.specialize_generic_argument_type(*ty, map);
-                Ty::new_ref(
-                    self.tcx,
-                    *region,
-                    specialized_ty,
-                    *mutbl,
-                )
+                Ty::new_ref(self.tcx, *region, specialized_ty, *mutbl)
             }
             TyKind::FnDef(def_id, args) => {
                 Ty::new_fn_def(self.tcx, *def_id, self.specialize_generic_args(args, map))
@@ -1166,10 +1152,10 @@ impl<'tcx> TypeVisitor<'tcx> {
                                 })
                             }
                             ExistentialPredicate::Projection(ExistentialProjection {
-                                                                 def_id,
-                                                                 args,
-                                                                 term,
-                                                             }) => {
+                                def_id,
+                                args,
+                                term,
+                            }) => {
                                 if let Some(ty) = term.as_type() {
                                     ExistentialPredicate::Projection(ExistentialProjection {
                                         def_id,

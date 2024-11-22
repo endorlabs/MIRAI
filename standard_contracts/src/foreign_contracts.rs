@@ -1217,9 +1217,7 @@ pub mod core {
 
     pub mod hint {
         pub mod assert_unchecked {
-            pub fn precondition_check() {
-
-            }
+            pub fn precondition_check() {}
         }
     }
 
@@ -3803,7 +3801,7 @@ pub mod core {
     pub mod panicking {
         default_contract!(panic_nounwind);
         default_contract!(panic_nounwind_fmt);
-   }
+    }
 
     pub mod ptr {
         pub fn drop_in_place() {}
@@ -3811,8 +3809,7 @@ pub mod core {
         pub mod non_null {
             pub mod implement {
                 pub mod new_unchecked {
-                    pub fn precondition_check() {
-                    }
+                    pub fn precondition_check() {}
                 }
             }
         }

@@ -192,34 +192,59 @@ pub enum PathEnum {
 
 impl PartialOrd for PathEnum {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        use  PathEnum::*;
+        use PathEnum::*;
         match (self, other) {
-            (Computed {value: lhs}, Computed { value: rhs }) => lhs.partial_cmp(rhs),
-            (HeapBlock{value: lhs}, HeapBlock{ value: rhs }) => lhs.partial_cmp(rhs),
-            (LocalVariable { ordinal: l, type_index: li }, LocalVariable { ordinal: r, type_index: ri }) => {
-                match l.partial_cmp(r) {
-                    Some(std::cmp::Ordering::Equal) => li.partial_cmp(ri),
-                    other => other,
-                }
-            }
-            (Offset {value: lhs}, Offset{value:rhs}) => lhs.partial_cmp(rhs),
+            (Computed { value: lhs }, Computed { value: rhs }) => lhs.partial_cmp(rhs),
+            (HeapBlock { value: lhs }, HeapBlock { value: rhs }) => lhs.partial_cmp(rhs),
+            (
+                LocalVariable {
+                    ordinal: l,
+                    type_index: li,
+                },
+                LocalVariable {
+                    ordinal: r,
+                    type_index: ri,
+                },
+            ) => match l.partial_cmp(r) {
+                Some(std::cmp::Ordering::Equal) => li.partial_cmp(ri),
+                other => other,
+            },
+            (Offset { value: lhs }, Offset { value: rhs }) => lhs.partial_cmp(rhs),
             (Parameter { ordinal: l }, Parameter { ordinal: r }) => l.partial_cmp(r),
             (Result, Result) => Some(std::cmp::Ordering::Equal),
-            (StaticVariable { summary_cache_key: lk, expression_type: lt, .. }, StaticVariable { summary_cache_key: rk, expression_type: rt, .. }) => {
-                match lk.partial_cmp(rk) {
-                    Some(std::cmp::Ordering::Equal) => lt.partial_cmp(rt),
-                    other => other,
-                }
-            }
+            (
+                StaticVariable {
+                    summary_cache_key: lk,
+                    expression_type: lt,
+                    ..
+                },
+                StaticVariable {
+                    summary_cache_key: rk,
+                    expression_type: rt,
+                    ..
+                },
+            ) => match lk.partial_cmp(rk) {
+                Some(std::cmp::Ordering::Equal) => lt.partial_cmp(rt),
+                other => other,
+            },
             (PhantomData, PhantomData) => Some(std::cmp::Ordering::Equal),
             (PromotedConstant { ordinal: l }, PromotedConstant { ordinal: r }) => l.partial_cmp(r),
-            (QualifiedPath { qualifier: lq, selector: ls, .. }, QualifiedPath { qualifier: rq, selector: rs, .. }) => {
-                match lq.partial_cmp(rq) {
-                    Some(std::cmp::Ordering::Equal) => ls.partial_cmp(rs),
-                    other => other,
-                }
-            }
-            (_, _) => None
+            (
+                QualifiedPath {
+                    qualifier: lq,
+                    selector: ls,
+                    ..
+                },
+                QualifiedPath {
+                    qualifier: rq,
+                    selector: rs,
+                    ..
+                },
+            ) => match lq.partial_cmp(rq) {
+                Some(std::cmp::Ordering::Equal) => ls.partial_cmp(rs),
+                other => other,
+            },
+            (_, _) => None,
         }
     }
 }

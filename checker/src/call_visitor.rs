@@ -3110,9 +3110,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
 
                 // Extract the tag type's first parameter.
                 let tag_propagation_set_rustc_const = match tag_substs_ref[0].unpack() {
-                    GenericArgKind::Const(rustc_const)
-                        if is_u128(rustc_const.kind()) =>
-                    {
+                    GenericArgKind::Const(rustc_const) if is_u128(rustc_const.kind()) => {
                         rustc_const
                     }
                     _ => {

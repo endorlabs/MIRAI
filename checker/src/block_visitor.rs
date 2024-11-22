@@ -16,15 +16,14 @@ use rustc_middle::mir;
 use rustc_middle::mir::interpret::{alloc_range, GlobalAlloc, Scalar};
 use rustc_middle::mir::{ConstValue, UnwindTerminateReason};
 use rustc_middle::ty::adjustment::PointerCoercion;
-use rustc_middle::ty::layout::LayoutCx;
 use rustc_middle::ty::{
-    Const, CoroutineArgsExt, FloatTy, IntTy, ParamConst, ScalarInt, Ty, TyKind, UintTy, ValTree, VariantDef,
+    Const, CoroutineArgsExt, FloatTy, IntTy, ParamConst, ScalarInt, Ty, TyKind, UintTy, ValTree,
+    VariantDef,
 };
 use rustc_middle::ty::{GenericArg, GenericArgsRef};
 use rustc_span::source_map::Spanned;
 use rustc_target::abi::{FieldIdx, Primitive, TagEncoding, VariantIdx, Variants};
 
-use crate::{abstract_value, known_names};
 use crate::abstract_value::{AbstractValue, AbstractValueTrait, BOTTOM};
 use crate::body_visitor::BodyVisitor;
 use crate::call_visitor::CallVisitor;
@@ -41,6 +40,7 @@ use crate::summaries::Precondition;
 use crate::tag_domain::Tag;
 use crate::type_visitor::TypeVisitor;
 use crate::utils;
+use crate::{abstract_value, known_names};
 
 /// Holds the state for the basic block visitor
 pub struct BlockVisitor<'block, 'analysis, 'compilation, 'tcx> {
@@ -1620,14 +1620,12 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
 
         fn get_assert_msg_description<'tcx>(msg: &mir::AssertMessage<'tcx>) -> &'tcx str {
             use mir::AssertKind::*;
-            use rustc_hir::CoroutineKind;
-            use rustc_hir::CoroutineDesugaring;
             use mir::BinOp;
+            use rustc_hir::CoroutineDesugaring;
+            use rustc_hir::CoroutineKind;
             match msg {
                 BoundsCheck { .. } => "index out of bounds",
-                MisalignedPointerDereference { .. } => {
-                    "misaligned pointer dereference"
-                }
+                MisalignedPointerDereference { .. } => "misaligned pointer dereference",
                 Overflow(BinOp::Add, _, _) => "attempt to add with overflow",
                 Overflow(BinOp::Sub, _, _) => "attempt to subtract with overflow",
                 Overflow(BinOp::Mul, _, _) => "attempt to multiply with overflow",
@@ -1639,7 +1637,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 Overflow(..) => "bug, op cannot overflow",
                 DivisionByZero(_) => "attempt to divide by zero",
                 RemainderByZero(_) => "attempt to calculate the remainder with a divisor of zero",
-                ResumedAfterReturn(CoroutineKind::Coroutine(_)) => "coroutine resumed after completion",
+                ResumedAfterReturn(CoroutineKind::Coroutine(_)) => {
+                    "coroutine resumed after completion"
+                }
                 ResumedAfterReturn(CoroutineKind::Desugared(CoroutineDesugaring::Async, _)) => {
                     "`async fn` resumed after completion"
                 }
@@ -1649,7 +1649,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 ResumedAfterReturn(CoroutineKind::Desugared(CoroutineDesugaring::Gen, _)) => {
                     "`gen fn` should just keep returning `None` after completion"
                 }
-                ResumedAfterPanic(CoroutineKind::Coroutine(_)) => "coroutine resumed after panicking",
+                ResumedAfterPanic(CoroutineKind::Coroutine(_)) => {
+                    "coroutine resumed after panicking"
+                }
                 ResumedAfterPanic(CoroutineKind::Desugared(CoroutineDesugaring::Async, _)) => {
                     "`async fn` resumed after panicking"
                 }
@@ -1939,11 +1941,8 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         // To look up box.0.0 we need the type of the thin pointer, which we
                         // derive from target_type (which is known to be a slice pointer).
                         let deref_ty = self.type_visitor().get_dereferenced_type(target_type);
-                        let thin_ptr_ty = Ty::new_ptr(
-                            self.bv.tcx,
-                            deref_ty,
-                            rustc_hir::Mutability::Not,
-                        );
+                        let thin_ptr_ty =
+                            Ty::new_ptr(self.bv.tcx, deref_ty, rustc_hir::Mutability::Not);
                         let ptr_val = self
                             .bv
                             .lookup_path_and_refine_result(qualifier.clone(), thin_ptr_ty);
@@ -2304,9 +2303,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         let left = self.visit_operand(left_operand);
         let right = self.visit_operand(right_operand);
         let mut result = match bin_op {
-            mir::BinOp::Add |
-            mir::BinOp::AddUnchecked |
-            mir::BinOp::AddWithOverflow => left.addition(right),
+            mir::BinOp::Add | mir::BinOp::AddUnchecked | mir::BinOp::AddWithOverflow => {
+                left.addition(right)
+            }
             mir::BinOp::BitAnd => left.bit_and(right),
             mir::BinOp::BitOr => left.bit_or(right),
             mir::BinOp::BitXor => left.bit_xor(right),
@@ -2320,7 +2319,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             mir::BinOp::Gt => left.greater_than(right),
             mir::BinOp::Le => left.less_or_equal(right),
             mir::BinOp::Lt => left.less_than(right),
-            mir::BinOp::Mul | mir::BinOp::MulUnchecked | mir::BinOp::MulWithOverflow => left.multiply(right),
+            mir::BinOp::Mul | mir::BinOp::MulUnchecked | mir::BinOp::MulWithOverflow => {
+                left.multiply(right)
+            }
             mir::BinOp::Ne => left.not_equals(right),
             mir::BinOp::Offset => {
                 let r = left.offset(right);
@@ -2332,8 +2333,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             mir::BinOp::ShlUnchecked => left.shift_left(right),
             mir::BinOp::Shr => left.shr(right),
             mir::BinOp::ShrUnchecked => left.shr(right),
-            mir::BinOp::Sub |
-            mir::BinOp::SubUnchecked | mir::BinOp::SubWithOverflow => left.subtract(right),
+            mir::BinOp::Sub | mir::BinOp::SubUnchecked | mir::BinOp::SubWithOverflow => {
+                left.subtract(right)
+            }
         };
         if let Expression::BitAnd { left, right } = &result.expression {
             if right.expression.is_memory_reference() {
@@ -2501,12 +2503,14 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             mir::NullOp::SizeOf => len,
             mir::NullOp::OffsetOf(fields) => {
                 if let Ok(ty_and_layout) = self.type_visitor().layout_of(ty) {
-                    let lcx = LayoutCx {
-                        tcx: self.bv.tcx,
-                        param_env: self.type_visitor().get_param_env(),
-                    };
-                    let offset_in_bytes = ty_and_layout
-                        .offset_of_subfield(&lcx, fields.iter())
+                    let offset_in_bytes = self
+                        .bv
+                        .tcx
+                        .offset_of_subfield(
+                            self.type_visitor().get_param_env(),
+                            ty_and_layout,
+                            fields.iter(),
+                        )
                         .bytes();
                     Rc::new((offset_in_bytes as u128).into())
                 } else {
@@ -2544,7 +2548,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             }
             mir::UnOp::PtrMetadata => {
                 let p = Path::new_field(Path::get_as_path(operand), 1);
-                let t = self.type_visitor().get_path_rustc_type(&path, self.bv.current_span);
+                let t = self
+                    .type_visitor()
+                    .get_path_rustc_type(&path, self.bv.current_span);
                 self.bv.lookup_path_and_refine_result(p, t)
             }
         };
@@ -2686,12 +2692,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             // you may want an [`Rvalue::Cast`] with [`CastKind::PtrToPtr`] instead.
             mir::AggregateKind::RawPtr(ty, mutbl) => {
                 let thin_pointer_path = Path::new_field(path.clone(), 0);
-                let pointer_type =
-                    Ty::new_ptr(
-                        self.bv.tcx,
-                        *ty,
-                        *mutbl,
-                    );
+                let pointer_type = Ty::new_ptr(self.bv.tcx, *ty, *mutbl);
                 self.type_visitor_mut()
                     .set_path_rustc_type(thin_pointer_path.clone(), pointer_type);
                 self.visit_use(thin_pointer_path, &operands[0usize.into()]);
@@ -3156,15 +3157,12 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                                     false,
                                     lty,
                                 );
-                                let bytes_left_to_deserialize = self
-                                    .deserialize_constant_bytes(heap_path.clone(), bytes, lty);
+                                let bytes_left_to_deserialize =
+                                    self.deserialize_constant_bytes(heap_path.clone(), bytes, lty);
                                 if !bytes_left_to_deserialize.is_empty() {
                                     debug!("span: {:?}", self.bv.current_span);
                                     debug!("type kind {:?}", lty.kind());
-                                    debug!(
-                                            "constant value did not serialize correctly {:?}",
-                                            val
-                                        );
+                                    debug!("constant value did not serialize correctly {:?}", val);
                                 }
                                 heap_val
                             }
@@ -3804,8 +3802,8 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                             }
                             _ => assume_unreachable!(),
                         }
-                            .map(|i| i.0)
-                            .unwrap_or_else(|| VariantIdx::new(0));
+                        .map(|i| i.0)
+                        .unwrap_or_else(|| VariantIdx::new(0));
 
                         discr_has_data = false;
                     }
@@ -3956,8 +3954,8 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     return heap_val;
                 }
             }
-                .clone()
-                .into(),
+            .clone()
+            .into(),
         )
     }
 

@@ -1801,12 +1801,13 @@ impl AbstractValueTrait for Rc<AbstractValue> {
         }
         if matches!(other.expression, Expression::Reference(..)) {
             if let Expression::CompileTimeConstant(ConstantDomain::U128(1))
-            | Expression::CompileTimeConstant(ConstantDomain::U128(3)) | Expression::CompileTimeConstant(ConstantDomain::U128(7)) = self.expression
+            | Expression::CompileTimeConstant(ConstantDomain::U128(3))
+            | Expression::CompileTimeConstant(ConstantDomain::U128(7)) = self.expression
             {
                 // [1 & (&y)] -> 0
                 // [3 & (&y)] -> 0
                 // [7 & (&y)] -> 0
-                return Rc::new(ConstantDomain::U128(0).into())
+                return Rc::new(ConstantDomain::U128(0).into());
             }
         }
         // [x & x] -> x
@@ -3278,15 +3279,16 @@ impl AbstractValueTrait for Rc<AbstractValue> {
         match &self.expression {
             Expression::CompileTimeConstant(v1) => {
                 let result = match name {
-                    KnownNames::StdIntrinsicsBitreverse |
-                    KnownNames::StdIntrinsicsBswap =>
-                        v1.intrinsic_bit_vector_unary(bit_length, name),
-                    KnownNames::StdIntrinsicsCtlz |
-                    KnownNames::StdIntrinsicsCtlzNonzero |
-                    KnownNames::StdIntrinsicsCtpop |
-                    KnownNames::StdIntrinsicsCttz |
-                    KnownNames::StdIntrinsicsCttzNonzero =>
-                        v1.intrinsic_bit_counting_unary(bit_length, name),
+                    KnownNames::StdIntrinsicsBitreverse | KnownNames::StdIntrinsicsBswap => {
+                        v1.intrinsic_bit_vector_unary(bit_length, name)
+                    }
+                    KnownNames::StdIntrinsicsCtlz
+                    | KnownNames::StdIntrinsicsCtlzNonzero
+                    | KnownNames::StdIntrinsicsCtpop
+                    | KnownNames::StdIntrinsicsCttz
+                    | KnownNames::StdIntrinsicsCttzNonzero => {
+                        v1.intrinsic_bit_counting_unary(bit_length, name)
+                    }
                     _ => assume_unreachable!("invalid name for intrinsic {:?}", name),
                 };
                 if result != ConstantDomain::Bottom {

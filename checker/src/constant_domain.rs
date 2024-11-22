@@ -585,18 +585,36 @@ impl ConstantDomain {
     pub fn intrinsic_bit_vector_unary(&self, bit_length: u8, name: KnownNames) -> Self {
         match self {
             ConstantDomain::I128(val) => match bit_length {
-                8 => ConstantDomain::I128(Self::call_intrinsic_bit_vector_unary(*val as i8, name) as i128),
-                16 => ConstantDomain::I128(Self::call_intrinsic_bit_vector_unary(*val as i16, name) as i128),
-                32 => ConstantDomain::I128(Self::call_intrinsic_bit_vector_unary(*val as i32, name) as i128),
-                64 => ConstantDomain::I128(Self::call_intrinsic_bit_vector_unary(*val as i64, name) as i128),
-                128 => ConstantDomain::I128(Self::call_intrinsic_bit_vector_unary(*val, name) as i128),
+                8 => ConstantDomain::I128(
+                    Self::call_intrinsic_bit_vector_unary(*val as i8, name) as i128
+                ),
+                16 => ConstantDomain::I128(
+                    Self::call_intrinsic_bit_vector_unary(*val as i16, name) as i128,
+                ),
+                32 => ConstantDomain::I128(
+                    Self::call_intrinsic_bit_vector_unary(*val as i32, name) as i128,
+                ),
+                64 => ConstantDomain::I128(
+                    Self::call_intrinsic_bit_vector_unary(*val as i64, name) as i128,
+                ),
+                128 => {
+                    ConstantDomain::I128(Self::call_intrinsic_bit_vector_unary(*val, name) as i128)
+                }
                 _ => assume_unreachable!("invalid bit length for intrinsic {:?}", name),
             },
             ConstantDomain::U128(val) => match bit_length {
-                8 => ConstantDomain::U128(Self::call_intrinsic_bit_vector_unary(*val as u8, name) as u128),
-                16 => ConstantDomain::U128(Self::call_intrinsic_bit_vector_unary(*val as u16, name) as u128),
-                32 => ConstantDomain::U128(Self::call_intrinsic_bit_vector_unary(*val as u32, name) as u128),
-                64 => ConstantDomain::U128(Self::call_intrinsic_bit_vector_unary(*val as u64, name) as u128),
+                8 => ConstantDomain::U128(
+                    Self::call_intrinsic_bit_vector_unary(*val as u8, name) as u128
+                ),
+                16 => ConstantDomain::U128(
+                    Self::call_intrinsic_bit_vector_unary(*val as u16, name) as u128,
+                ),
+                32 => ConstantDomain::U128(
+                    Self::call_intrinsic_bit_vector_unary(*val as u32, name) as u128,
+                ),
+                64 => ConstantDomain::U128(
+                    Self::call_intrinsic_bit_vector_unary(*val as u64, name) as u128,
+                ),
                 128 => ConstantDomain::U128(Self::call_intrinsic_bit_vector_unary(*val, name)),
                 _ => assume_unreachable!("invalid bit length for intrinsic {:?}", name),
             },
@@ -625,19 +643,45 @@ impl ConstantDomain {
     pub fn intrinsic_bit_counting_unary(&self, bit_length: u8, name: KnownNames) -> Self {
         match self {
             ConstantDomain::I128(val) => match bit_length {
-                8 => ConstantDomain::I128(Self::call_intrinsic_bit_counting_unary(*val as i8, name) as i128),
-                16 => ConstantDomain::I128(Self::call_intrinsic_bit_counting_unary(*val as i16, name) as i128),
-                32 => ConstantDomain::I128(Self::call_intrinsic_bit_counting_unary(*val as i32, name) as i128),
-                64 => ConstantDomain::I128(Self::call_intrinsic_bit_counting_unary(*val as i64, name) as i128),
-                128 => ConstantDomain::I128(Self::call_intrinsic_bit_counting_unary(*val, name) as i128),
+                8 => ConstantDomain::I128(
+                    Self::call_intrinsic_bit_counting_unary(*val as i8, name) as i128,
+                ),
+                16 => ConstantDomain::I128(Self::call_intrinsic_bit_counting_unary(
+                    *val as i16,
+                    name,
+                ) as i128),
+                32 => ConstantDomain::I128(Self::call_intrinsic_bit_counting_unary(
+                    *val as i32,
+                    name,
+                ) as i128),
+                64 => ConstantDomain::I128(Self::call_intrinsic_bit_counting_unary(
+                    *val as i64,
+                    name,
+                ) as i128),
+                128 => {
+                    ConstantDomain::I128(Self::call_intrinsic_bit_counting_unary(*val, name) as i128)
+                }
                 _ => assume_unreachable!("invalid bit length for intrinsic {:?}", name),
             },
             ConstantDomain::U128(val) => match bit_length {
-                8 => ConstantDomain::U128(Self::call_intrinsic_bit_counting_unary(*val as u8, name) as u128),
-                16 => ConstantDomain::U128(Self::call_intrinsic_bit_counting_unary(*val as u16, name) as u128),
-                32 => ConstantDomain::U128(Self::call_intrinsic_bit_counting_unary(*val as u32, name) as u128),
-                64 => ConstantDomain::U128(Self::call_intrinsic_bit_counting_unary(*val as u64, name) as u128),
-                128 => ConstantDomain::U128(Self::call_intrinsic_bit_counting_unary(*val, name) as u128),
+                8 => ConstantDomain::U128(
+                    Self::call_intrinsic_bit_counting_unary(*val as u8, name) as u128,
+                ),
+                16 => ConstantDomain::U128(Self::call_intrinsic_bit_counting_unary(
+                    *val as u16,
+                    name,
+                ) as u128),
+                32 => ConstantDomain::U128(Self::call_intrinsic_bit_counting_unary(
+                    *val as u32,
+                    name,
+                ) as u128),
+                64 => ConstantDomain::U128(Self::call_intrinsic_bit_counting_unary(
+                    *val as u64,
+                    name,
+                ) as u128),
+                128 => {
+                    ConstantDomain::U128(Self::call_intrinsic_bit_counting_unary(*val, name) as u128)
+                }
                 _ => assume_unreachable!("invalid bit length for intrinsic {:?}", name),
             },
             _ => {
