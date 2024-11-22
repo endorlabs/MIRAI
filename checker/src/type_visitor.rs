@@ -1170,7 +1170,7 @@ impl<'tcx> TypeVisitor<'tcx> {
                                                                  args,
                                                                  term,
                                                              }) => {
-                                if let Some(ty) = term.ty() {
+                                if let Some(ty) = term.as_type() {
                                     ExistentialPredicate::Projection(ExistentialProjection {
                                         def_id,
                                         args: self.specialize_generic_args(args, map),
