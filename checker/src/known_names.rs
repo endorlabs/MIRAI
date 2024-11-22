@@ -277,7 +277,6 @@ impl KnownNamesCache {
                         "sinf32" => KnownNames::StdIntrinsicsSinf32,
                         "sinf64" => KnownNames::StdIntrinsicsSinf64,
                         "size_of" => KnownNames::StdIntrinsicsSizeOf,
-                        "size_of_val" => KnownNames::StdIntrinsicsSizeOfVal,
                         "sqrtf32" => KnownNames::StdIntrinsicsSqrtf32,
                         "sqrtf64" => KnownNames::StdIntrinsicsSqrtf64,
                         "transmute" => KnownNames::StdIntrinsicsTransmute,
@@ -306,6 +305,7 @@ impl KnownNamesCache {
                                         KnownNames::StdIntrinsicsCopyNonOverlapping
                                     }
                                 }
+                                "size_of_val" => KnownNames::StdIntrinsicsSizeOfVal,
                                 "write_bytes" => {
                                     if def_path_data_iter.next().is_some() {
                                         KnownNames::None
