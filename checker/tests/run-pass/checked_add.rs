@@ -5,6 +5,7 @@
 //
 
 // A test that uses checked_add
+#![allow(dead_code)]
 
 use mirai_annotations::*;
 

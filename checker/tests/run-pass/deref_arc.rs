@@ -5,6 +5,7 @@
 //
 
 // A test that dereferences an Arc
+#![allow(dead_code)]
 
 use mirai_annotations::*;
 

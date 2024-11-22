@@ -6,6 +6,8 @@
 
 // This test updates an offset inside a loop to check that a fixpoint is reached when using offsets
 
+#![allow(dead_code)]
+
 use mirai_annotations::*;
 
 const WORDS: usize = 25;

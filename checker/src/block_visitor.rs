@@ -2792,7 +2792,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
     pub fn visit_literal(&mut self, literal: &mir::Const<'tcx>) -> Rc<AbstractValue> {
         match literal {
             // This constant came from the type system
-            mir::Const::Ty(c) => self.visit_const(c),
+            mir::Const::Ty(_ty, c) => self.visit_const(c),
             // An unevaluated mir constant which is not part of the type system.
             mir::Const::Unevaluated(c, ty) => self.visit_unevaluated_const(c, *ty),
             // This constant contains something the type system cannot handle (e.g. pointers).
@@ -2880,7 +2880,6 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
     #[logfn_inputs(TRACE)]
     pub fn visit_const(&mut self, literal: &Const<'tcx>) -> Rc<AbstractValue> {
         let mut kind = literal.kind();
-        let lty = literal.ty();
         if let rustc_middle::ty::ConstKind::Unevaluated(_unevaluated) = &kind {
             kind = literal
                 .normalize(self.bv.tcx, self.type_visitor().get_param_env())
@@ -2905,17 +2904,17 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             // ZSTs, integers, `bool`, `char` and small structs are represented as scalars.
             // See the `ScalarInt` documentation for how `ScalarInt` guarantees that equal values
             // of these types have the same representation.
-            rustc_middle::ty::ConstKind::Value(ValTree::Leaf(scalar_int)) => {
+            rustc_middle::ty::ConstKind::Value(lty, ValTree::Leaf(scalar_int)) => {
                 let (data, size) = Self::get_scalar_int_data(scalar_int);
-                self.get_constant_value_from_scalar(lty, data, size)
+                self.get_constant_value_from_scalar(*lty, data, size)
             }
             // The fields of any kind of aggregate. Structs, tuples and arrays are represented by
             // listing their fields' values in order.
             // Enums are represented by storing their discriminant as a field, followed by all
             // the fields of the variant.
-            rustc_middle::ty::ConstKind::Value(val_tree) => {
-                let (heap_block, heap_path) = self.get_heap_block_and_path(lty, val_tree);
-                self.deserialize_val_tree(val_tree, heap_path, lty);
+            rustc_middle::ty::ConstKind::Value(lty, val_tree) => {
+                let (heap_block, heap_path) = self.get_heap_block_and_path(*lty, val_tree);
+                self.deserialize_val_tree(val_tree, heap_path, *lty);
                 heap_block
             }
             _ => {

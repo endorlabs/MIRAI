@@ -3,6 +3,7 @@
 // This source code is licensed under the MIT license found in the
 // LICENSE file in the root directory of this source tree.
 
+use rustc_middle::ty::ConstKind;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter, Result};
 use std::rc::Rc;
@@ -3099,10 +3100,18 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                     }
                 };
 
+                let is_u128 = |kind: ConstKind| {
+                    if let ConstKind::Value(ty, _) = kind {
+                        *ty.kind() == TyKind::Uint(UintTy::U128)
+                    } else {
+                        false
+                    }
+                };
+
                 // Extract the tag type's first parameter.
                 let tag_propagation_set_rustc_const = match tag_substs_ref[0].unpack() {
                     GenericArgKind::Const(rustc_const)
-                        if *rustc_const.ty().kind() == TyKind::Uint(UintTy::U128) =>
+                        if is_u128(rustc_const.kind()) =>
                     {
                         rustc_const
                     }

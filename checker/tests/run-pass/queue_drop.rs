@@ -6,6 +6,7 @@
 // A test that does unsafe casting and manipulation of pointers to transparent wrappers
 
 // MIRAI_FLAGS --diag=verify
+#![allow(dead_code)]
 
 use std::cell::Cell;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
