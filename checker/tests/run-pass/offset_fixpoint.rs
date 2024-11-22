@@ -22,7 +22,7 @@ impl Buffer {
 
     pub fn xorin(&mut self, src: &[u8], offset: usize, len: usize) {
         precondition!(offset < self.0.len() * 8);
-        self.execute(offset, len, |dst| {
+        self.execute(offset, len, |dst| { //~ possible range end index {} out of range for slice of length {}
             let len = dst.len();
             let mut dst_ptr = dst.as_mut_ptr();
             let mut src_ptr = src.as_ptr();
@@ -35,6 +35,10 @@ impl Buffer {
             }
         });
     }
+    //~ related location
+    //~ related location
+    //~ related location
+    //~ related location
 }
 
 pub fn main() {}
