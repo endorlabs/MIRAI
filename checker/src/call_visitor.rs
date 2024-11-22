@@ -224,7 +224,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 .fn_sig(tcx)
                 .abi();
             let resolved_instance = if abi == rustc_target::spec::abi::Abi::Rust {
-                Some(rustc_middle::ty::Instance::resolve(
+                Some(rustc_middle::ty::Instance::try_resolve(
                     tcx,
                     param_env,
                     self.callee_def_id,

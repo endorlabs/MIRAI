@@ -306,7 +306,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 destination,
                 target,
                 unwind,
-                call_source,
+                call_source: _,
                 fn_span,
             } => self.visit_call(
                 func,
@@ -314,7 +314,18 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 *destination,
                 *target,
                 *unwind,
-                *call_source,
+                fn_span,
+            ),
+            mir::TerminatorKind::TailCall {
+                func,
+                args,
+                fn_span,
+            } => self.visit_call(
+                func,
+                args,
+                mir::Place::return_place(),
+                None, // todo: take target from the current stack frame
+                mir::UnwindAction::Continue, // todo: take unwind from the current stack frame
                 fn_span,
             ),
             mir::TerminatorKind::Assert {
@@ -577,7 +588,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
     /// These are owned by the callee, which is free to modify them.
     /// This allows the memory occupied by "by-value" arguments to be
     /// reused across function calls without duplicating the contents.
-    /// * `destination` - Destination for the return value. If some, the call returns a value.
+    /// * `destination` - Destination for the return value.
     /// * `unwind` - Work to be done if the call unwinds.
     /// * `call_source` - Where this call came from in HIR/THIR.
     /// operator. True for overloaded function call.
@@ -590,7 +601,6 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         destination: mir::Place<'tcx>,
         target: Option<mir::BasicBlock>,
         unwind: mir::UnwindAction,
-        _call_source: mir::CallSource,
         fn_span: &rustc_span::Span,
     ) {
         // This offset is used to distinguish any local variables that leak out from the called function
@@ -2825,7 +2835,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     trace!("devirtualize resolving def_id {:?}: {:?}", def_id, def_ty);
                     trace!("args {:?}", args);
                     if let Ok(Some(instance)) =
-                        rustc_middle::ty::Instance::resolve(self.bv.tcx, param_env, def_id, args)
+                        rustc_middle::ty::Instance::try_resolve(self.bv.tcx, param_env, def_id, args)
                     {
                         def_id = instance.def.def_id();
                         args = instance.args;
@@ -3171,7 +3181,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                             }
                         }
                     }
-                    Some(GlobalAlloc::Function(instance)) => {
+                    Some(GlobalAlloc::Function{instance, unique: _}) => {
                         let def_id = instance.def.def_id();
                         let args = self.type_visitor().specialize_generic_args(
                             instance.args,

@@ -1056,7 +1056,7 @@ impl<'tcx> TypeVisitor<'tcx> {
                 let param_env = self
                     .tcx
                     .param_env(self.tcx.associated_item(item_def_id).container_id(self.tcx));
-                if let Ok(Some(instance)) = rustc_middle::ty::Instance::resolve(
+                if let Ok(Some(instance)) = rustc_middle::ty::Instance::try_resolve(
                     self.tcx,
                     param_env,
                     item_def_id,
