@@ -109,12 +109,13 @@ pub fn is_public(def_id: DefId, tcx: TyCtxt<'_>) -> bool {
                         ..
                     })
                     | Node::Item(rustc_hir::Item {
-                        kind:
-                            rustc_hir::ItemKind::Use(_, rustc_hir::UseKind::ListStem)
-                            | rustc_hir::ItemKind::OpaqueTy(..),
+                        kind: rustc_hir::ItemKind::Use(_, rustc_hir::UseKind::ListStem),
                         ..
-                    }) => ty::Visibility::Restricted(tcx.parent_module(hir_id).to_def_id())
-                        .is_public(),
+                    })
+                    | Node::OpaqueTy(..) => {
+                        ty::Visibility::Restricted(tcx.parent_module(hir_id).to_def_id())
+                            .is_public()
+                    }
                     Node::ImplItem(..) => {
                         let parent_def_id: LocalDefId = tcx.hir().get_parent_item(hir_id).def_id;
                         match tcx.hir_node_by_def_id(parent_def_id) {
