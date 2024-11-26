@@ -674,7 +674,7 @@ impl<'tcx> TypeVisitor<'tcx> {
             TyKind::Ref(_, t, _) => *t,
             _ => {
                 if ty.is_box() {
-                    ty.boxed_ty()
+                    ty.boxed_ty().expect("ty.is_box()")
                 } else {
                     ty
                 }

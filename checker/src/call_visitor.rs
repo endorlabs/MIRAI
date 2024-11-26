@@ -1427,7 +1427,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
             .get_dereferenced_type(source_pointer_rustc_type);
         let target_type = ExpressionType::from(source_rustc_type.kind());
         let source_thin_pointer_path = if source_rustc_type.is_box() {
-            source_rustc_type = source_rustc_type.boxed_ty();
+            source_rustc_type = source_rustc_type.boxed_ty().expect("source_rustc_type.is_box() type");
             let box_path = Path::new_deref(source_pointer_path, target_type)
                 .canonicalize(&self.block_visitor.bv.current_environment);
             // Box.0 = Unique, Unique.0 = NonNullPtr, NonNullPtr.0 = source thin pointer

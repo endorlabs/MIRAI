@@ -4157,7 +4157,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     if ty.is_box() {
                         // Deref the pointer at field 0 of the Unique pointer at field 0 of the box
                         result = Path::new_field(Path::new_field(result, 0), 0);
-                        ty = ty.boxed_ty();
+                        ty = ty.boxed_ty().expect("ty.is_box()");
                     } else if type_visitor.is_slice_pointer(ty.kind()) {
                         // Deref the thin pointer part of the slice pointer
                         ty = type_visitor.get_dereferenced_type(ty);

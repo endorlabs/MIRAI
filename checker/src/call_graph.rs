@@ -333,7 +333,7 @@ pub struct CallGraph<'tcx> {
 }
 
 impl<'tcx> CallGraph<'tcx> {
-    pub fn new(path_to_config: Option<String>, tcx: TyCtxt<'tcx>) -> CallGraph {
+    pub fn new(path_to_config: Option<String>, tcx: TyCtxt<'tcx>) -> CallGraph<'tcx> {
         let config = match path_to_config {
             Some(path) => CallGraph::parse_config(Path::new(&path)),
             None => CallGraphConfig::default(),
