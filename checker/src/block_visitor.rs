@@ -308,14 +308,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 unwind,
                 call_source: _,
                 fn_span,
-            } => self.visit_call(
-                func,
-                args,
-                *destination,
-                *target,
-                *unwind,
-                fn_span,
-            ),
+            } => self.visit_call(func, args, *destination, *target, *unwind, fn_span),
             mir::TerminatorKind::TailCall {
                 func,
                 args,
@@ -324,7 +317,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 func,
                 args,
                 mir::Place::return_place(),
-                None, // todo: take target from the current stack frame
+                None,                        // todo: take target from the current stack frame
                 mir::UnwindAction::Continue, // todo: take unwind from the current stack frame
                 fn_span,
             ),
@@ -1106,7 +1099,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             is_signed = ty_and_layout.abi.is_signed();
             let size = ty_and_layout.size;
             if is_signed {
-                val = size.sign_extend(val);
+                val = size.sign_extend(val) as u128;
             } else {
                 val = size.truncate(val);
             }
@@ -2834,9 +2827,12 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     let param_env = rustc_middle::ty::ParamEnv::reveal_all();
                     trace!("devirtualize resolving def_id {:?}: {:?}", def_id, def_ty);
                     trace!("args {:?}", args);
-                    if let Ok(Some(instance)) =
-                        rustc_middle::ty::Instance::try_resolve(self.bv.tcx, param_env, def_id, args)
-                    {
+                    if let Ok(Some(instance)) = rustc_middle::ty::Instance::try_resolve(
+                        self.bv.tcx,
+                        param_env,
+                        def_id,
+                        args,
+                    ) {
                         def_id = instance.def.def_id();
                         args = instance.args;
                         trace!("resolved it to {:?}", def_id);
@@ -3181,7 +3177,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                             }
                         }
                     }
-                    Some(GlobalAlloc::Function{instance, unique: _}) => {
+                    Some(GlobalAlloc::Function { instance }) => {
                         let def_id = instance.def.def_id();
                         let args = self.type_visitor().specialize_generic_args(
                             instance.args,
@@ -3769,7 +3765,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 {
                     Some(discr) => {
                         if discr_signed {
-                            discr_ty_layout.size.sign_extend(discr.val)
+                            discr_ty_layout.size.sign_extend(discr.val) as u128
                         } else {
                             discr_ty_layout.size.truncate(discr.val)
                         }
@@ -3793,7 +3789,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 match *tag_encoding {
                     TagEncoding::Direct => {
                         discr_bits = if discr_signed {
-                            tag_primitive.size(&self.bv.tcx).sign_extend(data)
+                            tag_primitive.size(&self.bv.tcx).sign_extend(data) as u128
                         } else {
                             data
                         };

@@ -378,7 +378,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
             if result.is_computed || func_ref.def_id.is_none() {
                 return Some(result);
             }
-            if call_depth < 3 {
+            if call_depth < 4 {
                 let mut summary =
                     self.create_and_cache_function_summary(&func_args, &initial_type_cache);
                 if call_depth >= 1 {

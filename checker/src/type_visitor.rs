@@ -274,7 +274,7 @@ impl<'tcx> TypeVisitor<'tcx> {
             TyKind::Closure(..)
                 | TyKind::Dynamic(..)
                 | TyKind::FnDef(..)
-                | TyKind::FnPtr(_)
+                | TyKind::FnPtr(_, _)
                 | TyKind::Foreign(..)
                 | TyKind::Coroutine(..)
                 | TyKind::CoroutineWitness(..)
@@ -1123,7 +1123,8 @@ impl<'tcx> TypeVisitor<'tcx> {
             TyKind::FnDef(def_id, args) => {
                 Ty::new_fn_def(self.tcx, *def_id, self.specialize_generic_args(args, map))
             }
-            TyKind::FnPtr(fn_sig) => {
+            TyKind::FnPtr(sig_tys, hdr) => {
+                let fn_sig = sig_tys.with(*hdr);
                 let map_fn_sig = |fn_sig: FnSig<'tcx>| {
                     let specialized_inputs_and_output = self.tcx.mk_type_list_from_iter(
                         fn_sig

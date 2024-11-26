@@ -149,7 +149,7 @@ impl SmtSolver<Z3ExpressionType> for Z3Solver {
             let model = z3_sys::Z3_solver_get_model(self.z3_context, self.z3_solver);
             let debug_str_bytes = z3_sys::Z3_model_to_string(self.z3_context, model);
             let debug_str = CStr::from_ptr(debug_str_bytes);
-            debug_str.to_str().unwrap().to_string()
+            String::from(debug_str.to_str().unwrap())
         }
     }
 
@@ -159,7 +159,7 @@ impl SmtSolver<Z3ExpressionType> for Z3Solver {
         unsafe {
             let debug_str_bytes = z3_sys::Z3_solver_to_string(self.z3_context, self.z3_solver);
             let debug_str = CStr::from_ptr(debug_str_bytes);
-            debug_str.to_str().unwrap().to_string()
+            String::from(debug_str.to_str().unwrap())
         }
     }
 

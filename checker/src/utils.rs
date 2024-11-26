@@ -309,7 +309,8 @@ fn append_mangled_type<'tcx>(str: &mut String, ty: Ty<'tcx>, tcx: TyCtxt<'tcx>) 
             }
             append_mangled_type(str, *ty, tcx);
         }
-        TyKind::FnPtr(poly_fn_sig) => {
+        TyKind::FnPtr(poly_sig_tys, hdr) => {
+            let poly_fn_sig = poly_sig_tys.with(*hdr);
             let fn_sig = poly_fn_sig.skip_binder();
             str.push_str("fn_ptr_");
             for arg_type in fn_sig.inputs() {
