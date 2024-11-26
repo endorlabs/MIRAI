@@ -1146,29 +1146,33 @@ impl<'tcx> TypeVisitor<'tcx> {
                 let specialized_predicates = predicates.iter().map(
                     |bound_pred: rustc_middle::ty::Binder<'_, ExistentialPredicate<'tcx>>| {
                         bound_pred.map_bound(|pred| match pred {
-                            ExistentialPredicate::Trait(ExistentialTraitRef { def_id, args }) => {
-                                ExistentialPredicate::Trait(ExistentialTraitRef {
+                            ExistentialPredicate::Trait(ExistentialTraitRef { def_id, args, .. }) => {
+                                ExistentialPredicate::Trait(ExistentialTraitRef::new_from_args(
+                                    self.tcx,
                                     def_id,
-                                    args: self.specialize_generic_args(args, map),
-                                })
+                                    self.specialize_generic_args(args, map),
+                                ))
                             }
                             ExistentialPredicate::Projection(ExistentialProjection {
                                 def_id,
                                 args,
                                 term,
+                                ..
                             }) => {
                                 if let Some(ty) = term.as_type() {
-                                    ExistentialPredicate::Projection(ExistentialProjection {
+                                    ExistentialPredicate::Projection(ExistentialProjection::new_from_args(
+                                        self.tcx,
                                         def_id,
-                                        args: self.specialize_generic_args(args, map),
-                                        term: self.specialize_generic_argument_type(ty, map).into(),
-                                    })
+                                        self.specialize_generic_args(args, map),
+                                        self.specialize_generic_argument_type(ty, map).into(),
+                                    ))
                                 } else {
-                                    ExistentialPredicate::Projection(ExistentialProjection {
+                                    ExistentialPredicate::Projection(ExistentialProjection::new_from_args(
+                                        self.tcx,
                                         def_id,
-                                        args: self.specialize_generic_args(args, map),
+                                        self.specialize_generic_args(args, map),
                                         term,
-                                    })
+                                    ))
                                 }
                             }
                             ExistentialPredicate::AutoTrait(_) => pred,

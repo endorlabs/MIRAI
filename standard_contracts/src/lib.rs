@@ -12,7 +12,6 @@
 #![feature(pattern)]
 #![feature(ptr_internals)]
 #![feature(ptr_metadata)]
-#![feature(control_flow_enum)]
 #![feature(ptr_alignment_type)]
 #[macro_use]
 extern crate mirai_annotations;

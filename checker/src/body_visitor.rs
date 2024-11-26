@@ -108,7 +108,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
             .summary_cache
             .get_summary_key_for(def_id)
             .clone();
-        let mir = if tcx.is_const_fn_raw(def_id) {
+        let mir = if tcx.is_const_fn(def_id) {
             tcx.mir_for_ctfe(def_id)
         } else {
             let instance = rustc_middle::ty::InstanceKind::Item(def_id);
@@ -2444,9 +2444,8 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
 
     /// Evaluates the length value of an Array type and returns its value as usize
     pub fn get_array_length(&self, length: &'tcx Const<'tcx>) -> usize {
-        let param_env = self.type_visitor().get_param_env();
         length
-            .try_eval_target_usize(self.tcx, param_env)
+            .try_to_target_usize(self.tcx)
             .expect("Array length constant to have a known value") as usize
     }
 

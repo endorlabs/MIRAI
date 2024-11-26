@@ -1096,7 +1096,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
     pub fn get_int_const_val(&mut self, mut val: u128, ty: Ty<'tcx>) -> Rc<AbstractValue> {
         let is_signed;
         if let Ok(ty_and_layout) = self.type_visitor().layout_of(ty) {
-            is_signed = ty_and_layout.abi.is_signed();
+            is_signed = ty_and_layout.backend_repr.is_signed();
             let size = ty_and_layout.size;
             if is_signed {
                 val = size.sign_extend(val) as u128;
@@ -2887,7 +2887,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         let mut kind = literal.kind();
         if let rustc_middle::ty::ConstKind::Unevaluated(_unevaluated) = &kind {
             kind = literal
-                .normalize(self.bv.tcx, self.type_visitor().get_param_env())
+                .normalize_internal(self.bv.tcx, self.type_visitor().get_param_env())
                 .kind();
         }
 
@@ -3756,7 +3756,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 // The enum only contains one variant.
 
                 // Truncates the value of the discriminant to fit into the layout.
-                discr_signed = discr_ty_layout.abi.is_signed();
+                discr_signed = discr_ty_layout.backend_repr.is_signed();
                 discr_bits = match enum_ty_layout
                     .ty
                     .discriminant_for_variant(self.bv.tcx, index)

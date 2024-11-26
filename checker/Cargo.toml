@@ -38,13 +38,13 @@ log = "*"
 log-derive = "*"
 mirai-annotations = { path = "../annotations" }
 petgraph = "*"
-proc-macro2 = "=1.0.79"
+proc-macro2 = "*"
 rand = "*"
 rayon = "*"
 regex = "*"
 rpds = { version = "*", features = ["serde"] }
 rustc_tools_util = "*"
-serde = { version = "=1.0.203", features = ["derive", "alloc", "rc"] }
+serde = { version = "*", features = ["derive", "alloc", "rc"] }
 serde_json = "*"
 shellwords = "*"
 sled = "*"
