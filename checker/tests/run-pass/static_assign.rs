@@ -12,6 +12,7 @@ pub fn main() {
     unsafe { A = 4; }
 }
 
+#[allow(static_mut_refs)]
 pub fn foo() -> isize {
     unsafe { A.clone() }
 }

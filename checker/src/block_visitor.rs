@@ -2117,9 +2117,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             | mir::CastKind::PointerWithExposedProvenance
             // All sorts of pointer-to-pointer casts. Note that reference-to-raw-ptr casts are
             // translated into `&raw mut/const *r`, i.e., they are not actually casts.
-            | mir::CastKind::PointerCoercion(..)
-            // Cast into a dyn* object.
-            | mir::CastKind::DynStar => {
+            | mir::CastKind::PointerCoercion(..) => {
                 // The value remains unchanged, but pointers may be fat, so use copy_or_move_elements
                 let (is_move, place) = match operand {
                     mir::Operand::Copy(place) => (false, place),
@@ -2136,7 +2134,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         return;
                     }
                 };
-                if matches!(cast_kind, mir::CastKind::PointerCoercion(PointerCoercion::Unsize)) {
+                if matches!(cast_kind, mir::CastKind::PointerCoercion(PointerCoercion::Unsize, _)) {
                     // Unsize a pointer/reference value, e.g., `&[T; n]` to
                     // `&[T]`. Note that the source could be a thin or fat pointer.
                     // This will do things like convert thin pointers to fat
@@ -2195,7 +2193,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     return;
                 }
                 let mut source_path = self.visit_rh_place(place);
-                if matches!(cast_kind, mir::CastKind::PointerCoercion(PointerCoercion::ClosureFnPointer(_))) {
+                if matches!(cast_kind, mir::CastKind::PointerCoercion(PointerCoercion::ClosureFnPointer(_), _)) {
                     source_path = Path::new_function(source_path)
                 }
                 self.bv
