@@ -1734,7 +1734,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             mir::Rvalue::Repeat(operand, count) => {
                 self.visit_repeat(path, operand, count);
             }
-            mir::Rvalue::Ref(_, _, place) | mir::Rvalue::AddressOf(_, place) => {
+            mir::Rvalue::Ref(_, _, place) | mir::Rvalue::RawPtr(_, place) => {
                 self.visit_address_of(path, place);
             }
             mir::Rvalue::ThreadLocalRef(def_id) => {

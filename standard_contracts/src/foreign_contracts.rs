@@ -300,6 +300,45 @@ pub mod core {
             }
         }
 
+        pub mod layout {
+            pub mod implement_core_alloc_layout_Layout {
+                use core::ptr::Alignment;
+
+                pub fn max_size_for_align(align: Alignment) -> usize {
+                    unsafe {
+                        let isize_MAX = if cfg!(any(
+                            target_arch = "x86",
+                            target_arch = "mips",
+                            target_arch = "powerpc",
+                            target_arch = "arm"
+                        )) {
+                            2147483647u64
+                        } else if cfg!(any(
+                            target_arch = "x86_64",
+                            target_arch = "powerpc64",
+                            target_arch = "aarch64"
+                            )) {
+                            9223372036854775807u64
+                        } else {
+                            panic!("Unsupported architecture");
+                        };
+                        std::intrinsics::unchecked_sub(isize_MAX as usize, align.as_usize())
+                    }
+                }
+
+                pub fn is_size_align_valid(size: usize, align: usize) -> bool {
+                    let Some(align) = Alignment::new(align) else {
+                        return false;
+                    };
+                    if size > max_size_for_align(align) {
+                        return false;
+                    }
+                    true
+                }
+
+            }
+        }
+
         pub mod raw_vec {
             pub fn capacity_overflow() {
                 assume_unreachable!("capacity overflow");
