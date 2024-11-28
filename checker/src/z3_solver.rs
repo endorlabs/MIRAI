@@ -2152,3 +2152,11 @@ impl Z3Solver {
         self.bv_variable(path, num_bits)
     }
 }
+
+impl Drop for Z3Solver {
+    fn drop(&mut self) {
+        unsafe {
+            z3_sys::Z3_del_context(self.z3_context);
+        };
+    }
+}

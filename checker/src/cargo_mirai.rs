@@ -9,7 +9,7 @@
 // 2) It calls mirai rather than rustc for all the targets of the current package.
 // 3) It runs cargo test --no-run for test targets.
 
-use cargo_metadata::{Package, Target};
+use cargo_metadata::{Package, Target, TargetKind};
 use std::ffi::OsString;
 use std::ops::Index;
 use std::path::Path;
@@ -96,35 +96,38 @@ fn call_cargo_on_each_package_target(package: &Package) {
             .kind
             .first()
             .expect("bad cargo metadata: target::kind");
-        if lib_only && kind != "lib" {
+        if lib_only && !target.is_lib() {
             continue;
         }
         call_cargo_on_target(target, kind);
     }
 }
 
-fn call_cargo_on_target(target: &Target, kind: &str) {
+fn call_cargo_on_target(target: &Target, kind: &TargetKind) {
     // Build a cargo command for target
     let mut cmd =
         Command::new(std::env::var_os("CARGO").unwrap_or_else(|| OsString::from("cargo")));
-    match kind {
-        "bin" => {
+    let kind_str = match kind {
+        TargetKind::Bin => {
             cmd.arg("check");
             cmd.arg("--bin").arg(&target.name);
+            "bin"
         }
-        "lib" => {
+        TargetKind::Lib => {
             cmd.arg("check");
             cmd.arg("--lib");
+            "lib"
         }
-        "test" => {
+        TargetKind::Test => {
             cmd.arg("test");
             cmd.arg("--test").arg(&target.name);
             cmd.arg("--no-run");
+            "test"
         }
         _ => {
             return;
         }
-    }
+    };
 
     let mut args = std::env::args().skip(2);
     // Add cargo args to cmd until first `--`.
@@ -161,7 +164,7 @@ fn call_cargo_on_target(target: &Target, kind: &str) {
 
     // Communicate the target kind of the root crate to the calls to cargo-mirai that are invoked via
     // the RUSTC_WRAPPER setting.
-    cmd.env("MIRAI_KIND", kind);
+    cmd.env("MIRAI_KIND", kind_str);
 
     // Set the tool chain to be compatible with mirai
     if let Some(toolchain) = option_env!("RUSTUP_TOOLCHAIN") {
