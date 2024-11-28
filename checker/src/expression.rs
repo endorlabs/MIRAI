@@ -1034,6 +1034,11 @@ impl Expression {
             Expression::HeapBlock { .. } => NonPrimitive,
             Expression::HeapBlockLayout { .. } => NonPrimitive,
             Expression::IntrinsicBinary { left, name, .. } => match name {
+                KnownNames::StdIntrinsicsCopysignf16
+                | KnownNames::StdIntrinsicsMaxnumf16
+                | KnownNames::StdIntrinsicsMinnumf16
+                | KnownNames::StdIntrinsicsPowf16
+                | KnownNames::StdIntrinsicsPowif16 => ExpressionType::F16,
                 KnownNames::StdIntrinsicsCopysignf32
                 | KnownNames::StdIntrinsicsMaxnumf32
                 | KnownNames::StdIntrinsicsMinnumf32
@@ -1044,10 +1049,20 @@ impl Expression {
                 | KnownNames::StdIntrinsicsMinnumf64
                 | KnownNames::StdIntrinsicsPowf64
                 | KnownNames::StdIntrinsicsPowif64 => ExpressionType::F64,
-                KnownNames::StdIntrinsicsFaddFast
+                KnownNames::StdIntrinsicsCopysignf128
+                | KnownNames::StdIntrinsicsMaxnumf128
+                | KnownNames::StdIntrinsicsMinnumf128
+                | KnownNames::StdIntrinsicsPowf128
+                | KnownNames::StdIntrinsicsPowif128 => ExpressionType::F128,
+                KnownNames::StdIntrinsicsFaddAlgebraic
+                | KnownNames::StdIntrinsicsFaddFast
+                | KnownNames::StdIntrinsicsFdivAlgebraic
                 | KnownNames::StdIntrinsicsFdivFast
+                | KnownNames::StdIntrinsicsFmulAlgebraic
                 | KnownNames::StdIntrinsicsFmulFast
+                | KnownNames::StdIntrinsicsFremAlgebraic
                 | KnownNames::StdIntrinsicsFremFast
+                | KnownNames::StdIntrinsicsFsubAlgebraic
                 | KnownNames::StdIntrinsicsFsubFast => left.expression.infer_type(),
                 _ => assume_unreachable!("invalid name {:?} for intrinsic binary", name),
             },
@@ -1064,7 +1079,7 @@ impl Expression {
                 | KnownNames::StdIntrinsicsCtpop
                 | KnownNames::StdIntrinsicsCttz
                 | KnownNames::StdIntrinsicsCttzNonzero => {
-                    // u(8|16|32|64|128)
+                    // u(8|16|16|64|128)
                     match bit_length {
                         8 => ExpressionType::U8,
                         16 => ExpressionType::U16,
@@ -1077,6 +1092,22 @@ impl Expression {
                 _ => assume_unreachable!("invalid name {:?} for intrinsic bit vector unary", name),
             },
             Expression::IntrinsicFloatingPointUnary { name, .. } => match name {
+                KnownNames::StdIntrinsicsCeilf16
+                | KnownNames::StdIntrinsicsCosf16
+                | KnownNames::StdIntrinsicsFloorf16
+                | KnownNames::StdIntrinsicsExp2f16
+                | KnownNames::StdIntrinsicsExpf16
+                | KnownNames::StdIntrinsicsFabsf16
+                | KnownNames::StdIntrinsicsLog10f16
+                | KnownNames::StdIntrinsicsLog2f16
+                | KnownNames::StdIntrinsicsLogf16
+                | KnownNames::StdIntrinsicsNearbyintf16
+                | KnownNames::StdIntrinsicsRintf16
+                | KnownNames::StdIntrinsicsRoundf16
+                | KnownNames::StdIntrinsicsRevenf16
+                | KnownNames::StdIntrinsicsSinf16
+                | KnownNames::StdIntrinsicsSqrtf16
+                | KnownNames::StdIntrinsicsTruncf16 => ExpressionType::F16,
                 KnownNames::StdIntrinsicsCeilf32
                 | KnownNames::StdIntrinsicsCosf32
                 | KnownNames::StdIntrinsicsFloorf32
@@ -1089,6 +1120,7 @@ impl Expression {
                 | KnownNames::StdIntrinsicsNearbyintf32
                 | KnownNames::StdIntrinsicsRintf32
                 | KnownNames::StdIntrinsicsRoundf32
+                | KnownNames::StdIntrinsicsRevenf32
                 | KnownNames::StdIntrinsicsSinf32
                 | KnownNames::StdIntrinsicsSqrtf32
                 | KnownNames::StdIntrinsicsTruncf32 => ExpressionType::F32,
@@ -1104,9 +1136,27 @@ impl Expression {
                 | KnownNames::StdIntrinsicsNearbyintf64
                 | KnownNames::StdIntrinsicsRintf64
                 | KnownNames::StdIntrinsicsRoundf64
+                | KnownNames::StdIntrinsicsRevenf64
                 | KnownNames::StdIntrinsicsSinf64
                 | KnownNames::StdIntrinsicsSqrtf64
                 | KnownNames::StdIntrinsicsTruncf64 => ExpressionType::F64,
+                KnownNames::StdIntrinsicsCeilf128
+                | KnownNames::StdIntrinsicsCosf128
+                | KnownNames::StdIntrinsicsFloorf128
+                | KnownNames::StdIntrinsicsExp2f128
+                | KnownNames::StdIntrinsicsExpf128
+                | KnownNames::StdIntrinsicsFabsf128
+                | KnownNames::StdIntrinsicsLog10f128
+                | KnownNames::StdIntrinsicsLog2f128
+                | KnownNames::StdIntrinsicsLogf128
+                | KnownNames::StdIntrinsicsNearbyintf128
+                | KnownNames::StdIntrinsicsRintf128
+                | KnownNames::StdIntrinsicsRoundf128
+                | KnownNames::StdIntrinsicsRevenf128
+                | KnownNames::StdIntrinsicsSinf128
+                | KnownNames::StdIntrinsicsSqrtf128
+                | KnownNames::StdIntrinsicsTruncf128 => ExpressionType::F128,
+
                 _ => assume_unreachable!("invalid name {:?} for intrinsic unary", name),
             },
             Expression::BitXor { left, .. } => left.expression.infer_type(),
@@ -1368,8 +1418,10 @@ impl Expression {
 pub enum ExpressionType {
     Bool,
     Char,
+    F16,
     F32,
     F64,
+    F128,
     I8,
     I16,
     I32,
@@ -1397,8 +1449,10 @@ impl From<&ConstantDomain> for ExpressionType {
             ConstantDomain::False => Bool,
             ConstantDomain::Function(..) => NonPrimitive,
             ConstantDomain::I128(..) => I128,
+            ConstantDomain::F128(..) => F128,
             ConstantDomain::F64(..) => F64,
             ConstantDomain::F32(..) => F32,
+            ConstantDomain::F16(..) => F16,
             ConstantDomain::Str(..) => ThinPointer,
             ConstantDomain::True => Bool,
             ConstantDomain::U128(..) => U128,
@@ -1452,8 +1506,10 @@ impl ExpressionType {
         match self {
             Bool => tcx.types.bool,
             Char => tcx.types.char,
+            F16 => tcx.types.f16,
             F32 => tcx.types.f32,
             F64 => tcx.types.f64,
+            F128 => tcx.types.f128,
             I8 => tcx.types.i8,
             I16 => tcx.types.i16,
             I32 => tcx.types.i32,
@@ -1535,8 +1591,10 @@ impl ExpressionType {
         match self {
             Bool => 8,
             Char => 32,
+            F16 => 16,
             F32 => 32,
             F64 => 64,
+            F128 => 128,
             I8 => 8,
             I16 => 16,
             I32 => 32,

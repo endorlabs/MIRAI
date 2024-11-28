@@ -47,8 +47,7 @@ pub fn t1() {
     let foo = Foo {
         bx: Box::new(bar) as Box<dyn Tr>,
     };
-    let bi = foo.bx.bar();
-    //~ this is unreachable, mark it as such by using the verify_unreachable! macro
+    let bi = foo.bx.bar(); //~ the called function did not resolve to an implementation with a MIR body
     verify!(bi == 1);
 }
 

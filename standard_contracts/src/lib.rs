@@ -8,6 +8,8 @@
 #![feature(allocator_api)]
 #![feature(core_intrinsics)]
 #![feature(discriminant_kind)]
+#![feature(f16)]
+#![feature(f128)]
 #![feature(hashmap_internals)]
 #![feature(pattern)]
 #![feature(ptr_internals)]

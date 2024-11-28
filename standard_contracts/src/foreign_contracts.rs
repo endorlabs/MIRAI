@@ -317,7 +317,7 @@ pub mod core {
                             target_arch = "x86_64",
                             target_arch = "powerpc64",
                             target_arch = "aarch64"
-                            )) {
+                        )) {
                             9223372036854775807u64
                         } else {
                             panic!("Unsupported architecture");
@@ -335,7 +335,6 @@ pub mod core {
                     }
                     true
                 }
-
             }
         }
 
@@ -1261,6 +1260,10 @@ pub mod core {
     }
 
     pub mod intrinsics {
+        pub unsafe fn drop_in_place<T: ?Sized>(to_drop: *mut T) {
+            core::ptr::drop_in_place(to_drop)
+        }
+
         pub mod copy_nonoverlapping {
             pub fn precondition_check() {}
         }
@@ -1269,1650 +1272,1929 @@ pub mod core {
             pub fn precondition_check() {}
         }
 
+        // pub unsafe fn atomic_cxchg_relaxed_relaxed<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchg_relaxed_relaxed__i8, i8);
+        atomic_cxchg!(atomic_cxchg_relaxed_relaxed__i16, i16);
+        atomic_cxchg!(atomic_cxchg_relaxed_relaxed__i32, i32);
+        atomic_cxchg!(atomic_cxchg_relaxed_relaxed__i64, i64);
+        atomic_cxchg!(atomic_cxchg_relaxed_relaxed__isize, isize);
+        atomic_cxchg!(atomic_cxchg_relaxed_relaxed__u8, u8);
+        atomic_cxchg!(atomic_cxchg_relaxed_relaxed__u16, u16);
+        atomic_cxchg!(atomic_cxchg_relaxed_relaxed__u32, u32);
+        atomic_cxchg!(atomic_cxchg_relaxed_relaxed__u64, u64);
+        atomic_cxchg!(atomic_cxchg_relaxed_relaxed, usize);
+        atomic_cxchg!(atomic_cxchg_relaxed_relaxed__i128, i128);
+        atomic_cxchg!(atomic_cxchg_relaxed_relaxed__u128, u128);
+
+        // pub unsafe fn atomic_cxchg_relaxed_acquire<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchg_relaxed_acquire__i8, i8);
+        atomic_cxchg!(atomic_cxchg_relaxed_acquire__i16, i16);
+        atomic_cxchg!(atomic_cxchg_relaxed_acquire__i32, i32);
+        atomic_cxchg!(atomic_cxchg_relaxed_acquire__i64, i64);
+        atomic_cxchg!(atomic_cxchg_relaxed_acquire__isize, isize);
+        atomic_cxchg!(atomic_cxchg_relaxed_acquire__u8, u8);
+        atomic_cxchg!(atomic_cxchg_relaxed_acquire__u16, u16);
+        atomic_cxchg!(atomic_cxchg_relaxed_acquire__u32, u32);
+        atomic_cxchg!(atomic_cxchg_relaxed_acquire__u64, u64);
+        atomic_cxchg!(atomic_cxchg_relaxed_acquire, usize);
+        atomic_cxchg!(atomic_cxchg_relaxed_acquire__i128, i128);
+        atomic_cxchg!(atomic_cxchg_relaxed_acquire__u128, u128);
+
+        // pub unsafe fn atomic_cxchg_relaxed_seqcst<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchg_relaxed_seqcst__i8, i8);
+        atomic_cxchg!(atomic_cxchg_relaxed_seqcst__i16, i16);
+        atomic_cxchg!(atomic_cxchg_relaxed_seqcst__i32, i32);
+        atomic_cxchg!(atomic_cxchg_relaxed_seqcst__i64, i64);
+        atomic_cxchg!(atomic_cxchg_relaxed_seqcst__isize, isize);
+        atomic_cxchg!(atomic_cxchg_relaxed_seqcst__u8, u8);
+        atomic_cxchg!(atomic_cxchg_relaxed_seqcst__u16, u16);
+        atomic_cxchg!(atomic_cxchg_relaxed_seqcst__u32, u32);
+        atomic_cxchg!(atomic_cxchg_relaxed_seqcst__u64, u64);
+        atomic_cxchg!(atomic_cxchg_relaxed_seqcst, usize);
+        atomic_cxchg!(atomic_cxchg_relaxed_seqcst__i128, i128);
+        atomic_cxchg!(atomic_cxchg_relaxed_seqcst__u128, u128);
+
+        // pub unsafe fn atomic_cxchg_acquire_relaxed<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchg_acquire_relaxed__i8, i8);
+        atomic_cxchg!(atomic_cxchg_acquire_relaxed__i16, i16);
+        atomic_cxchg!(atomic_cxchg_acquire_relaxed__i32, i32);
+        atomic_cxchg!(atomic_cxchg_acquire_relaxed__i64, i64);
+        atomic_cxchg!(atomic_cxchg_acquire_relaxed__isize, isize);
+        atomic_cxchg!(atomic_cxchg_acquire_relaxed__u8, u8);
+        atomic_cxchg!(atomic_cxchg_acquire_relaxed__u16, u16);
+        atomic_cxchg!(atomic_cxchg_acquire_relaxed__u32, u32);
+        atomic_cxchg!(atomic_cxchg_acquire_relaxed__u64, u64);
+        atomic_cxchg!(atomic_cxchg_acquire_relaxed, usize);
+        atomic_cxchg!(atomic_cxchg_acquire_relaxed__i128, i128);
+        atomic_cxchg!(atomic_cxchg_acquire_relaxed__u128, u128);
+
+        // pub unsafe fn atomic_cxchg_acquire_acquire<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchg_acquire_acquire__i8, i8);
+        atomic_cxchg!(atomic_cxchg_acquire_acquire__i16, i16);
+        atomic_cxchg!(atomic_cxchg_acquire_acquire__i32, i32);
+        atomic_cxchg!(atomic_cxchg_acquire_acquire__i64, i64);
+        atomic_cxchg!(atomic_cxchg_acquire_acquire__isize, isize);
+        atomic_cxchg!(atomic_cxchg_acquire_acquire__u8, u8);
+        atomic_cxchg!(atomic_cxchg_acquire_acquire__u16, u16);
+        atomic_cxchg!(atomic_cxchg_acquire_acquire__u32, u32);
+        atomic_cxchg!(atomic_cxchg_acquire_acquire__u64, u64);
+        atomic_cxchg!(atomic_cxchg_acquire_acquire, usize);
+        atomic_cxchg!(atomic_cxchg_acquire_acquire__i128, i128);
+        atomic_cxchg!(atomic_cxchg_acquire_acquire__u128, u128);
+
+        // pub unsafe fn atomic_cxchg_acquire_seqcst<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchg_acquire_seqcst__i8, i8);
+        atomic_cxchg!(atomic_cxchg_acquire_seqcst__i16, i16);
+        atomic_cxchg!(atomic_cxchg_acquire_seqcst__i32, i32);
+        atomic_cxchg!(atomic_cxchg_acquire_seqcst__i64, i64);
+        atomic_cxchg!(atomic_cxchg_acquire_seqcst__isize, isize);
+        atomic_cxchg!(atomic_cxchg_acquire_seqcst__u8, u8);
+        atomic_cxchg!(atomic_cxchg_acquire_seqcst__u16, u16);
+        atomic_cxchg!(atomic_cxchg_acquire_seqcst__u32, u32);
+        atomic_cxchg!(atomic_cxchg_acquire_seqcst__u64, u64);
+        atomic_cxchg!(atomic_cxchg_acquire_seqcst, usize);
+        atomic_cxchg!(atomic_cxchg_acquire_seqcst__i128, i128);
+        atomic_cxchg!(atomic_cxchg_acquire_seqcst__u128, u128);
+
+        // pub unsafe fn atomic_cxchg_release_relaxed<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchg_release_relaxed__i8, i8);
+        atomic_cxchg!(atomic_cxchg_release_relaxed__i16, i16);
+        atomic_cxchg!(atomic_cxchg_release_relaxed__i32, i32);
+        atomic_cxchg!(atomic_cxchg_release_relaxed__i64, i64);
+        atomic_cxchg!(atomic_cxchg_release_relaxed__isize, isize);
+        atomic_cxchg!(atomic_cxchg_release_relaxed__u8, u8);
+        atomic_cxchg!(atomic_cxchg_release_relaxed__u16, u16);
+        atomic_cxchg!(atomic_cxchg_release_relaxed__u32, u32);
+        atomic_cxchg!(atomic_cxchg_release_relaxed__u64, u64);
+        atomic_cxchg!(atomic_cxchg_release_relaxed, usize);
+        atomic_cxchg!(atomic_cxchg_release_relaxed__i128, i128);
+        atomic_cxchg!(atomic_cxchg_release_relaxed__u128, u128);
+
+        // pub unsafe fn atomic_cxchg_release_acquire<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchg_release_acquire__i8, i8);
+        atomic_cxchg!(atomic_cxchg_release_acquire__i16, i16);
+        atomic_cxchg!(atomic_cxchg_release_acquire__i32, i32);
+        atomic_cxchg!(atomic_cxchg_release_acquire__i64, i64);
+        atomic_cxchg!(atomic_cxchg_release_acquire__isize, isize);
+        atomic_cxchg!(atomic_cxchg_release_acquire__u8, u8);
+        atomic_cxchg!(atomic_cxchg_release_acquire__u16, u16);
+        atomic_cxchg!(atomic_cxchg_release_acquire__u32, u32);
+        atomic_cxchg!(atomic_cxchg_release_acquire__u64, u64);
+        atomic_cxchg!(atomic_cxchg_release_acquire, usize);
+        atomic_cxchg!(atomic_cxchg_release_acquire__i128, i128);
+        atomic_cxchg!(atomic_cxchg_release_acquire__u128, u128);
+
+        // pub unsafe fn atomic_cxchg_release_seqcst<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchg_release_seqcst__i8, i8);
+        atomic_cxchg!(atomic_cxchg_release_seqcst__i16, i16);
+        atomic_cxchg!(atomic_cxchg_release_seqcst__i32, i32);
+        atomic_cxchg!(atomic_cxchg_release_seqcst__i64, i64);
+        atomic_cxchg!(atomic_cxchg_release_seqcst__isize, isize);
+        atomic_cxchg!(atomic_cxchg_release_seqcst__u8, u8);
+        atomic_cxchg!(atomic_cxchg_release_seqcst__u16, u16);
+        atomic_cxchg!(atomic_cxchg_release_seqcst__u32, u32);
+        atomic_cxchg!(atomic_cxchg_release_seqcst__u64, u64);
+        atomic_cxchg!(atomic_cxchg_release_seqcst, usize);
+        atomic_cxchg!(atomic_cxchg_release_seqcst__i128, i128);
+        atomic_cxchg!(atomic_cxchg_release_seqcst__u128, u128);
+
+        // pub unsafe fn atomic_cxchg_acqrel_relaxed<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchg_acqrel_relaxed__i8, i8);
+        atomic_cxchg!(atomic_cxchg_acqrel_relaxed__i16, i16);
+        atomic_cxchg!(atomic_cxchg_acqrel_relaxed__i32, i32);
+        atomic_cxchg!(atomic_cxchg_acqrel_relaxed__i64, i64);
+        atomic_cxchg!(atomic_cxchg_acqrel_relaxed__isize, isize);
+        atomic_cxchg!(atomic_cxchg_acqrel_relaxed__u8, u8);
+        atomic_cxchg!(atomic_cxchg_acqrel_relaxed__u16, u16);
+        atomic_cxchg!(atomic_cxchg_acqrel_relaxed__u32, u32);
+        atomic_cxchg!(atomic_cxchg_acqrel_relaxed__u64, u64);
+        atomic_cxchg!(atomic_cxchg_acqrel_relaxed, usize);
+        atomic_cxchg!(atomic_cxchg_acqrel_relaxed__i128, i128);
+        atomic_cxchg!(atomic_cxchg_acqrel_relaxed__u128, u128);
+
+        // pub unsafe fn atomic_cxchg_acqrel_acquire<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchg_acqrel_acquire__i8, i8);
+        atomic_cxchg!(atomic_cxchg_acqrel_acquire__i16, i16);
+        atomic_cxchg!(atomic_cxchg_acqrel_acquire__i32, i32);
+        atomic_cxchg!(atomic_cxchg_acqrel_acquire__i64, i64);
+        atomic_cxchg!(atomic_cxchg_acqrel_acquire__isize, isize);
+        atomic_cxchg!(atomic_cxchg_acqrel_acquire__u8, u8);
+        atomic_cxchg!(atomic_cxchg_acqrel_acquire__u16, u16);
+        atomic_cxchg!(atomic_cxchg_acqrel_acquire__u32, u32);
+        atomic_cxchg!(atomic_cxchg_acqrel_acquire__u64, u64);
+        atomic_cxchg!(atomic_cxchg_acqrel_acquire, usize);
+        atomic_cxchg!(atomic_cxchg_acqrel_acquire__i128, i128);
+        atomic_cxchg!(atomic_cxchg_acqrel_acquire__u128, u128);
+
+        // pub unsafe fn atomic_cxchg_acqrel_seqcst<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchg_acqrel_seqcst__i8, i8);
+        atomic_cxchg!(atomic_cxchg_acqrel_seqcst__i16, i16);
+        atomic_cxchg!(atomic_cxchg_acqrel_seqcst__i32, i32);
+        atomic_cxchg!(atomic_cxchg_acqrel_seqcst__i64, i64);
+        atomic_cxchg!(atomic_cxchg_acqrel_seqcst__isize, isize);
+        atomic_cxchg!(atomic_cxchg_acqrel_seqcst__u8, u8);
+        atomic_cxchg!(atomic_cxchg_acqrel_seqcst__u16, u16);
+        atomic_cxchg!(atomic_cxchg_acqrel_seqcst__u32, u32);
+        atomic_cxchg!(atomic_cxchg_acqrel_seqcst__u64, u64);
+        atomic_cxchg!(atomic_cxchg_acqrel_seqcst, usize);
+        atomic_cxchg!(atomic_cxchg_acqrel_seqcst__i128, i128);
+        atomic_cxchg!(atomic_cxchg_acqrel_seqcst__u128, u128);
+
+        // pub unsafe fn atomic_cxchg_seqcst_relaxed<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchg_seqcst_relaxed__i8, i8);
+        atomic_cxchg!(atomic_cxchg_seqcst_relaxed__i16, i16);
+        atomic_cxchg!(atomic_cxchg_seqcst_relaxed__i32, i32);
+        atomic_cxchg!(atomic_cxchg_seqcst_relaxed__i64, i64);
+        atomic_cxchg!(atomic_cxchg_seqcst_relaxed__isize, isize);
+        atomic_cxchg!(atomic_cxchg_seqcst_relaxed__u8, u8);
+        atomic_cxchg!(atomic_cxchg_seqcst_relaxed__u16, u16);
+        atomic_cxchg!(atomic_cxchg_seqcst_relaxed__u32, u32);
+        atomic_cxchg!(atomic_cxchg_seqcst_relaxed__u64, u64);
+        atomic_cxchg!(atomic_cxchg_seqcst_relaxed, usize);
+        atomic_cxchg!(atomic_cxchg_seqcst_relaxed__i128, i128);
+        atomic_cxchg!(atomic_cxchg_seqcst_relaxed__u128, u128);
+
+        // pub unsafe fn atomic_cxchg_seqcst_acquire<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchg_seqcst_acquire__i8, i8);
+        atomic_cxchg!(atomic_cxchg_seqcst_acquire__i16, i16);
+        atomic_cxchg!(atomic_cxchg_seqcst_acquire__i32, i32);
+        atomic_cxchg!(atomic_cxchg_seqcst_acquire__i64, i64);
+        atomic_cxchg!(atomic_cxchg_seqcst_acquire__isize, isize);
+        atomic_cxchg!(atomic_cxchg_seqcst_acquire__u8, u8);
+        atomic_cxchg!(atomic_cxchg_seqcst_acquire__u16, u16);
+        atomic_cxchg!(atomic_cxchg_seqcst_acquire__u32, u32);
+        atomic_cxchg!(atomic_cxchg_seqcst_acquire__u64, u64);
+        atomic_cxchg!(atomic_cxchg_seqcst_acquire, usize);
+        atomic_cxchg!(atomic_cxchg_seqcst_acquire__i128, i128);
+        atomic_cxchg!(atomic_cxchg_seqcst_acquire__u128, u128);
+
+        // pub unsafe fn atomic_cxchg_seqcst_seqcst<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchg_seqcst_seqcst__i8, i8);
+        atomic_cxchg!(atomic_cxchg_seqcst_seqcst__i16, i16);
+        atomic_cxchg!(atomic_cxchg_seqcst_seqcst__i32, i32);
+        atomic_cxchg!(atomic_cxchg_seqcst_seqcst__i64, i64);
+        atomic_cxchg!(atomic_cxchg_seqcst_seqcst__isize, isize);
+        atomic_cxchg!(atomic_cxchg_seqcst_seqcst__u8, u8);
+        atomic_cxchg!(atomic_cxchg_seqcst_seqcst__u16, u16);
+        atomic_cxchg!(atomic_cxchg_seqcst_seqcst__u32, u32);
+        atomic_cxchg!(atomic_cxchg_seqcst_seqcst__u64, u64);
+        atomic_cxchg!(atomic_cxchg_seqcst_seqcst, usize);
+        atomic_cxchg!(atomic_cxchg_seqcst_seqcst__i128, i128);
+        atomic_cxchg!(atomic_cxchg_seqcst_seqcst__u128, u128);
+
+        // pub unsafe fn atomic_cxchgweak_relaxed_relaxed<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed__i8, i8);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed__i16, i16);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed__i32, i32);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed__i64, i64);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed__isize, isize);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed__u8, u8);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed__u16, u16);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed__u32, u32);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed__u64, u64);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed, usize);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed__i128, i128);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed__u128, u128);
+
+        // pub unsafe fn atomic_cxchgweak_relaxed_acquire<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchgweak_relaxed_acquire__i8, i8);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_acquire__i16, i16);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_acquire__i32, i32);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_acquire__i64, i64);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_acquire__isize, isize);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_acquire__u8, u8);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_acquire__u16, u16);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_acquire__u32, u32);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_acquire__u64, u64);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_acquire, usize);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_acquire__i128, i128);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_acquire__u128, u128);
+
+        // pub unsafe fn atomic_cxchgweak_relaxed_seqcst<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchgweak_relaxed_seqcst__i8, i8);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_seqcst__i16, i16);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_seqcst__i32, i32);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_seqcst__i64, i64);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_seqcst__isize, isize);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_seqcst__u8, u8);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_seqcst__u16, u16);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_seqcst__u32, u32);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_seqcst__u64, u64);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_seqcst, usize);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_seqcst__i128, i128);
+        atomic_cxchg!(atomic_cxchgweak_relaxed_seqcst__u128, u128);
+
+        // pub unsafe fn atomic_cxchgweak_acquire_relaxed<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchgweak_acquire_relaxed__i8, i8);
+        atomic_cxchg!(atomic_cxchgweak_acquire_relaxed__i16, i16);
+        atomic_cxchg!(atomic_cxchgweak_acquire_relaxed__i32, i32);
+        atomic_cxchg!(atomic_cxchgweak_acquire_relaxed__i64, i64);
+        atomic_cxchg!(atomic_cxchgweak_acquire_relaxed__isize, isize);
+        atomic_cxchg!(atomic_cxchgweak_acquire_relaxed__u8, u8);
+        atomic_cxchg!(atomic_cxchgweak_acquire_relaxed__u16, u16);
+        atomic_cxchg!(atomic_cxchgweak_acquire_relaxed__u32, u32);
+        atomic_cxchg!(atomic_cxchgweak_acquire_relaxed__u64, u64);
+        atomic_cxchg!(atomic_cxchgweak_acquire_relaxed, usize);
+        atomic_cxchg!(atomic_cxchgweak_acquire_relaxed__i128, i128);
+        atomic_cxchg!(atomic_cxchgweak_acquire_relaxed__u128, u128);
+
+        // pub unsafe fn atomic_cxchgweak_acquire_acquire<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchgweak_acquire_acquire__i8, i8);
+        atomic_cxchg!(atomic_cxchgweak_acquire_acquire__i16, i16);
+        atomic_cxchg!(atomic_cxchgweak_acquire_acquire__i32, i32);
+        atomic_cxchg!(atomic_cxchgweak_acquire_acquire__i64, i64);
+        atomic_cxchg!(atomic_cxchgweak_acquire_acquire__isize, isize);
+        atomic_cxchg!(atomic_cxchgweak_acquire_acquire__u8, u8);
+        atomic_cxchg!(atomic_cxchgweak_acquire_acquire__u16, u16);
+        atomic_cxchg!(atomic_cxchgweak_acquire_acquire__u32, u32);
+        atomic_cxchg!(atomic_cxchgweak_acquire_acquire__u64, u64);
+        atomic_cxchg!(atomic_cxchgweak_acquire_acquire, usize);
+        atomic_cxchg!(atomic_cxchgweak_acquire_acquire__i128, i128);
+        atomic_cxchg!(atomic_cxchgweak_acquire_acquire__u128, u128);
+
+        // pub unsafe fn atomic_cxchgweak_acquire_seqcst<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchgweak_acquire_seqcst__i8, i8);
+        atomic_cxchg!(atomic_cxchgweak_acquire_seqcst__i16, i16);
+        atomic_cxchg!(atomic_cxchgweak_acquire_seqcst__i32, i32);
+        atomic_cxchg!(atomic_cxchgweak_acquire_seqcst__i64, i64);
+        atomic_cxchg!(atomic_cxchgweak_acquire_seqcst__isize, isize);
+        atomic_cxchg!(atomic_cxchgweak_acquire_seqcst__u8, u8);
+        atomic_cxchg!(atomic_cxchgweak_acquire_seqcst__u16, u16);
+        atomic_cxchg!(atomic_cxchgweak_acquire_seqcst__u32, u32);
+        atomic_cxchg!(atomic_cxchgweak_acquire_seqcst__u64, u64);
+        atomic_cxchg!(atomic_cxchgweak_acquire_seqcst, usize);
+        atomic_cxchg!(atomic_cxchgweak_acquire_seqcst__i128, i128);
+        atomic_cxchg!(atomic_cxchgweak_acquire_seqcst__u128, u128);
+
+        // pub unsafe fn atomic_cxchgweak_release_relaxed<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchgweak_release_relaxed__i8, i8);
+        atomic_cxchg!(atomic_cxchgweak_release_relaxed__i16, i16);
+        atomic_cxchg!(atomic_cxchgweak_release_relaxed__i32, i32);
+        atomic_cxchg!(atomic_cxchgweak_release_relaxed__i64, i64);
+        atomic_cxchg!(atomic_cxchgweak_release_relaxed__isize, isize);
+        atomic_cxchg!(atomic_cxchgweak_release_relaxed__u8, u8);
+        atomic_cxchg!(atomic_cxchgweak_release_relaxed__u16, u16);
+        atomic_cxchg!(atomic_cxchgweak_release_relaxed__u32, u32);
+        atomic_cxchg!(atomic_cxchgweak_release_relaxed__u64, u64);
+        atomic_cxchg!(atomic_cxchgweak_release_relaxed, usize);
+        atomic_cxchg!(atomic_cxchgweak_release_relaxed__i128, i128);
+        atomic_cxchg!(atomic_cxchgweak_release_relaxed__u128, u128);
+
+        // pub unsafe fn atomic_cxchgweak_release_acquire<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchgweak_release_acquire__i8, i8);
+        atomic_cxchg!(atomic_cxchgweak_release_acquire__i16, i16);
+        atomic_cxchg!(atomic_cxchgweak_release_acquire__i32, i32);
+        atomic_cxchg!(atomic_cxchgweak_release_acquire__i64, i64);
+        atomic_cxchg!(atomic_cxchgweak_release_acquire__isize, isize);
+        atomic_cxchg!(atomic_cxchgweak_release_acquire__u8, u8);
+        atomic_cxchg!(atomic_cxchgweak_release_acquire__u16, u16);
+        atomic_cxchg!(atomic_cxchgweak_release_acquire__u32, u32);
+        atomic_cxchg!(atomic_cxchgweak_release_acquire__u64, u64);
+        atomic_cxchg!(atomic_cxchgweak_release_acquire, usize);
+        atomic_cxchg!(atomic_cxchgweak_release_acquire__i128, i128);
+        atomic_cxchg!(atomic_cxchgweak_release_acquire__u128, u128);
+
+        // pub unsafe fn atomic_cxchgweak_release_seqcst<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchgweak_release_seqcst__i8, i8);
+        atomic_cxchg!(atomic_cxchgweak_release_seqcst__i16, i16);
+        atomic_cxchg!(atomic_cxchgweak_release_seqcst__i32, i32);
+        atomic_cxchg!(atomic_cxchgweak_release_seqcst__i64, i64);
+        atomic_cxchg!(atomic_cxchgweak_release_seqcst__isize, isize);
+        atomic_cxchg!(atomic_cxchgweak_release_seqcst__u8, u8);
+        atomic_cxchg!(atomic_cxchgweak_release_seqcst__u16, u16);
+        atomic_cxchg!(atomic_cxchgweak_release_seqcst__u32, u32);
+        atomic_cxchg!(atomic_cxchgweak_release_seqcst__u64, u64);
+        atomic_cxchg!(atomic_cxchgweak_release_seqcst, usize);
+        atomic_cxchg!(atomic_cxchgweak_release_seqcst__i128, i128);
+        atomic_cxchg!(atomic_cxchgweak_release_seqcst__u128, u128);
+
+        // pub unsafe fn atomic_cxchgweak_acqrel_relaxed<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed__i8, i8);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed__i16, i16);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed__i32, i32);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed__i64, i64);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed__isize, isize);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed__u8, u8);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed__u16, u16);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed__u32, u32);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed__u64, u64);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed, usize);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed__i128, i128);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed__u128, u128);
+
+        // pub unsafe fn atomic_cxchgweak_acqrel_acquire<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchgweak_acqrel_acquire__i8, i8);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_acquire__i16, i16);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_acquire__i32, i32);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_acquire__i64, i64);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_acquire__isize, isize);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_acquire__u8, u8);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_acquire__u16, u16);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_acquire__u32, u32);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_acquire__u64, u64);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_acquire, usize);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_acquire__i128, i128);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_acquire__u128, u128);
+
+        // pub unsafe fn atomic_cxchgweak_acqrel_seqcst<T>(
+        //     dst: *mut T,
+        //     old: T,
+        //     src: T,
+        // ) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchgweak_acqrel_seqcst__i8, i8);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_seqcst__i16, i16);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_seqcst__i32, i32);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_seqcst__i64, i64);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_seqcst__isize, isize);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_seqcst__u8, u8);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_seqcst__u16, u16);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_seqcst__u32, u32);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_seqcst__u64, u64);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_seqcst, usize);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_seqcst__i128, i128);
+        atomic_cxchg!(atomic_cxchgweak_acqrel_seqcst__u128, u128);
+
+        // pub unsafe fn atomic_cxchgweak_seqcst_relaxed<T>(
+        //     dst: *mut T,
+        //     old: T,
+        //     src: T,
+        // ) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed__i8, i8);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed__i16, i16);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed__i32, i32);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed__i64, i64);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed__isize, isize);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed__u8, u8);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed__u16, u16);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed__u32, u32);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed__u64, u64);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed, usize);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed__i128, i128);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed__u128, u128);
+
+        // pub unsafe fn atomic_cxchgweak_seqcst_acquire<T>(
+        //     dst: *mut T,
+        //     old: T,
+        //     src: T,
+        // ) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchgweak_seqcst_acquire__i8, i8);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_acquire__i16, i16);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_acquire__i32, i32);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_acquire__i64, i64);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_acquire__isize, isize);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_acquire__u8, u8);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_acquire__u16, u16);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_acquire__u32, u32);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_acquire__u64, u64);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_acquire, usize);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_acquire__i128, i128);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_acquire__u128, u128);
+
+        // pub unsafe fn atomic_cxchgweak_seqcst_seqcst<T>(
+        //     dst: *mut T,
+        //     old: T,
+        //     src: T,
+        // ) -> (T, bool) {
+        //     if abstract_value!(true) {
+        //         *dst = src;
+        //         (old, true)
+        //     } else {
+        //         (*dst, false)
+        //     }
+        // }
+        atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst__i8, i8);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst__i16, i16);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst__i32, i32);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst__i64, i64);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst__isize, isize);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst__u8, u8);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst__u16, u16);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst__u32, u32);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst__u64, u64);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst, usize);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst__i128, i128);
+        atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst__u128, u128);
+
+        // pub unsafe fn atomic_load_seqcst<T>(src: *const T) -> T
+        // where
+        //     T: Copy,
+        // {
+        //     let bw = std::intrinsics::size_of::<T>();
+        //     precondition!((src as usize) & (bw - 1) == 0);
+        //     *src
+        // }
+        atomic_load!(atomic_load_seqcst__i8, i8);
+        atomic_load!(atomic_load_seqcst__i16, i16);
+        atomic_load!(atomic_load_seqcst__i32, i32);
+        atomic_load!(atomic_load_seqcst__i64, i64);
+        atomic_load!(atomic_load_seqcst__isize, isize);
+        atomic_load!(atomic_load_seqcst__u8, u8);
+        atomic_load!(atomic_load_seqcst__u16, u16);
+        atomic_load!(atomic_load_seqcst__u32, u32);
+        atomic_load!(atomic_load_seqcst__u64, u64);
+        atomic_load!(atomic_load_seqcst__usize, usize);
+        atomic_load!(atomic_load_seqcst__i128, i128);
+        atomic_load!(atomic_load_seqcst__u128, u128);
+
+        // pub unsafe fn atomic_load_acquire<T>(src: *const T) -> T
+        // where
+        //     T: Copy,
+        // {
+        //     let bw = std::intrinsics::size_of::<T>();
+        //     precondition!((src as usize) & (bw - 1) == 0);
+        //     *src
+        // }
+        atomic_load!(atomic_load_acquire__i8, i8);
+        atomic_load!(atomic_load_acquire__i16, i16);
+        atomic_load!(atomic_load_acquire__i32, i32);
+        atomic_load!(atomic_load_acquire__i64, i64);
+        atomic_load!(atomic_load_acquire__isize, isize);
+        atomic_load!(atomic_load_acquire__u8, u8);
+        atomic_load!(atomic_load_acquire__u16, u16);
+        atomic_load!(atomic_load_acquire__u32, u32);
+        atomic_load!(atomic_load_acquire__u64, u64);
+        atomic_load!(atomic_load_acquire__usize, usize);
+        atomic_load!(atomic_load_acquire__i128, i128);
+        atomic_load!(atomic_load_acquire__u128, u128);
+
+        // pub unsafe fn atomic_load_relaxed<T>(src: *const T) -> T
+        // where
+        //     T: Copy,
+        // {
+        //     let bw = std::intrinsics::size_of::<T>();
+        //     precondition!((src as usize) & (bw - 1) == 0);
+        //     *src
+        // }
+        atomic_load!(atomic_load_relaxed__i8, i8);
+        atomic_load!(atomic_load_relaxed__i16, i16);
+        atomic_load!(atomic_load_relaxed__i32, i32);
+        atomic_load!(atomic_load_relaxed__i64, i64);
+        atomic_load!(atomic_load_relaxed__isize, isize);
+        atomic_load!(atomic_load_relaxed__u8, u8);
+        atomic_load!(atomic_load_relaxed__u16, u16);
+        atomic_load!(atomic_load_relaxed__u32, u32);
+        atomic_load!(atomic_load_relaxed__u64, u64);
+        atomic_load!(atomic_load_relaxed__usize, usize);
+        atomic_load!(atomic_load_relaxed__i128, i128);
+        atomic_load!(atomic_load_relaxed__u128, u128);
+
+        // pub unsafe fn atomic_load_unordered<T>(src: *const T) -> T
+        // where
+        //     T: Copy,
+        // {
+        //     let bw = std::intrinsics::size_of::<T>();
+        //     precondition!((src as usize) & (bw - 1) == 0);
+        //     *src
+        // }
+        atomic_load!(atomic_load_unordered__i8, i8);
+        atomic_load!(atomic_load_unordered__i16, i16);
+        atomic_load!(atomic_load_unordered__i32, i32);
+        atomic_load!(atomic_load_unordered__i64, i64);
+        atomic_load!(atomic_load_unordered__isize, isize);
+        atomic_load!(atomic_load_unordered__u8, u8);
+        atomic_load!(atomic_load_unordered__u16, u16);
+        atomic_load!(atomic_load_unordered__u32, u32);
+        atomic_load!(atomic_load_unordered__u64, u64);
+        atomic_load!(atomic_load_unordered__usize, usize);
+        atomic_load!(atomic_load_unordered__i128, i128);
+        atomic_load!(atomic_load_unordered__u128, u128);
+
+        // pub unsafe fn atomic_store_seqcst<T>(dst: *mut T, val: T)
+        // where
+        //     T: Copy,
+        // {
+        //     let bw = std::intrinsics::size_of::<T>();
+        //     precondition!((dst as usize) & (bw - 1) == 0);
+        //     *dst = val;
+        // }
+        atomic_store!(atomic_store_seqcst__i8, i8);
+        atomic_store!(atomic_store_seqcst__i16, i16);
+        atomic_store!(atomic_store_seqcst__i32, i32);
+        atomic_store!(atomic_store_seqcst__i64, i64);
+        atomic_store!(atomic_store_seqcst__isize, isize);
+        atomic_store!(atomic_store_seqcst__u8, u8);
+        atomic_store!(atomic_store_seqcst__u16, u16);
+        atomic_store!(atomic_store_seqcst__u32, u32);
+        atomic_store!(atomic_store_seqcst__u64, u64);
+        atomic_store!(atomic_store_seqcst__usize, usize);
+        atomic_store!(atomic_store_seqcst__i128, i128);
+        atomic_store!(atomic_store_seqcst__u128, u128);
+
+        // pub unsafe fn atomic_store_release<T>(dst: *mut T, val: T)
+        // where
+        //     T: Copy,
+        // {
+        //     let bw = std::intrinsics::size_of::<T>();
+        //     precondition!((dst as usize) & (bw - 1) == 0);
+        //     *dst = val;
+        // }
+        atomic_store!(atomic_store_release__i8, i8);
+        atomic_store!(atomic_store_release__i16, i16);
+        atomic_store!(atomic_store_release__i32, i32);
+        atomic_store!(atomic_store_release__i64, i64);
+        atomic_store!(atomic_store_release__isize, isize);
+        atomic_store!(atomic_store_release__u8, u8);
+        atomic_store!(atomic_store_release__u16, u16);
+        atomic_store!(atomic_store_release__u32, u32);
+        atomic_store!(atomic_store_release__u64, u64);
+        atomic_store!(atomic_store_release__usize, usize);
+        atomic_store!(atomic_store_release__i128, i128);
+        atomic_store!(atomic_store_release__u128, u128);
+
+        // pub unsafe fn atomic_store_relaxed<T>(dst: *mut T, val: T)
+        // where
+        //     T: Copy,
+        // {
+        //     let bw = std::intrinsics::size_of::<T>();
+        //     precondition!((dst as usize) & (bw - 1) == 0);
+        //     *dst = val;
+        // }
+        atomic_store!(atomic_store_relaxed__i8, i8);
+        atomic_store!(atomic_store_relaxed__i16, i16);
+        atomic_store!(atomic_store_relaxed__i32, i32);
+        atomic_store!(atomic_store_relaxed__i64, i64);
+        atomic_store!(atomic_store_relaxed__isize, isize);
+        atomic_store!(atomic_store_relaxed__u8, u8);
+        atomic_store!(atomic_store_relaxed__u16, u16);
+        atomic_store!(atomic_store_relaxed__u32, u32);
+        atomic_store!(atomic_store_relaxed__u64, u64);
+        atomic_store!(atomic_store_relaxed__usize, usize);
+        atomic_store!(atomic_store_relaxed__i128, i128);
+        atomic_store!(atomic_store_relaxed__u128, u128);
+
+        // pub unsafe fn atomic_store_unordered<T>(dst: *mut T, val: T)
+        // where
+        //     T: Copy,
+        // {
+        //     let bw = std::intrinsics::size_of::<T>();
+        //     precondition!((dst as usize) & (bw - 1) == 0);
+        //     *dst = val;
+        // }
+        atomic_store!(atomic_store_unordered__i8, i8);
+        atomic_store!(atomic_store_unordered__i16, i16);
+        atomic_store!(atomic_store_unordered__i32, i32);
+        atomic_store!(atomic_store_unordered__i64, i64);
+        atomic_store!(atomic_store_unordered__isize, isize);
+        atomic_store!(atomic_store_unordered__u8, u8);
+        atomic_store!(atomic_store_unordered__u16, u16);
+        atomic_store!(atomic_store_unordered__u32, u32);
+        atomic_store!(atomic_store_unordered__u64, u64);
+        atomic_store!(atomic_store_unordered__usize, usize);
+        atomic_store!(atomic_store_unordered__i128, i128);
+        atomic_store!(atomic_store_unordered__u128, u128);
+
+        // pub unsafe fn atomic_xchg_seqcst<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        // {
+        //     let bw = std::intrinsics::size_of::<T>();
+        //     precondition!((dst as usize) & (bw - 1) == 0);
+        //     precondition!((src as usize) & (bw - 1) == 0);
+        //     let result = *dst;
+        //     *dst = src;
+        //     result
+        // }
+        atomic_xchg!(atomic_xchg_seqcst__i8, i8);
+        atomic_xchg!(atomic_xchg_seqcst__i16, i16);
+        atomic_xchg!(atomic_xchg_seqcst__i32, i32);
+        atomic_xchg!(atomic_xchg_seqcst__i64, i64);
+        atomic_xchg!(atomic_xchg_seqcst__isize, isize);
+        atomic_xchg!(atomic_xchg_seqcst__u8, u8);
+        atomic_xchg!(atomic_xchg_seqcst__u16, u16);
+        atomic_xchg!(atomic_xchg_seqcst__u32, u32);
+        atomic_xchg!(atomic_xchg_seqcst__u64, u64);
+        atomic_xchg!(atomic_xchg_seqcst__usize, usize);
+        atomic_xchg!(atomic_xchg_seqcst__i128, i128);
+        atomic_xchg!(atomic_xchg_seqcst__u128, u128);
+
+        // pub unsafe fn atomic_xchg_acquire<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        // {
+        //     let bw = std::intrinsics::size_of::<T>();
+        //     precondition!((dst as usize) & (bw - 1) == 0);
+        //     precondition!((src as usize) & (bw - 1) == 0);
+        //     let result = *dst;
+        //     *dst = src;
+        //     result
+        // }
+        atomic_xchg!(atomic_xchg_acquire__i8, i8);
+        atomic_xchg!(atomic_xchg_acquire__i16, i16);
+        atomic_xchg!(atomic_xchg_acquire__i32, i32);
+        atomic_xchg!(atomic_xchg_acquire__i64, i64);
+        atomic_xchg!(atomic_xchg_acquire__isize, isize);
+        atomic_xchg!(atomic_xchg_acquire__u8, u8);
+        atomic_xchg!(atomic_xchg_acquire__u16, u16);
+        atomic_xchg!(atomic_xchg_acquire__u32, u32);
+        atomic_xchg!(atomic_xchg_acquire__u64, u64);
+        atomic_xchg!(atomic_xchg_acquire__usize, usize);
+        atomic_xchg!(atomic_xchg_acquire__i128, i128);
+        atomic_xchg!(atomic_xchg_acquire__u128, u128);
+
+        // pub unsafe fn atomic_xchg_release<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        // {
+        //     let bw = std::intrinsics::size_of::<T>();
+        //     precondition!((dst as usize) & (bw - 1) == 0);
+        //     precondition!((src as usize) & (bw - 1) == 0);
+        //     let result = *dst;
+        //     *dst = src;
+        //     result
+        // }
+        atomic_xchg!(atomic_xchg_release__i8, i8);
+        atomic_xchg!(atomic_xchg_release__i16, i16);
+        atomic_xchg!(atomic_xchg_release__i32, i32);
+        atomic_xchg!(atomic_xchg_release__i64, i64);
+        atomic_xchg!(atomic_xchg_release__isize, isize);
+        atomic_xchg!(atomic_xchg_release__u8, u8);
+        atomic_xchg!(atomic_xchg_release__u16, u16);
+        atomic_xchg!(atomic_xchg_release__u32, u32);
+        atomic_xchg!(atomic_xchg_release__u64, u64);
+        atomic_xchg!(atomic_xchg_release__usize, usize);
+        atomic_xchg!(atomic_xchg_release__i128, i128);
+        atomic_xchg!(atomic_xchg_release__u128, u128);
+
+        // pub unsafe fn atomic_xchg_acqrel<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        // {
+        //     let bw = std::intrinsics::size_of::<T>();
+        //     precondition!((dst as usize) & (bw - 1) == 0);
+        //     precondition!((src as usize) & (bw - 1) == 0);
+        //     let result = *dst;
+        //     *dst = src;
+        //     result
+        // }
+        atomic_xchg!(atomic_xchg_acqrel__i8, i8);
+        atomic_xchg!(atomic_xchg_acqrel__i16, i16);
+        atomic_xchg!(atomic_xchg_acqrel__i32, i32);
+        atomic_xchg!(atomic_xchg_acqrel__i64, i64);
+        atomic_xchg!(atomic_xchg_acqrel__isize, isize);
+        atomic_xchg!(atomic_xchg_acqrel__u8, u8);
+        atomic_xchg!(atomic_xchg_acqrel__u16, u16);
+        atomic_xchg!(atomic_xchg_acqrel__u32, u32);
+        atomic_xchg!(atomic_xchg_acqrel__u64, u64);
+        atomic_xchg!(atomic_xchg_acqrel__usize, usize);
+        atomic_xchg!(atomic_xchg_acqrel__i128, i128);
+        atomic_xchg!(atomic_xchg_acqrel__u128, u128);
+
+        // pub unsafe fn atomic_xchg_relaxed<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        // {
+        //     let bw = std::intrinsics::size_of::<T>();
+        //     precondition!((dst as usize) & (bw - 1) == 0);
+        //     precondition!((src as usize) & (bw - 1) == 0);
+        //     let result = *dst;
+        //     *dst = src;
+        //     result
+        // }
+        atomic_xchg!(atomic_xchg_relaxed__i8, i8);
+        atomic_xchg!(atomic_xchg_relaxed__i16, i16);
+        atomic_xchg!(atomic_xchg_relaxed__i32, i32);
+        atomic_xchg!(atomic_xchg_relaxed__i64, i64);
+        atomic_xchg!(atomic_xchg_relaxed__isize, isize);
+        atomic_xchg!(atomic_xchg_relaxed__u8, u8);
+        atomic_xchg!(atomic_xchg_relaxed__u16, u16);
+        atomic_xchg!(atomic_xchg_relaxed__u32, u32);
+        atomic_xchg!(atomic_xchg_relaxed__u64, u64);
+        atomic_xchg!(atomic_xchg_relaxed__usize, usize);
+        atomic_xchg!(atomic_xchg_relaxed__i128, i128);
+        atomic_xchg!(atomic_xchg_relaxed__u128, u128);
+
+        // pub unsafe fn atomic_xadd_seqcst<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::AddAssign,
+        // {
+        //     let result = *dst;
+        //     *dst += src;
+        //     result
+        // }
+        atomic_int!(atomic_xadd_seqcst__i8, i8, add_assign);
+        atomic_int!(atomic_xadd_seqcst__i16, i16, add_assign);
+        atomic_int!(atomic_xadd_seqcst__i32, i32, add_assign);
+        atomic_int!(atomic_xadd_seqcst__i64, i64, add_assign);
+        atomic_int!(atomic_xadd_seqcst__isize, isize, add_assign);
+        atomic_int!(atomic_xadd_seqcst__u8, u8, add_assign);
+        atomic_int!(atomic_xadd_seqcst__u16, u16, add_assign);
+        atomic_int!(atomic_xadd_seqcst__u32, u32, add_assign);
+        atomic_int!(atomic_xadd_seqcst__u64, u64, add_assign);
+        atomic_int!(atomic_xadd_seqcst__usize, usize, add_assign);
+        atomic_int!(atomic_xadd_seqcst__i128, i128, add_assign);
+        atomic_int!(atomic_xadd_seqcst__u128, u128, add_assign);
+
+        // pub unsafe fn atomic_xadd_acquire<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::AddAssign,
+        // {
+        //     let result = *dst;
+        //     *dst += src;
+        //     result
+        // }
+        atomic_int!(atomic_xadd_acquire__i8, i8, add_assign);
+        atomic_int!(atomic_xadd_acquire__i16, i16, add_assign);
+        atomic_int!(atomic_xadd_acquire__i32, i32, add_assign);
+        atomic_int!(atomic_xadd_acquire__i64, i64, add_assign);
+        atomic_int!(atomic_xadd_acquire__isize, isize, add_assign);
+        atomic_int!(atomic_xadd_acquire__u8, u8, add_assign);
+        atomic_int!(atomic_xadd_acquire__u16, u16, add_assign);
+        atomic_int!(atomic_xadd_acquire__u32, u32, add_assign);
+        atomic_int!(atomic_xadd_acquire__u64, u64, add_assign);
+        atomic_int!(atomic_xadd_acquire__usize, usize, add_assign);
+        atomic_int!(atomic_xadd_acquire__i128, i128, add_assign);
+        atomic_int!(atomic_xadd_acquire__u128, u128, add_assign);
+
+        // pub unsafe fn atomic_xadd_release<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::AddAssign,
+        // {
+        //     let result = *dst;
+        //     *dst += src;
+        //     result
+        // }
+        atomic_int!(atomic_xadd_release__i8, i8, add_assign);
+        atomic_int!(atomic_xadd_release__i16, i16, add_assign);
+        atomic_int!(atomic_xadd_release__i32, i32, add_assign);
+        atomic_int!(atomic_xadd_release__i64, i64, add_assign);
+        atomic_int!(atomic_xadd_release__isize, isize, add_assign);
+        atomic_int!(atomic_xadd_release__u8, u8, add_assign);
+        atomic_int!(atomic_xadd_release__u16, u16, add_assign);
+        atomic_int!(atomic_xadd_release__u32, u32, add_assign);
+        atomic_int!(atomic_xadd_release__u64, u64, add_assign);
+        atomic_int!(atomic_xadd_release__usize, usize, add_assign);
+        atomic_int!(atomic_xadd_release__i128, i128, add_assign);
+        atomic_int!(atomic_xadd_release__u128, u128, add_assign);
+
+        // pub unsafe fn atomic_xadd_acqrel<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::AddAssign,
+        // {
+        //     let result = *dst;
+        //     *dst += src;
+        //     result
+        // }
+        atomic_int!(atomic_xadd_acqrel__i8, i8, add_assign);
+        atomic_int!(atomic_xadd_acqrel__i16, i16, add_assign);
+        atomic_int!(atomic_xadd_acqrel__i32, i32, add_assign);
+        atomic_int!(atomic_xadd_acqrel__i64, i64, add_assign);
+        atomic_int!(atomic_xadd_acqrel__isize, isize, add_assign);
+        atomic_int!(atomic_xadd_acqrel__u8, u8, add_assign);
+        atomic_int!(atomic_xadd_acqrel__u16, u16, add_assign);
+        atomic_int!(atomic_xadd_acqrel__u32, u32, add_assign);
+        atomic_int!(atomic_xadd_acqrel__u64, u64, add_assign);
+        atomic_int!(atomic_xadd_acqrel__usize, usize, add_assign);
+        atomic_int!(atomic_xadd_acqrel__i128, i128, add_assign);
+        atomic_int!(atomic_xadd_acqrel__u128, u128, add_assign);
+
+        // pub unsafe fn atomic_xadd_relaxed<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::AddAssign,
+        // {
+        //     let result = *dst;
+        //     *dst += src;
+        //     result
+        // }
+        atomic_int!(atomic_xadd_relaxed__i8, i8, add_assign);
+        atomic_int!(atomic_xadd_relaxed__i16, i16, add_assign);
+        atomic_int!(atomic_xadd_relaxed__i32, i32, add_assign);
+        atomic_int!(atomic_xadd_relaxed__i64, i64, add_assign);
+        atomic_int!(atomic_xadd_relaxed__isize, isize, add_assign);
+        atomic_int!(atomic_xadd_relaxed__u8, u8, add_assign);
+        atomic_int!(atomic_xadd_relaxed__u16, u16, add_assign);
+        atomic_int!(atomic_xadd_relaxed__u32, u32, add_assign);
+        atomic_int!(atomic_xadd_relaxed__u64, u64, add_assign);
+        atomic_int!(atomic_xadd_relaxed__usize, usize, add_assign);
+        atomic_int!(atomic_xadd_relaxed__i128, i128, add_assign);
+        atomic_int!(atomic_xadd_relaxed__u128, u128, add_assign);
+
+        // pub unsafe fn atomic_xsub_seqcst<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::SubAssign,
+        // {
+        //     let result = *dst;
+        //     *dst -= src;
+        //     result
+        // }
+        atomic_int!(atomic_xsub_seqcst__i8, i8, sub_assign);
+        atomic_int!(atomic_xsub_seqcst__i16, i16, sub_assign);
+        atomic_int!(atomic_xsub_seqcst__i32, i32, sub_assign);
+        atomic_int!(atomic_xsub_seqcst__i64, i64, sub_assign);
+        atomic_int!(atomic_xsub_seqcst__isize, isize, sub_assign);
+        atomic_int!(atomic_xsub_seqcst__u8, u8, sub_assign);
+        atomic_int!(atomic_xsub_seqcst__u16, u16, sub_assign);
+        atomic_int!(atomic_xsub_seqcst__u32, u32, sub_assign);
+        atomic_int!(atomic_xsub_seqcst__u64, u64, sub_assign);
+        atomic_int!(atomic_xsub_seqcst__usize, usize, sub_assign);
+        atomic_int!(atomic_xsub_seqcst__i128, i128, sub_assign);
+        atomic_int!(atomic_xsub_seqcst__u128, u128, sub_assign);
+
+        // pub unsafe fn atomic_xsub_acquire<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::SubAssign,
+        // {
+        //     let result = *dst;
+        //     *dst -= src;
+        //     result
+        // }
+        atomic_int!(atomic_xsub_acquire__i8, i8, sub_assign);
+        atomic_int!(atomic_xsub_acquire__i16, i16, sub_assign);
+        atomic_int!(atomic_xsub_acquire__i32, i32, sub_assign);
+        atomic_int!(atomic_xsub_acquire__i64, i64, sub_assign);
+        atomic_int!(atomic_xsub_acquire__isize, isize, sub_assign);
+        atomic_int!(atomic_xsub_acquire__u8, u8, sub_assign);
+        atomic_int!(atomic_xsub_acquire__u16, u16, sub_assign);
+        atomic_int!(atomic_xsub_acquire__u32, u32, sub_assign);
+        atomic_int!(atomic_xsub_acquire__u64, u64, sub_assign);
+        atomic_int!(atomic_xsub_acquire__usize, usize, sub_assign);
+        atomic_int!(atomic_xsub_acquire__i128, i128, sub_assign);
+        atomic_int!(atomic_xsub_acquire__u128, u128, sub_assign);
+
+        // pub unsafe fn atomic_xsub_release<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::SubAssign,
+        // {
+        //     let result = *dst;
+        //     *dst -= src;
+        //     result
+        // }
+        atomic_int!(atomic_xsub_release__i8, i8, sub_assign);
+        atomic_int!(atomic_xsub_release__i16, i16, sub_assign);
+        atomic_int!(atomic_xsub_release__i32, i32, sub_assign);
+        atomic_int!(atomic_xsub_release__i64, i64, sub_assign);
+        atomic_int!(atomic_xsub_release__isize, isize, sub_assign);
+        atomic_int!(atomic_xsub_release__u8, u8, sub_assign);
+        atomic_int!(atomic_xsub_release__u16, u16, sub_assign);
+        atomic_int!(atomic_xsub_release__u32, u32, sub_assign);
+        atomic_int!(atomic_xsub_release__u64, u64, sub_assign);
+        atomic_int!(atomic_xsub_release__usize, usize, sub_assign);
+        atomic_int!(atomic_xsub_release__i128, i128, sub_assign);
+        atomic_int!(atomic_xsub_release__u128, u128, sub_assign);
+
+        // pub unsafe fn atomic_xsub_acqrel<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::SubAssign,
+        // {
+        //     let result = *dst;
+        //     *dst -= src;
+        //     result
+        // }
+        atomic_int!(atomic_xsub_acqrel__i8, i8, sub_assign);
+        atomic_int!(atomic_xsub_acqrel__i16, i16, sub_assign);
+        atomic_int!(atomic_xsub_acqrel__i32, i32, sub_assign);
+        atomic_int!(atomic_xsub_acqrel__i64, i64, sub_assign);
+        atomic_int!(atomic_xsub_acqrel__isize, isize, sub_assign);
+        atomic_int!(atomic_xsub_acqrel__u8, u8, sub_assign);
+        atomic_int!(atomic_xsub_acqrel__u16, u16, sub_assign);
+        atomic_int!(atomic_xsub_acqrel__u32, u32, sub_assign);
+        atomic_int!(atomic_xsub_acqrel__u64, u64, sub_assign);
+        atomic_int!(atomic_xsub_acqrel__usize, usize, sub_assign);
+        atomic_int!(atomic_xsub_acqrel__i128, i128, sub_assign);
+        atomic_int!(atomic_xsub_acqrel__u128, u128, sub_assign);
+
+        // pub unsafe fn atomic_xsub_relaxed<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::SubAssign,
+        // {
+        //     let result = *dst;
+        //     *dst -= src;
+        //     result
+        // }
+        atomic_int!(atomic_xsub_relaxed__i8, i8, sub_assign);
+        atomic_int!(atomic_xsub_relaxed__i16, i16, sub_assign);
+        atomic_int!(atomic_xsub_relaxed__i32, i32, sub_assign);
+        atomic_int!(atomic_xsub_relaxed__i64, i64, sub_assign);
+        atomic_int!(atomic_xsub_relaxed__isize, isize, sub_assign);
+        atomic_int!(atomic_xsub_relaxed__u8, u8, sub_assign);
+        atomic_int!(atomic_xsub_relaxed__u16, u16, sub_assign);
+        atomic_int!(atomic_xsub_relaxed__u32, u32, sub_assign);
+        atomic_int!(atomic_xsub_relaxed__u64, u64, sub_assign);
+        atomic_int!(atomic_xsub_relaxed__usize, usize, sub_assign);
+        atomic_int!(atomic_xsub_relaxed__i128, i128, sub_assign);
+        atomic_int!(atomic_xsub_relaxed__u128, u128, sub_assign);
+
+        // pub unsafe fn atomic_and_seqcst<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::BitAndAssign,
+        // {
+        //     let result = *dst;
+        //     *dst &= src;
+        //     result
+        // }
+        atomic_int!(atomic_and_seqcst__i8, i8, bitand_assign);
+        atomic_int!(atomic_and_seqcst__i16, i16, bitand_assign);
+        atomic_int!(atomic_and_seqcst__i32, i32, bitand_assign);
+        atomic_int!(atomic_and_seqcst__i64, i64, bitand_assign);
+        atomic_int!(atomic_and_seqcst__isize, isize, bitand_assign);
+        atomic_int!(atomic_and_seqcst__u8, u8, bitand_assign);
+        atomic_int!(atomic_and_seqcst__u16, u16, bitand_assign);
+        atomic_int!(atomic_and_seqcst__u32, u32, bitand_assign);
+        atomic_int!(atomic_and_seqcst__u64, u64, bitand_assign);
+        atomic_int!(atomic_and_seqcst__usize, usize, bitand_assign);
+        atomic_int!(atomic_and_seqcst__i128, i128, bitand_assign);
+        atomic_int!(atomic_and_seqcst__u128, u128, bitand_assign);
+
+        // pub unsafe fn atomic_and_acquire<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::BitAndAssign,
+        // {
+        //     let result = *dst;
+        //     *dst &= src;
+        //     result
+        // }
+        atomic_int!(atomic_and_acquire__i8, i8, bitand_assign);
+        atomic_int!(atomic_and_acquire__i16, i16, bitand_assign);
+        atomic_int!(atomic_and_acquire__i32, i32, bitand_assign);
+        atomic_int!(atomic_and_acquire__i64, i64, bitand_assign);
+        atomic_int!(atomic_and_acquire__isize, isize, bitand_assign);
+        atomic_int!(atomic_and_acquire__u8, u8, bitand_assign);
+        atomic_int!(atomic_and_acquire__u16, u16, bitand_assign);
+        atomic_int!(atomic_and_acquire__u32, u32, bitand_assign);
+        atomic_int!(atomic_and_acquire__u64, u64, bitand_assign);
+        atomic_int!(atomic_and_acquire__usize, usize, bitand_assign);
+        atomic_int!(atomic_and_acquire__i128, i128, bitand_assign);
+        atomic_int!(atomic_and_acquire__u128, u128, bitand_assign);
+
+        // pub unsafe fn atomic_and_release<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::BitAndAssign,
+        // {
+        //     let result = *dst;
+        //     *dst &= src;
+        //     result
+        // }
+        atomic_int!(atomic_and_release__i8, i8, bitand_assign);
+        atomic_int!(atomic_and_release__i16, i16, bitand_assign);
+        atomic_int!(atomic_and_release__i32, i32, bitand_assign);
+        atomic_int!(atomic_and_release__i64, i64, bitand_assign);
+        atomic_int!(atomic_and_release__isize, isize, bitand_assign);
+        atomic_int!(atomic_and_release__u8, u8, bitand_assign);
+        atomic_int!(atomic_and_release__u16, u16, bitand_assign);
+        atomic_int!(atomic_and_release__u32, u32, bitand_assign);
+        atomic_int!(atomic_and_release__u64, u64, bitand_assign);
+        atomic_int!(atomic_and_release__usize, usize, bitand_assign);
+        atomic_int!(atomic_and_release__i128, i128, bitand_assign);
+        atomic_int!(atomic_and_release__u128, u128, bitand_assign);
+
+        // pub unsafe fn atomic_and_acqrel<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::BitAndAssign,
+        // {
+        //     let result = *dst;
+        //     *dst &= src;
+        //     result
+        // }
+        atomic_int!(atomic_and_acqrel__i8, i8, bitand_assign);
+        atomic_int!(atomic_and_acqrel__i16, i16, bitand_assign);
+        atomic_int!(atomic_and_acqrel__i32, i32, bitand_assign);
+        atomic_int!(atomic_and_acqrel__i64, i64, bitand_assign);
+        atomic_int!(atomic_and_acqrel__isize, isize, bitand_assign);
+        atomic_int!(atomic_and_acqrel__u8, u8, bitand_assign);
+        atomic_int!(atomic_and_acqrel__u16, u16, bitand_assign);
+        atomic_int!(atomic_and_acqrel__u32, u32, bitand_assign);
+        atomic_int!(atomic_and_acqrel__u64, u64, bitand_assign);
+        atomic_int!(atomic_and_acqrel__usize, usize, bitand_assign);
+        atomic_int!(atomic_and_acqrel__i128, i128, bitand_assign);
+        atomic_int!(atomic_and_acqrel__u128, u128, bitand_assign);
+
+        // pub unsafe fn atomic_and_relaxed<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::BitAndAssign,
+        // {
+        //     let result = *dst;
+        //     *dst &= src;
+        //     result
+        // }
+        atomic_int!(atomic_and_relaxed__i8, i8, bitand_assign);
+        atomic_int!(atomic_and_relaxed__i16, i16, bitand_assign);
+        atomic_int!(atomic_and_relaxed__i32, i32, bitand_assign);
+        atomic_int!(atomic_and_relaxed__i64, i64, bitand_assign);
+        atomic_int!(atomic_and_relaxed__isize, isize, bitand_assign);
+        atomic_int!(atomic_and_relaxed__u8, u8, bitand_assign);
+        atomic_int!(atomic_and_relaxed__u16, u16, bitand_assign);
+        atomic_int!(atomic_and_relaxed__u32, u32, bitand_assign);
+        atomic_int!(atomic_and_relaxed__u64, u64, bitand_assign);
+        atomic_int!(atomic_and_relaxed__usize, usize, bitand_assign);
+        atomic_int!(atomic_and_relaxed__i128, i128, bitand_assign);
+        atomic_int!(atomic_and_relaxed__u128, u128, bitand_assign);
+
+        // pub unsafe fn atomic_nand_seqcst<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        // {
+        //     let result = *dst;
+        //     *dst = abstract_value!(result);
+        //     result
+        // }
+        atomic_nand!(atomic_nand_seqcst__i8, i8);
+        atomic_nand!(atomic_nand_seqcst__i16, i16);
+        atomic_nand!(atomic_nand_seqcst__i32, i32);
+        atomic_nand!(atomic_nand_seqcst__i64, i64);
+        atomic_nand!(atomic_nand_seqcst__isize, isize);
+        atomic_nand!(atomic_nand_seqcst__u8, u8);
+        atomic_nand!(atomic_nand_seqcst__u16, u16);
+        atomic_nand!(atomic_nand_seqcst__u32, u32);
+        atomic_nand!(atomic_nand_seqcst__u64, u64);
+        atomic_nand!(atomic_nand_seqcst__usize, usize);
+        atomic_nand!(atomic_nand_seqcst__i128, i128);
+        atomic_nand!(atomic_nand_seqcst__u128, u128);
+
+        // pub unsafe fn atomic_nand_acquire<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        // {
+        //     let result = *dst;
+        //     *dst = abstract_value!(result);
+        //     result
+        // }
+        atomic_nand!(atomic_nand_acquire__i8, i8);
+        atomic_nand!(atomic_nand_acquire__i16, i16);
+        atomic_nand!(atomic_nand_acquire__i32, i32);
+        atomic_nand!(atomic_nand_acquire__i64, i64);
+        atomic_nand!(atomic_nand_acquire__isize, isize);
+        atomic_nand!(atomic_nand_acquire__u8, u8);
+        atomic_nand!(atomic_nand_acquire__u16, u16);
+        atomic_nand!(atomic_nand_acquire__u32, u32);
+        atomic_nand!(atomic_nand_acquire__u64, u64);
+        atomic_nand!(atomic_nand_acquire__usize, usize);
+        atomic_nand!(atomic_nand_acquire__i128, i128);
+        atomic_nand!(atomic_nand_acquire__u128, u128);
+
+        // pub unsafe fn atomic_nand_release<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        // {
+        //     let result = *dst;
+        //     *dst = abstract_value!(result);
+        //     result
+        // }
+        atomic_nand!(atomic_nand_release__i8, i8);
+        atomic_nand!(atomic_nand_release__i16, i16);
+        atomic_nand!(atomic_nand_release__i32, i32);
+        atomic_nand!(atomic_nand_release__i64, i64);
+        atomic_nand!(atomic_nand_release__isize, isize);
+        atomic_nand!(atomic_nand_release__u8, u8);
+        atomic_nand!(atomic_nand_release__u16, u16);
+        atomic_nand!(atomic_nand_release__u32, u32);
+        atomic_nand!(atomic_nand_release__u64, u64);
+        atomic_nand!(atomic_nand_release__usize, usize);
+        atomic_nand!(atomic_nand_release__i128, i128);
+        atomic_nand!(atomic_nand_release__u128, u128);
+
+        // pub unsafe fn atomic_nand_acqrel<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        // {
+        //     let result = *dst;
+        //     *dst = abstract_value!(result);
+        //     result
+        // }
+        atomic_nand!(atomic_nand_acqrel__i8, i8);
+        atomic_nand!(atomic_nand_acqrel__i16, i16);
+        atomic_nand!(atomic_nand_acqrel__i32, i32);
+        atomic_nand!(atomic_nand_acqrel__i64, i64);
+        atomic_nand!(atomic_nand_acqrel__isize, isize);
+        atomic_nand!(atomic_nand_acqrel__u8, u8);
+        atomic_nand!(atomic_nand_acqrel__u16, u16);
+        atomic_nand!(atomic_nand_acqrel__u32, u32);
+        atomic_nand!(atomic_nand_acqrel__u64, u64);
+        atomic_nand!(atomic_nand_acqrel__usize, usize);
+        atomic_nand!(atomic_nand_acqrel__i128, i128);
+        atomic_nand!(atomic_nand_acqrel__u128, u128);
+
+        // pub unsafe fn atomic_nand_relaxed<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        // {
+        //     let result = *dst;
+        //     *dst = abstract_value!(result);
+        //     result
+        // }
+        atomic_nand!(atomic_nand_relaxed__i8, i8);
+        atomic_nand!(atomic_nand_relaxed__i16, i16);
+        atomic_nand!(atomic_nand_relaxed__i32, i32);
+        atomic_nand!(atomic_nand_relaxed__i64, i64);
+        atomic_nand!(atomic_nand_relaxed__isize, isize);
+        atomic_nand!(atomic_nand_relaxed__u8, u8);
+        atomic_nand!(atomic_nand_relaxed__u16, u16);
+        atomic_nand!(atomic_nand_relaxed__u32, u32);
+        atomic_nand!(atomic_nand_relaxed__u64, u64);
+        atomic_nand!(atomic_nand_relaxed__usize, usize);
+        atomic_nand!(atomic_nand_relaxed__i128, i128);
+        atomic_nand!(atomic_nand_relaxed__u128, u128);
+
+        // pub unsafe fn atomic_or_seqcst<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::BitOrAssign,
+        // {
+        //     let result = *dst;
+        //     *dst |= src;
+        //     result
+        // }
+        atomic_int!(atomic_or_seqcst__i8, i8, bitor_assign);
+        atomic_int!(atomic_or_seqcst__i16, i16, bitor_assign);
+        atomic_int!(atomic_or_seqcst__i32, i32, bitor_assign);
+        atomic_int!(atomic_or_seqcst__i64, i64, bitor_assign);
+        atomic_int!(atomic_or_seqcst__isize, isize, bitor_assign);
+        atomic_int!(atomic_or_seqcst__u8, u8, bitor_assign);
+        atomic_int!(atomic_or_seqcst__u16, u16, bitor_assign);
+        atomic_int!(atomic_or_seqcst__u32, u32, bitor_assign);
+        atomic_int!(atomic_or_seqcst__u64, u64, bitor_assign);
+        atomic_int!(atomic_or_seqcst__usize, usize, bitor_assign);
+        atomic_int!(atomic_or_seqcst__i128, i128, bitor_assign);
+        atomic_int!(atomic_or_seqcst__u128, u128, bitor_assign);
+
+        // pub unsafe fn atomic_or_acquire<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::BitOrAssign,
+        // {
+        //     let result = *dst;
+        //     *dst |= src;
+        //     result
+        // }
+        atomic_int!(atomic_or_acquire__i8, i8, bitor_assign);
+        atomic_int!(atomic_or_acquire__i16, i16, bitor_assign);
+        atomic_int!(atomic_or_acquire__i32, i32, bitor_assign);
+        atomic_int!(atomic_or_acquire__i64, i64, bitor_assign);
+        atomic_int!(atomic_or_acquire__isize, isize, bitor_assign);
+        atomic_int!(atomic_or_acquire__u8, u8, bitor_assign);
+        atomic_int!(atomic_or_acquire__u16, u16, bitor_assign);
+        atomic_int!(atomic_or_acquire__u32, u32, bitor_assign);
+        atomic_int!(atomic_or_acquire__u64, u64, bitor_assign);
+        atomic_int!(atomic_or_acquire__usize, usize, bitor_assign);
+        atomic_int!(atomic_or_acquire__i128, i128, bitor_assign);
+        atomic_int!(atomic_or_acquire__u128, u128, bitor_assign);
+
+        // pub unsafe fn atomic_or_release<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::BitOrAssign,
+        // {
+        //     let result = *dst;
+        //     *dst |= src;
+        //     result
+        // }
+        atomic_int!(atomic_or_release__i8, i8, bitor_assign);
+        atomic_int!(atomic_or_release__i16, i16, bitor_assign);
+        atomic_int!(atomic_or_release__i32, i32, bitor_assign);
+        atomic_int!(atomic_or_release__i64, i64, bitor_assign);
+        atomic_int!(atomic_or_release__isize, isize, bitor_assign);
+        atomic_int!(atomic_or_release__u8, u8, bitor_assign);
+        atomic_int!(atomic_or_release__u16, u16, bitor_assign);
+        atomic_int!(atomic_or_release__u32, u32, bitor_assign);
+        atomic_int!(atomic_or_release__u64, u64, bitor_assign);
+        atomic_int!(atomic_or_release__usize, usize, bitor_assign);
+        atomic_int!(atomic_or_release__i128, i128, bitor_assign);
+        atomic_int!(atomic_or_release__u128, u128, bitor_assign);
+
+        // pub unsafe fn atomic_or_acqrel<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::BitOrAssign,
+        // {
+        //     let result = *dst;
+        //     *dst |= src;
+        //     result
+        // }
+        atomic_int!(atomic_or_acqrel__i8, i8, bitor_assign);
+        atomic_int!(atomic_or_acqrel__i16, i16, bitor_assign);
+        atomic_int!(atomic_or_acqrel__i32, i32, bitor_assign);
+        atomic_int!(atomic_or_acqrel__i64, i64, bitor_assign);
+        atomic_int!(atomic_or_acqrel__isize, isize, bitor_assign);
+        atomic_int!(atomic_or_acqrel__u8, u8, bitor_assign);
+        atomic_int!(atomic_or_acqrel__u16, u16, bitor_assign);
+        atomic_int!(atomic_or_acqrel__u32, u32, bitor_assign);
+        atomic_int!(atomic_or_acqrel__u64, u64, bitor_assign);
+        atomic_int!(atomic_or_acqrel__usize, usize, bitor_assign);
+        atomic_int!(atomic_or_acqrel__i128, i128, bitor_assign);
+        atomic_int!(atomic_or_acqrel__u128, u128, bitor_assign);
+
+        // pub unsafe fn atomic_or_relaxed<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::BitOrAssign,
+        // {
+        //     let result = *dst;
+        //     *dst |= src;
+        //     result
+        // }
+        atomic_int!(atomic_or_relaxed__i8, i8, bitor_assign);
+        atomic_int!(atomic_or_relaxed__i16, i16, bitor_assign);
+        atomic_int!(atomic_or_relaxed__i32, i32, bitor_assign);
+        atomic_int!(atomic_or_relaxed__i64, i64, bitor_assign);
+        atomic_int!(atomic_or_relaxed__isize, isize, bitor_assign);
+        atomic_int!(atomic_or_relaxed__u8, u8, bitor_assign);
+        atomic_int!(atomic_or_relaxed__u16, u16, bitor_assign);
+        atomic_int!(atomic_or_relaxed__u32, u32, bitor_assign);
+        atomic_int!(atomic_or_relaxed__u64, u64, bitor_assign);
+        atomic_int!(atomic_or_relaxed__usize, usize, bitor_assign);
+        atomic_int!(atomic_or_relaxed__i128, i128, bitor_assign);
+        atomic_int!(atomic_or_relaxed__u128, u128, bitor_assign);
+
+        // pub unsafe fn atomic_xor_seqcst<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::BitXorAssign,
+        // {
+        //     let result = *dst;
+        //     *dst ^= src;
+        //     result
+        // }
+        atomic_int!(atomic_xor_seqcst__i8, i8, bitxor_assign);
+        atomic_int!(atomic_xor_seqcst__i16, i16, bitxor_assign);
+        atomic_int!(atomic_xor_seqcst__i32, i32, bitxor_assign);
+        atomic_int!(atomic_xor_seqcst__i64, i64, bitxor_assign);
+        atomic_int!(atomic_xor_seqcst__isize, isize, bitxor_assign);
+        atomic_int!(atomic_xor_seqcst__u8, u8, bitxor_assign);
+        atomic_int!(atomic_xor_seqcst__u16, u16, bitxor_assign);
+        atomic_int!(atomic_xor_seqcst__u32, u32, bitxor_assign);
+        atomic_int!(atomic_xor_seqcst__u64, u64, bitxor_assign);
+        atomic_int!(atomic_xor_seqcst__usize, usize, bitxor_assign);
+        atomic_int!(atomic_xor_seqcst__i128, i128, bitxor_assign);
+        atomic_int!(atomic_xor_seqcst__u128, u128, bitxor_assign);
+
+        // pub unsafe fn atomic_xor_acquire<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::BitXorAssign,
+        // {
+        //     let result = *dst;
+        //     *dst ^= src;
+        //     result
+        // }
+        atomic_int!(atomic_xor_acquire__i8, i8, bitxor_assign);
+        atomic_int!(atomic_xor_acquire__i16, i16, bitxor_assign);
+        atomic_int!(atomic_xor_acquire__i32, i32, bitxor_assign);
+        atomic_int!(atomic_xor_acquire__i64, i64, bitxor_assign);
+        atomic_int!(atomic_xor_acquire__isize, isize, bitxor_assign);
+        atomic_int!(atomic_xor_acquire__u8, u8, bitxor_assign);
+        atomic_int!(atomic_xor_acquire__u16, u16, bitxor_assign);
+        atomic_int!(atomic_xor_acquire__u32, u32, bitxor_assign);
+        atomic_int!(atomic_xor_acquire__u64, u64, bitxor_assign);
+        atomic_int!(atomic_xor_acquire__usize, usize, bitxor_assign);
+        atomic_int!(atomic_xor_acquire__i128, i128, bitxor_assign);
+        atomic_int!(atomic_xor_acquire__u128, u128, bitxor_assign);
+
+        // pub unsafe fn atomic_xor_release<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::BitXorAssign,
+        // {
+        //     let result = *dst;
+        //     *dst ^= src;
+        //     result
+        // }
+        atomic_int!(atomic_xor_release__i8, i8, bitxor_assign);
+        atomic_int!(atomic_xor_release__i16, i16, bitxor_assign);
+        atomic_int!(atomic_xor_release__i32, i32, bitxor_assign);
+        atomic_int!(atomic_xor_release__i64, i64, bitxor_assign);
+        atomic_int!(atomic_xor_release__isize, isize, bitxor_assign);
+        atomic_int!(atomic_xor_release__u8, u8, bitxor_assign);
+        atomic_int!(atomic_xor_release__u16, u16, bitxor_assign);
+        atomic_int!(atomic_xor_release__u32, u32, bitxor_assign);
+        atomic_int!(atomic_xor_release__u64, u64, bitxor_assign);
+        atomic_int!(atomic_xor_release__usize, usize, bitxor_assign);
+        atomic_int!(atomic_xor_release__i128, i128, bitxor_assign);
+        atomic_int!(atomic_xor_release__u128, u128, bitxor_assign);
+
+        // pub unsafe fn atomic_xor_acqrel<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::BitXorAssign,
+        // {
+        //     let result = *dst;
+        //     *dst ^= src;
+        //     result
+        // }
+        atomic_int!(atomic_xor_acqrel__i8, i8, bitxor_assign);
+        atomic_int!(atomic_xor_acqrel__i16, i16, bitxor_assign);
+        atomic_int!(atomic_xor_acqrel__i32, i32, bitxor_assign);
+        atomic_int!(atomic_xor_acqrel__i64, i64, bitxor_assign);
+        atomic_int!(atomic_xor_acqrel__isize, isize, bitxor_assign);
+        atomic_int!(atomic_xor_acqrel__u8, u8, bitxor_assign);
+        atomic_int!(atomic_xor_acqrel__u16, u16, bitxor_assign);
+        atomic_int!(atomic_xor_acqrel__u32, u32, bitxor_assign);
+        atomic_int!(atomic_xor_acqrel__u64, u64, bitxor_assign);
+        atomic_int!(atomic_xor_acqrel__usize, usize, bitxor_assign);
+        atomic_int!(atomic_xor_acqrel__i128, i128, bitxor_assign);
+        atomic_int!(atomic_xor_acqrel__u128, u128, bitxor_assign);
+
+        // pub unsafe fn atomic_xor_relaxed<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: std::ops::BitXorAssign,
+        // {
+        //     let result = *dst;
+        //     *dst ^= src;
+        //     result
+        // }
+        atomic_int!(atomic_xor_relaxed__i8, i8, bitxor_assign);
+        atomic_int!(atomic_xor_relaxed__i16, i16, bitxor_assign);
+        atomic_int!(atomic_xor_relaxed__i32, i32, bitxor_assign);
+        atomic_int!(atomic_xor_relaxed__i64, i64, bitxor_assign);
+        atomic_int!(atomic_xor_relaxed__isize, isize, bitxor_assign);
+        atomic_int!(atomic_xor_relaxed__u8, u8, bitxor_assign);
+        atomic_int!(atomic_xor_relaxed__u16, u16, bitxor_assign);
+        atomic_int!(atomic_xor_relaxed__u32, u32, bitxor_assign);
+        atomic_int!(atomic_xor_relaxed__u64, u64, bitxor_assign);
+        atomic_int!(atomic_xor_relaxed__usize, usize, bitxor_assign);
+        atomic_int!(atomic_xor_relaxed__i128, i128, bitxor_assign);
+        atomic_int!(atomic_xor_relaxed__u128, u128, bitxor_assign);
+
+        // pub unsafe fn atomic_max_seqcst<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: PartialOrd,
+        // {
+        //     if *dst <= src {
+        //         src
+        //     } else {
+        //         *dst
+        //     }
+        // }
+        atomic_max_min!(atomic_max_seqcst__i8, i8, <=);
+        atomic_max_min!(atomic_max_seqcst__i16, i16, <=);
+        atomic_max_min!(atomic_max_seqcst__i32, i32, <=);
+        atomic_max_min!(atomic_max_seqcst__i64, i64, <=);
+        atomic_max_min!(atomic_max_seqcst__isize, isize, <=);
+        atomic_max_min!(atomic_umax_seqcst__u8, u8, <=);
+        atomic_max_min!(atomic_umax_seqcst__u16, u16, <=);
+        atomic_max_min!(atomic_umax_seqcst__u32, u32, <=);
+        atomic_max_min!(atomic_umax_seqcst__u64, u64, <=);
+        atomic_max_min!(atomic_umax_seqcst__usize, usize, <=);
+        atomic_max_min!(atomic_max_seqcst__i128, i128, <=);
+        atomic_max_min!(atomic_umax_seqcst__u128, u128, <=);
+
+        // pub unsafe fn atomic_max_acquire<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: PartialOrd,
+        // {
+        //     if *dst <= src {
+        //         src
+        //     } else {
+        //         *dst
+        //     }
+        // }
+        atomic_max_min!(atomic_max_acquire__i8, i8, <=);
+        atomic_max_min!(atomic_max_acquire__i16, i16, <=);
+        atomic_max_min!(atomic_max_acquire__i32, i32, <=);
+        atomic_max_min!(atomic_max_acquire__i64, i64, <=);
+        atomic_max_min!(atomic_max_acquire__isize, isize, <=);
+        atomic_max_min!(atomic_umax_acquire__u8, u8, <=);
+        atomic_max_min!(atomic_umax_acquire__u16, u16, <=);
+        atomic_max_min!(atomic_umax_acquire__u32, u32, <=);
+        atomic_max_min!(atomic_umax_acquire__u64, u64, <=);
+        atomic_max_min!(atomic_umax_acquire__usize, usize, <=);
+        atomic_max_min!(atomic_max_acquire__i128, i128, <=);
+        atomic_max_min!(atomic_umax_acquire__u128, u128, <=);
+
+        // pub unsafe fn atomic_max_release<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: PartialOrd,
+        // {
+        //     if *dst <= src {
+        //         src
+        //     } else {
+        //         *dst
+        //     }
+        // }
+        atomic_max_min!(atomic_max_release__i8, i8, <=);
+        atomic_max_min!(atomic_max_release__i16, i16, <=);
+        atomic_max_min!(atomic_max_release__i32, i32, <=);
+        atomic_max_min!(atomic_max_release__i64, i64, <=);
+        atomic_max_min!(atomic_max_release__isize, isize, <=);
+        atomic_max_min!(atomic_umax_release__u8, u8, <=);
+        atomic_max_min!(atomic_umax_release__u16, u16, <=);
+        atomic_max_min!(atomic_umax_release__u32, u32, <=);
+        atomic_max_min!(atomic_umax_release__u64, u64, <=);
+        atomic_max_min!(atomic_umax_release__usize, usize, <=);
+        atomic_max_min!(atomic_max_release__i128, i128, <=);
+        atomic_max_min!(atomic_umax_release__u128, u128, <=);
+
+        // pub unsafe fn atomic_max_acqrel<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: PartialOrd,
+        // {
+        //     if *dst <= src {
+        //         src
+        //     } else {
+        //         *dst
+        //     }
+        // }
+        atomic_max_min!(atomic_max_acqrel__i8, i8, <=);
+        atomic_max_min!(atomic_max_acqrel__i16, i16, <=);
+        atomic_max_min!(atomic_max_acqrel__i32, i32, <=);
+        atomic_max_min!(atomic_max_acqrel__i64, i64, <=);
+        atomic_max_min!(atomic_max_acqrel__isize, isize, <=);
+        atomic_max_min!(atomic_umax_acqrel__u8, u8, <=);
+        atomic_max_min!(atomic_umax_acqrel__u16, u16, <=);
+        atomic_max_min!(atomic_umax_acqrel__u32, u32, <=);
+        atomic_max_min!(atomic_umax_acqrel__u64, u64, <=);
+        atomic_max_min!(atomic_umax_acqrel__usize, usize, <=);
+        atomic_max_min!(atomic_max_acqrel__i128, i128, <=);
+        atomic_max_min!(atomic_umax_acqrel__u128, u128, <=);
+
+        // pub unsafe fn atomic_max_relaxed<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: PartialOrd,
+        // {
+        //     if *dst <= src {
+        //         src
+        //     } else {
+        //         *dst
+        //     }
+        // }
+        atomic_max_min!(atomic_max_relaxed__i8, i8, <=);
+        atomic_max_min!(atomic_max_relaxed__i16, i16, <=);
+        atomic_max_min!(atomic_max_relaxed__i32, i32, <=);
+        atomic_max_min!(atomic_max_relaxed__i64, i64, <=);
+        atomic_max_min!(atomic_max_relaxed__isize, isize, <=);
+        atomic_max_min!(atomic_umax_relaxed__u8, u8, <=);
+        atomic_max_min!(atomic_umax_relaxed__u16, u16, <=);
+        atomic_max_min!(atomic_umax_relaxed__u32, u32, <=);
+        atomic_max_min!(atomic_umax_relaxed__u64, u64, <=);
+        atomic_max_min!(atomic_umax_relaxed__usize, usize, <=);
+        atomic_max_min!(atomic_max_relaxed__i128, i128, <=);
+        atomic_max_min!(atomic_umax_relaxed__u128, u128, <=);
+
+        // pub unsafe fn atomic_min_seqcst<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: PartialOrd,
+        // {
+        //     if *dst >= src {
+        //         src
+        //     } else {
+        //         *dst
+        //     }
+        // }
+        atomic_max_min!(atomic_min_seqcst__i8, i8, >=);
+        atomic_max_min!(atomic_min_seqcst__i16, i16, >=);
+        atomic_max_min!(atomic_min_seqcst__i32, i32, >=);
+        atomic_max_min!(atomic_min_seqcst__i64, i64, >=);
+        atomic_max_min!(atomic_min_seqcst__isize, isize, >=);
+        atomic_max_min!(atomic_umin_seqcst__u8, u8, >=);
+        atomic_max_min!(atomic_umin_seqcst__u16, u16, >=);
+        atomic_max_min!(atomic_umin_seqcst__u32, u32, >=);
+        atomic_max_min!(atomic_umin_seqcst__u64, u64, >=);
+        atomic_max_min!(atomic_umin_seqcst__usize, usize, >=);
+        atomic_max_min!(atomic_min_seqcst__i128, i128, >=);
+        atomic_max_min!(atomic_umin_seqcst__u128, u128, >=);
+
+        // pub unsafe fn atomic_min_acquire<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: PartialOrd,
+        // {
+        //     if *dst >= src {
+        //         src
+        //     } else {
+        //         *dst
+        //     }
+        // }
+        atomic_max_min!(atomic_min_acquire__i8, i8, >=);
+        atomic_max_min!(atomic_min_acquire__i16, i16, >=);
+        atomic_max_min!(atomic_min_acquire__i32, i32, >=);
+        atomic_max_min!(atomic_min_acquire__i64, i64, >=);
+        atomic_max_min!(atomic_min_acquire__isize, isize, >=);
+        atomic_max_min!(atomic_umin_acquire__u8, u8, >=);
+        atomic_max_min!(atomic_umin_acquire__u16, u16, >=);
+        atomic_max_min!(atomic_umin_acquire__u32, u32, >=);
+        atomic_max_min!(atomic_umin_acquire__u64, u64, >=);
+        atomic_max_min!(atomic_umin_acquire__usize, usize, >=);
+        atomic_max_min!(atomic_min_acquire__i128, i128, >=);
+        atomic_max_min!(atomic_umin_acquire__u128, u128, >=);
+
+        // pub unsafe fn atomic_min_release<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: PartialOrd,
+        // {
+        //     if *dst >= src {
+        //         src
+        //     } else {
+        //         *dst
+        //     }
+        // }
+        atomic_max_min!(atomic_min_release__i8, i8, >=);
+        atomic_max_min!(atomic_min_release__i16, i16, >=);
+        atomic_max_min!(atomic_min_release__i32, i32, >=);
+        atomic_max_min!(atomic_min_release__i64, i64, >=);
+        atomic_max_min!(atomic_min_release__isize, isize, >=);
+        atomic_max_min!(atomic_umin_release__u8, u8, >=);
+        atomic_max_min!(atomic_umin_release__u16, u16, >=);
+        atomic_max_min!(atomic_umin_release__u32, u32, >=);
+        atomic_max_min!(atomic_umin_release__u64, u64, >=);
+        atomic_max_min!(atomic_umin_release__usize, usize, >=);
+        atomic_max_min!(atomic_min_release__i128, i128, >=);
+        atomic_max_min!(atomic_umin_release__u128, u128, >=);
+
+        // pub unsafe fn atomic_min_acqrel<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: PartialOrd,
+        // {
+        //     if *dst >= src {
+        //         src
+        //     } else {
+        //         *dst
+        //     }
+        // }
+        atomic_max_min!(atomic_min_acqrel__i8, i8, >=);
+        atomic_max_min!(atomic_min_acqrel__i16, i16, >=);
+        atomic_max_min!(atomic_min_acqrel__i32, i32, >=);
+        atomic_max_min!(atomic_min_acqrel__i64, i64, >=);
+        atomic_max_min!(atomic_min_acqrel__isize, isize, >=);
+        atomic_max_min!(atomic_umin_acqrel__u8, u8, >=);
+        atomic_max_min!(atomic_umin_acqrel__u16, u16, >=);
+        atomic_max_min!(atomic_umin_acqrel__u32, u32, >=);
+        atomic_max_min!(atomic_umin_acqrel__u64, u64, >=);
+        atomic_max_min!(atomic_umin_acqrel__usize, usize, >=);
+        atomic_max_min!(atomic_min_acqrel__i128, i128, >=);
+        atomic_max_min!(atomic_umin_acqrel__u128, u128, >=);
+
+        // pub unsafe fn atomic_min_relaxed<T>(dst: *mut T, src: T) -> T
+        // where
+        //     T: Copy,
+        //     T: PartialOrd,
+        // {
+        //     if *dst >= src {
+        //         src
+        //     } else {
+        //         *dst
+        //     }
+        // }
+        atomic_max_min!(atomic_min_relaxed__i8, i8, >=);
+        atomic_max_min!(atomic_min_relaxed__i16, i16, >=);
+        atomic_max_min!(atomic_min_relaxed__i32, i32, >=);
+        atomic_max_min!(atomic_min_relaxed__i64, i64, >=);
+        atomic_max_min!(atomic_min_relaxed__isize, isize, >=);
+        atomic_max_min!(atomic_umin_relaxed__u8, u8, >=);
+        atomic_max_min!(atomic_umin_relaxed__u16, u16, >=);
+        atomic_max_min!(atomic_umin_relaxed__u32, u32, >=);
+        atomic_max_min!(atomic_umin_relaxed__u64, u64, >=);
+        atomic_max_min!(atomic_umin_relaxed__usize, usize, >=);
+        atomic_max_min!(atomic_min_relaxed__i128, i128, >=);
+        atomic_max_min!(atomic_umin_relaxed__u128, u128, >=);
+
+        default_contract!(atomic_fence_seqcst);
+        default_contract!(atomic_fence_acquire);
+        default_contract!(atomic_fence_release);
+        default_contract!(atomic_fence_acqrel);
+        default_contract!(atomic_singlethreadfence_seqcst);
+        default_contract!(atomic_singlethreadfence_acquire);
+        default_contract!(atomic_singlethreadfence_release);
+        default_contract!(atomic_singlethreadfence_acqrel);
+
+        default_contract!(prefetch_read_data);
+        default_contract!(prefetch_write_data);
+        default_contract!(prefetch_read_instruction);
+        default_contract!(prefetch_write_instruction);
+        default_contract!(breakpoint);
+
+        pub fn rustc_peek<T>(_: T) -> T {
+            assume_unreachable!()
+        }
+        pub fn abort() {
+            assume_unreachable!();
+        }
+        pub fn unreachable() {
+            assume_unreachable!();
+        }
+        pub unsafe fn assume(b: bool) {
+            if !b {
+                unsafe { assume_unreachable!() }
+            }
+        }
+        pub fn likely(b: bool) -> bool {
+            b
+        }
+        pub fn unlikely(b: bool) -> bool {
+            b
+        }
+
+        pub fn select_unpredictable<T>(b: bool, true_val: T, false_val: T) -> T {
+            if b {
+                true_val
+            } else {
+                false_val
+            }
+        }
+
+        pub fn assert_inhabited<T>() {
+            assume_unreachable!()
+        }
+
+        pub fn assert_zero_valid<T>() {
+            assume_unreachable!()
+        }
+
+        pub fn assert_mem_uninitialized_valid<T>() {
+            assume_unreachable!()
+        }
+
+        pub const fn caller_location() -> &'static core::panic::Location<'static> {
+            assume_unreachable!()
+        }
+
+        pub const fn forget() {
+            assume_unreachable!()
+        }
+
+        // Known name
+        // pub fn transmute<Src, Dst>(_src: Src) -> Dst {
+        //     assume_unreachable!()
+        // }
+
+        // Known name
+        // pub fn transmute_unchecked<Src, Dst>(_src: Src) -> Dst {
+        //     assume_unreachable!()
+        // }
+
+        pub fn needs_drop<T: ?Sized>() -> bool {
+            assume_unreachable!()
+        }
+
+        // Known name
+        // pub const unsafe fn offset<Ptr, Delta>(_dst: Ptr, _offset: Delta) -> Ptr {
+        //     unreachable!()
+        // }
+
+        // Known name
+        // pub const unsafe fn arith_offset<T>(_dst: *const T, _offset: isize) -> *const T {
+        //     unreachable!()
+        // }
+
+        pub fn ptr_mask<T>(ptr: *const T, mask: usize) -> *const T {
+            assume_unreachable!()
+        }
+
         pub mod foreign {
-            // pub unsafe fn atomic_cxchg_seqcst_seqcst<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
-            //     if abstract_value!(true) {
-            //         *dst = src;
-            //         (old, true)
-            //     } else {
-            //         (*dst, false)
-            //     }
-            // }
-            atomic_cxchg!(atomic_cxchg_seqcst_seqcst__i8, i8);
-            atomic_cxchg!(atomic_cxchg_seqcst_seqcst__i16, i16);
-            atomic_cxchg!(atomic_cxchg_seqcst_seqcst__i32, i32);
-            atomic_cxchg!(atomic_cxchg_seqcst_seqcst__i64, i64);
-            atomic_cxchg!(atomic_cxchg_seqcst_seqcst__isize, isize);
-            atomic_cxchg!(atomic_cxchg_seqcst_seqcst__u8, u8);
-            atomic_cxchg!(atomic_cxchg_seqcst_seqcst__u16, u16);
-            atomic_cxchg!(atomic_cxchg_seqcst_seqcst__u32, u32);
-            atomic_cxchg!(atomic_cxchg_seqcst_seqcst__u64, u64);
-            atomic_cxchg!(atomic_cxchg_seqcst_seqcst, usize);
-            atomic_cxchg!(atomic_cxchg_seqcst_seqcst__i128, i128);
-            atomic_cxchg!(atomic_cxchg_seqcst_seqcst__u128, u128);
-
-            // pub unsafe fn atomic_cxchg_acquire_acquire<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
-            //     if abstract_value!(true) {
-            //         *dst = src;
-            //         (old, true)
-            //     } else {
-            //         (*dst, false)
-            //     }
-            // }
-            atomic_cxchg!(atomic_cxchg_acquire_acquire__i8, i8);
-            atomic_cxchg!(atomic_cxchg_acquire_acquire__i16, i16);
-            atomic_cxchg!(atomic_cxchg_acquire_acquire__i32, i32);
-            atomic_cxchg!(atomic_cxchg_acquire_acquire__i64, i64);
-            atomic_cxchg!(atomic_cxchg_acquire_acquire__isize, isize);
-            atomic_cxchg!(atomic_cxchg_acquire_acquire__u8, u8);
-            atomic_cxchg!(atomic_cxchg_acquire_acquire__u16, u16);
-            atomic_cxchg!(atomic_cxchg_acquire_acquire__u32, u32);
-            atomic_cxchg!(atomic_cxchg_acquire_acquire__u64, u64);
-            atomic_cxchg!(atomic_cxchg_acquire_acquire, usize);
-            atomic_cxchg!(atomic_cxchg_acquire_acquire__i128, i128);
-            atomic_cxchg!(atomic_cxchg_acquire_acquire__u128, u128);
-
-            // pub unsafe fn atomic_cxchg_release_relaxed<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
-            //     if abstract_value!(true) {
-            //         *dst = src;
-            //         (old, true)
-            //     } else {
-            //         (*dst, false)
-            //     }
-            // }
-            atomic_cxchg!(atomic_cxchg_release_relaxed__i8, i8);
-            atomic_cxchg!(atomic_cxchg_release_relaxed__i16, i16);
-            atomic_cxchg!(atomic_cxchg_release_relaxed__i32, i32);
-            atomic_cxchg!(atomic_cxchg_release_relaxed__i64, i64);
-            atomic_cxchg!(atomic_cxchg_release_relaxed__isize, isize);
-            atomic_cxchg!(atomic_cxchg_release_relaxed__u8, u8);
-            atomic_cxchg!(atomic_cxchg_release_relaxed__u16, u16);
-            atomic_cxchg!(atomic_cxchg_release_relaxed__u32, u32);
-            atomic_cxchg!(atomic_cxchg_release_relaxed__u64, u64);
-            atomic_cxchg!(atomic_cxchg_release_relaxed, usize);
-            atomic_cxchg!(atomic_cxchg_release_relaxed__i128, i128);
-            atomic_cxchg!(atomic_cxchg_release_relaxed__u128, u128);
-
-            // pub unsafe fn atomic_cxchg_acqrel_acquire<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
-            //     if abstract_value!(true) {
-            //         *dst = src;
-            //         (old, true)
-            //     } else {
-            //         (*dst, false)
-            //     }
-            // }
-            atomic_cxchg!(atomic_cxchg_acqrel_acquire__i8, i8);
-            atomic_cxchg!(atomic_cxchg_acqrel_acquire__i16, i16);
-            atomic_cxchg!(atomic_cxchg_acqrel_acquire__i32, i32);
-            atomic_cxchg!(atomic_cxchg_acqrel_acquire__i64, i64);
-            atomic_cxchg!(atomic_cxchg_acqrel_acquire__isize, isize);
-            atomic_cxchg!(atomic_cxchg_acqrel_acquire__u8, u8);
-            atomic_cxchg!(atomic_cxchg_acqrel_acquire__u16, u16);
-            atomic_cxchg!(atomic_cxchg_acqrel_acquire__u32, u32);
-            atomic_cxchg!(atomic_cxchg_acqrel_acquire__u64, u64);
-            atomic_cxchg!(atomic_cxchg_acqrel_acquire, usize);
-            atomic_cxchg!(atomic_cxchg_acqrel_acquire__i128, i128);
-            atomic_cxchg!(atomic_cxchg_acqrel_acquire__u128, u128);
-
-            // pub unsafe fn atomic_cxchg_relaxed_relaxed<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
-            //     if abstract_value!(true) {
-            //         *dst = src;
-            //         (old, true)
-            //     } else {
-            //         (*dst, false)
-            //     }
-            // }
-            atomic_cxchg!(atomic_cxchg_relaxed_relaxed__i8, i8);
-            atomic_cxchg!(atomic_cxchg_relaxed_relaxed__i16, i16);
-            atomic_cxchg!(atomic_cxchg_relaxed_relaxed__i32, i32);
-            atomic_cxchg!(atomic_cxchg_relaxed_relaxed__i64, i64);
-            atomic_cxchg!(atomic_cxchg_relaxed_relaxed__isize, isize);
-            atomic_cxchg!(atomic_cxchg_relaxed_relaxed__u8, u8);
-            atomic_cxchg!(atomic_cxchg_relaxed_relaxed__u16, u16);
-            atomic_cxchg!(atomic_cxchg_relaxed_relaxed__u32, u32);
-            atomic_cxchg!(atomic_cxchg_relaxed_relaxed__u64, u64);
-            atomic_cxchg!(atomic_cxchg_relaxed_relaxed, usize);
-            atomic_cxchg!(atomic_cxchg_relaxed_relaxed__i128, i128);
-            atomic_cxchg!(atomic_cxchg_relaxed_relaxed__u128, u128);
-
-            // pub unsafe fn atomic_cxchg_seqcst_relaxed<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
-            //     if abstract_value!(true) {
-            //         *dst = src;
-            //         (old, true)
-            //     } else {
-            //         (*dst, false)
-            //     }
-            // }
-            atomic_cxchg!(atomic_cxchg_seqcst_relaxed__i8, i8);
-            atomic_cxchg!(atomic_cxchg_seqcst_relaxed__i16, i16);
-            atomic_cxchg!(atomic_cxchg_seqcst_relaxed__i32, i32);
-            atomic_cxchg!(atomic_cxchg_seqcst_relaxed__i64, i64);
-            atomic_cxchg!(atomic_cxchg_seqcst_relaxed__isize, isize);
-            atomic_cxchg!(atomic_cxchg_seqcst_relaxed__u8, u8);
-            atomic_cxchg!(atomic_cxchg_seqcst_relaxed__u16, u16);
-            atomic_cxchg!(atomic_cxchg_seqcst_relaxed__u32, u32);
-            atomic_cxchg!(atomic_cxchg_seqcst_relaxed__u64, u64);
-            atomic_cxchg!(atomic_cxchg_seqcst_relaxed, usize);
-            atomic_cxchg!(atomic_cxchg_seqcst_relaxed__i128, i128);
-            atomic_cxchg!(atomic_cxchg_seqcst_relaxed__u128, u128);
-
-            // pub unsafe fn atomic_cxchg_seqcst_acquire<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
-            //     if abstract_value!(true) {
-            //         *dst = src;
-            //         (old, true)
-            //     } else {
-            //         (*dst, false)
-            //     }
-            // }
-            atomic_cxchg!(atomic_cxchg_seqcst_acquire__i8, i8);
-            atomic_cxchg!(atomic_cxchg_seqcst_acquire__i16, i16);
-            atomic_cxchg!(atomic_cxchg_seqcst_acquire__i32, i32);
-            atomic_cxchg!(atomic_cxchg_seqcst_acquire__i64, i64);
-            atomic_cxchg!(atomic_cxchg_seqcst_acquire__isize, isize);
-            atomic_cxchg!(atomic_cxchg_seqcst_acquire__u8, u8);
-            atomic_cxchg!(atomic_cxchg_seqcst_acquire__u16, u16);
-            atomic_cxchg!(atomic_cxchg_seqcst_acquire__u32, u32);
-            atomic_cxchg!(atomic_cxchg_seqcst_acquire__u64, u64);
-            atomic_cxchg!(atomic_cxchg_seqcst_acquire, usize);
-            atomic_cxchg!(atomic_cxchg_seqcst_acquire__i128, i128);
-            atomic_cxchg!(atomic_cxchg_seqcst_acquire__u128, u128);
-
-            // pub unsafe fn atomic_cxchg_acquire_relaxed<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
-            //     if abstract_value!(true) {
-            //         *dst = src;
-            //         (old, true)
-            //     } else {
-            //         (*dst, false)
-            //     }
-            // }
-            atomic_cxchg!(atomic_cxchg_acquire_relaxed__i8, i8);
-            atomic_cxchg!(atomic_cxchg_acquire_relaxed__i16, i16);
-            atomic_cxchg!(atomic_cxchg_acquire_relaxed__i32, i32);
-            atomic_cxchg!(atomic_cxchg_acquire_relaxed__i64, i64);
-            atomic_cxchg!(atomic_cxchg_acquire_relaxed__isize, isize);
-            atomic_cxchg!(atomic_cxchg_acquire_relaxed__u8, u8);
-            atomic_cxchg!(atomic_cxchg_acquire_relaxed__u16, u16);
-            atomic_cxchg!(atomic_cxchg_acquire_relaxed__u32, u32);
-            atomic_cxchg!(atomic_cxchg_acquire_relaxed__u64, u64);
-            atomic_cxchg!(atomic_cxchg_acquire_relaxed, usize);
-            atomic_cxchg!(atomic_cxchg_acquire_relaxed__i128, i128);
-            atomic_cxchg!(atomic_cxchg_acquire_relaxed__u128, u128);
-
-            // pub unsafe fn atomic_cxchg_acqrel_relaxed<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
-            //     if abstract_value!(true) {
-            //         *dst = src;
-            //         (old, true)
-            //     } else {
-            //         (*dst, false)
-            //     }
-            // }
-            atomic_cxchg!(atomic_cxchg_acqrel_relaxed__i8, i8);
-            atomic_cxchg!(atomic_cxchg_acqrel_relaxed__i16, i16);
-            atomic_cxchg!(atomic_cxchg_acqrel_relaxed__i32, i32);
-            atomic_cxchg!(atomic_cxchg_acqrel_relaxed__i64, i64);
-            atomic_cxchg!(atomic_cxchg_acqrel_relaxed__isize, isize);
-            atomic_cxchg!(atomic_cxchg_acqrel_relaxed__u8, u8);
-            atomic_cxchg!(atomic_cxchg_acqrel_relaxed__u16, u16);
-            atomic_cxchg!(atomic_cxchg_acqrel_relaxed__u32, u32);
-            atomic_cxchg!(atomic_cxchg_acqrel_relaxed__u64, u64);
-            atomic_cxchg!(atomic_cxchg_acqrel_relaxed, usize);
-            atomic_cxchg!(atomic_cxchg_acqrel_relaxed__i128, i128);
-            atomic_cxchg!(atomic_cxchg_acqrel_relaxed__u128, u128);
-
-            // pub unsafe fn atomic_cxchgweak_seqcst_seqcst<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
-            //     if abstract_value!(true) {
-            //         *dst = src;
-            //         (old, true)
-            //     } else {
-            //         (*dst, false)
-            //     }
-            // }
-            atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst__i8, i8);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst__i16, i16);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst__i32, i32);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst__i64, i64);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst__isize, isize);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst__u8, u8);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst__u16, u16);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst__u32, u32);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst__u64, u64);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst, usize);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst__i128, i128);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_seqcst__u128, u128);
-
-            // pub unsafe fn atomic_cxchgweak_acquire_acquire<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
-            //     if abstract_value!(true) {
-            //         *dst = src;
-            //         (old, true)
-            //     } else {
-            //         (*dst, false)
-            //     }
-            // }
-            atomic_cxchg!(atomic_cxchgweak_acquire_acquire__i8, i8);
-            atomic_cxchg!(atomic_cxchgweak_acquire_acquire__i16, i16);
-            atomic_cxchg!(atomic_cxchgweak_acquire_acquire__i32, i32);
-            atomic_cxchg!(atomic_cxchgweak_acquire_acquire__i64, i64);
-            atomic_cxchg!(atomic_cxchgweak_acquire_acquire__isize, isize);
-            atomic_cxchg!(atomic_cxchgweak_acquire_acquire__u8, u8);
-            atomic_cxchg!(atomic_cxchgweak_acquire_acquire__u16, u16);
-            atomic_cxchg!(atomic_cxchgweak_acquire_acquire__u32, u32);
-            atomic_cxchg!(atomic_cxchgweak_acquire_acquire__u64, u64);
-            atomic_cxchg!(atomic_cxchgweak_acquire_acquire, usize);
-            atomic_cxchg!(atomic_cxchgweak_acquire_acquire__i128, i128);
-            atomic_cxchg!(atomic_cxchgweak_acquire_acquire__u128, u128);
-
-            // pub unsafe fn atomic_cxchgweak_release_relaxed<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
-            //     if abstract_value!(true) {
-            //         *dst = src;
-            //         (old, true)
-            //     } else {
-            //         (*dst, false)
-            //     }
-            // }
-            atomic_cxchg!(atomic_cxchgweak_release_relaxed__i8, i8);
-            atomic_cxchg!(atomic_cxchgweak_release_relaxed__i16, i16);
-            atomic_cxchg!(atomic_cxchgweak_release_relaxed__i32, i32);
-            atomic_cxchg!(atomic_cxchgweak_release_relaxed__i64, i64);
-            atomic_cxchg!(atomic_cxchgweak_release_relaxed__isize, isize);
-            atomic_cxchg!(atomic_cxchgweak_release_relaxed__u8, u8);
-            atomic_cxchg!(atomic_cxchgweak_release_relaxed__u16, u16);
-            atomic_cxchg!(atomic_cxchgweak_release_relaxed__u32, u32);
-            atomic_cxchg!(atomic_cxchgweak_release_relaxed__u64, u64);
-            atomic_cxchg!(atomic_cxchgweak_release_relaxed, usize);
-            atomic_cxchg!(atomic_cxchgweak_release_relaxed__i128, i128);
-            atomic_cxchg!(atomic_cxchgweak_release_relaxed__u128, u128);
-
-            // pub unsafe fn atomic_cxchgweak_acqrel_acquire<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
-            //     if abstract_value!(true) {
-            //         *dst = src;
-            //         (old, true)
-            //     } else {
-            //         (*dst, false)
-            //     }
-            // }
-            atomic_cxchg!(atomic_cxchgweak_acqrel_acquire__i8, i8);
-            atomic_cxchg!(atomic_cxchgweak_acqrel_acquire__i16, i16);
-            atomic_cxchg!(atomic_cxchgweak_acqrel_acquire__i32, i32);
-            atomic_cxchg!(atomic_cxchgweak_acqrel_acquire__i64, i64);
-            atomic_cxchg!(atomic_cxchgweak_acqrel_acquire__isize, isize);
-            atomic_cxchg!(atomic_cxchgweak_acqrel_acquire__u8, u8);
-            atomic_cxchg!(atomic_cxchgweak_acqrel_acquire__u16, u16);
-            atomic_cxchg!(atomic_cxchgweak_acqrel_acquire__u32, u32);
-            atomic_cxchg!(atomic_cxchgweak_acqrel_acquire__u64, u64);
-            atomic_cxchg!(atomic_cxchgweak_acqrel_acquire, usize);
-            atomic_cxchg!(atomic_cxchgweak_acqrel_acquire__i128, i128);
-            atomic_cxchg!(atomic_cxchgweak_acqrel_acquire__u128, u128);
-
-            // pub unsafe fn atomic_cxchgweak_relaxed_relaxed<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
-            //     if abstract_value!(true) {
-            //         *dst = src;
-            //         (old, true)
-            //     } else {
-            //         (*dst, false)
-            //     }
-            // }
-            atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed__i8, i8);
-            atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed__i16, i16);
-            atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed__i32, i32);
-            atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed__i64, i64);
-            atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed__isize, isize);
-            atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed__u8, u8);
-            atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed__u16, u16);
-            atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed__u32, u32);
-            atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed__u64, u64);
-            atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed, usize);
-            atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed__i128, i128);
-            atomic_cxchg!(atomic_cxchgweak_relaxed_relaxed__u128, u128);
-
-            // pub unsafe fn atomic_cxchgweak_seqcst_relaxed<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
-            //     if abstract_value!(true) {
-            //         *dst = src;
-            //         (old, true)
-            //     } else {
-            //         (*dst, false)
-            //     }
-            // }
-            atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed__i8, i8);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed__i16, i16);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed__i32, i32);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed__i64, i64);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed__isize, isize);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed__u8, u8);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed__u16, u16);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed__u32, u32);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed__u64, u64);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed, usize);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed__i128, i128);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_relaxed__u128, u128);
-
-            // pub unsafe fn atomic_cxchgweak_seqcst_acquire<T>(dst: *mut T, old: T, src: T) -> (T, bool) {
-            //     if abstract_value!(true) {
-            //         *dst = src;
-            //         (old, true)
-            //     } else {
-            //         (*dst, false)
-            //     }
-            // }
-            atomic_cxchg!(atomic_cxchgweak_seqcst_acquire__i8, i8);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_acquire__i16, i16);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_acquire__i32, i32);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_acquire__i64, i64);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_acquire__isize, isize);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_acquire__u8, u8);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_acquire__u16, u16);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_acquire__u32, u32);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_acquire__u64, u64);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_acquire, usize);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_acquire__i128, i128);
-            atomic_cxchg!(atomic_cxchgweak_seqcst_acquire__u128, u128);
-
-            // pub unsafe fn atomic_cxchgweak_acquire_relaxed<T>(
-            //     dst: *mut T,
-            //     old: T,
-            //     src: T,
-            // ) -> (T, bool) {
-            //     if abstract_value!(true) {
-            //         *dst = src;
-            //         (old, true)
-            //     } else {
-            //         (*dst, false)
-            //     }
-            // }
-            atomic_cxchg!(atomic_cxchgweak_acquire_relaxed__i8, i8);
-            atomic_cxchg!(atomic_cxchgweak_acquire_relaxed__i16, i16);
-            atomic_cxchg!(atomic_cxchgweak_acquire_relaxed__i32, i32);
-            atomic_cxchg!(atomic_cxchgweak_acquire_relaxed__i64, i64);
-            atomic_cxchg!(atomic_cxchgweak_acquire_relaxed__isize, isize);
-            atomic_cxchg!(atomic_cxchgweak_acquire_relaxed__u8, u8);
-            atomic_cxchg!(atomic_cxchgweak_acquire_relaxed__u16, u16);
-            atomic_cxchg!(atomic_cxchgweak_acquire_relaxed__u32, u32);
-            atomic_cxchg!(atomic_cxchgweak_acquire_relaxed__u64, u64);
-            atomic_cxchg!(atomic_cxchgweak_acquire_relaxed, usize);
-            atomic_cxchg!(atomic_cxchgweak_acquire_relaxed__i128, i128);
-            atomic_cxchg!(atomic_cxchgweak_acquire_relaxed__u128, u128);
-
-            // pub unsafe fn atomic_cxchgweak_acqrel_relaxed<T>(
-            //     dst: *mut T,
-            //     old: T,
-            //     src: T,
-            // ) -> (T, bool) {
-            //     if abstract_value!(true) {
-            //         *dst = src;
-            //         (old, true)
-            //     } else {
-            //         (*dst, false)
-            //     }
-            // }
-            atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed__i8, i8);
-            atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed__i16, i16);
-            atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed__i32, i32);
-            atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed__i64, i64);
-            atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed__isize, isize);
-            atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed__u8, u8);
-            atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed__u16, u16);
-            atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed__u32, u32);
-            atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed__u64, u64);
-            atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed, usize);
-            atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed__i128, i128);
-            atomic_cxchg!(atomic_cxchgweak_acqrel_relaxed__u128, u128);
-
-            // pub unsafe fn atomic_load_seqcst<T>(src: *const T) -> T
-            // where
-            //     T: Copy,
-            // {
-            //     let bw = std::intrinsics::size_of::<T>();
-            //     precondition!((src as usize) & (bw - 1) == 0);
-            //     *src
-            // }
-            atomic_load!(atomic_load_seqcst__i8, i8);
-            atomic_load!(atomic_load_seqcst__i16, i16);
-            atomic_load!(atomic_load_seqcst__i32, i32);
-            atomic_load!(atomic_load_seqcst__i64, i64);
-            atomic_load!(atomic_load_seqcst__isize, isize);
-            atomic_load!(atomic_load_seqcst__u8, u8);
-            atomic_load!(atomic_load_seqcst__u16, u16);
-            atomic_load!(atomic_load_seqcst__u32, u32);
-            atomic_load!(atomic_load_seqcst__u64, u64);
-            atomic_load!(atomic_load_seqcst__usize, usize);
-            atomic_load!(atomic_load_seqcst__i128, i128);
-            atomic_load!(atomic_load_seqcst__u128, u128);
-
-            // pub unsafe fn atomic_load_acquire<T>(src: *const T) -> T
-            // where
-            //     T: Copy,
-            // {
-            //     let bw = std::intrinsics::size_of::<T>();
-            //     precondition!((src as usize) & (bw - 1) == 0);
-            //     *src
-            // }
-            atomic_load!(atomic_load_acquire__i8, i8);
-            atomic_load!(atomic_load_acquire__i16, i16);
-            atomic_load!(atomic_load_acquire__i32, i32);
-            atomic_load!(atomic_load_acquire__i64, i64);
-            atomic_load!(atomic_load_acquire__isize, isize);
-            atomic_load!(atomic_load_acquire__u8, u8);
-            atomic_load!(atomic_load_acquire__u16, u16);
-            atomic_load!(atomic_load_acquire__u32, u32);
-            atomic_load!(atomic_load_acquire__u64, u64);
-            atomic_load!(atomic_load_acquire__usize, usize);
-            atomic_load!(atomic_load_acquire__i128, i128);
-            atomic_load!(atomic_load_acquire__u128, u128);
-
-            // pub unsafe fn atomic_load_relaxed<T>(src: *const T) -> T
-            // where
-            //     T: Copy,
-            // {
-            //     let bw = std::intrinsics::size_of::<T>();
-            //     precondition!((src as usize) & (bw - 1) == 0);
-            //     *src
-            // }
-            atomic_load!(atomic_load_relaxed__i8, i8);
-            atomic_load!(atomic_load_relaxed__i16, i16);
-            atomic_load!(atomic_load_relaxed__i32, i32);
-            atomic_load!(atomic_load_relaxed__i64, i64);
-            atomic_load!(atomic_load_relaxed__isize, isize);
-            atomic_load!(atomic_load_relaxed__u8, u8);
-            atomic_load!(atomic_load_relaxed__u16, u16);
-            atomic_load!(atomic_load_relaxed__u32, u32);
-            atomic_load!(atomic_load_relaxed__u64, u64);
-            atomic_load!(atomic_load_relaxed__usize, usize);
-            atomic_load!(atomic_load_relaxed__i128, i128);
-            atomic_load!(atomic_load_relaxed__u128, u128);
-
-            // pub unsafe fn atomic_load_unordered<T>(src: *const T) -> T
-            // where
-            //     T: Copy,
-            // {
-            //     let bw = std::intrinsics::size_of::<T>();
-            //     precondition!((src as usize) & (bw - 1) == 0);
-            //     *src
-            // }
-            atomic_load!(atomic_load_unordered__i8, i8);
-            atomic_load!(atomic_load_unordered__i16, i16);
-            atomic_load!(atomic_load_unordered__i32, i32);
-            atomic_load!(atomic_load_unordered__i64, i64);
-            atomic_load!(atomic_load_unordered__isize, isize);
-            atomic_load!(atomic_load_unordered__u8, u8);
-            atomic_load!(atomic_load_unordered__u16, u16);
-            atomic_load!(atomic_load_unordered__u32, u32);
-            atomic_load!(atomic_load_unordered__u64, u64);
-            atomic_load!(atomic_load_unordered__usize, usize);
-            atomic_load!(atomic_load_unordered__i128, i128);
-            atomic_load!(atomic_load_unordered__u128, u128);
-
-            // pub unsafe fn atomic_store_seqcst<T>(dst: *mut T, val: T)
-            // where
-            //     T: Copy,
-            // {
-            //     let bw = std::intrinsics::size_of::<T>();
-            //     precondition!((dst as usize) & (bw - 1) == 0);
-            //     *dst = val;
-            // }
-            atomic_store!(atomic_store_seqcst__i8, i8);
-            atomic_store!(atomic_store_seqcst__i16, i16);
-            atomic_store!(atomic_store_seqcst__i32, i32);
-            atomic_store!(atomic_store_seqcst__i64, i64);
-            atomic_store!(atomic_store_seqcst__isize, isize);
-            atomic_store!(atomic_store_seqcst__u8, u8);
-            atomic_store!(atomic_store_seqcst__u16, u16);
-            atomic_store!(atomic_store_seqcst__u32, u32);
-            atomic_store!(atomic_store_seqcst__u64, u64);
-            atomic_store!(atomic_store_seqcst__usize, usize);
-            atomic_store!(atomic_store_seqcst__i128, i128);
-            atomic_store!(atomic_store_seqcst__u128, u128);
-
-            // pub unsafe fn atomic_store_release<T>(dst: *mut T, val: T)
-            // where
-            //     T: Copy,
-            // {
-            //     let bw = std::intrinsics::size_of::<T>();
-            //     precondition!((dst as usize) & (bw - 1) == 0);
-            //     *dst = val;
-            // }
-            atomic_store!(atomic_store_release__i8, i8);
-            atomic_store!(atomic_store_release__i16, i16);
-            atomic_store!(atomic_store_release__i32, i32);
-            atomic_store!(atomic_store_release__i64, i64);
-            atomic_store!(atomic_store_release__isize, isize);
-            atomic_store!(atomic_store_release__u8, u8);
-            atomic_store!(atomic_store_release__u16, u16);
-            atomic_store!(atomic_store_release__u32, u32);
-            atomic_store!(atomic_store_release__u64, u64);
-            atomic_store!(atomic_store_release__usize, usize);
-            atomic_store!(atomic_store_release__i128, i128);
-            atomic_store!(atomic_store_release__u128, u128);
-
-            // pub unsafe fn atomic_store_relaxed<T>(dst: *mut T, val: T)
-            // where
-            //     T: Copy,
-            // {
-            //     let bw = std::intrinsics::size_of::<T>();
-            //     precondition!((dst as usize) & (bw - 1) == 0);
-            //     *dst = val;
-            // }
-            atomic_store!(atomic_store_relaxed__i8, i8);
-            atomic_store!(atomic_store_relaxed__i16, i16);
-            atomic_store!(atomic_store_relaxed__i32, i32);
-            atomic_store!(atomic_store_relaxed__i64, i64);
-            atomic_store!(atomic_store_relaxed__isize, isize);
-            atomic_store!(atomic_store_relaxed__u8, u8);
-            atomic_store!(atomic_store_relaxed__u16, u16);
-            atomic_store!(atomic_store_relaxed__u32, u32);
-            atomic_store!(atomic_store_relaxed__u64, u64);
-            atomic_store!(atomic_store_relaxed__usize, usize);
-            atomic_store!(atomic_store_relaxed__i128, i128);
-            atomic_store!(atomic_store_relaxed__u128, u128);
-
-            // pub unsafe fn atomic_store_unordered<T>(dst: *mut T, val: T)
-            // where
-            //     T: Copy,
-            // {
-            //     let bw = std::intrinsics::size_of::<T>();
-            //     precondition!((dst as usize) & (bw - 1) == 0);
-            //     *dst = val;
-            // }
-            atomic_store!(atomic_store_unordered__i8, i8);
-            atomic_store!(atomic_store_unordered__i16, i16);
-            atomic_store!(atomic_store_unordered__i32, i32);
-            atomic_store!(atomic_store_unordered__i64, i64);
-            atomic_store!(atomic_store_unordered__isize, isize);
-            atomic_store!(atomic_store_unordered__u8, u8);
-            atomic_store!(atomic_store_unordered__u16, u16);
-            atomic_store!(atomic_store_unordered__u32, u32);
-            atomic_store!(atomic_store_unordered__u64, u64);
-            atomic_store!(atomic_store_unordered__usize, usize);
-            atomic_store!(atomic_store_unordered__i128, i128);
-            atomic_store!(atomic_store_unordered__u128, u128);
-
-            // pub unsafe fn atomic_xchg_seqcst<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            // {
-            //     let bw = std::intrinsics::size_of::<T>();
-            //     precondition!((dst as usize) & (bw - 1) == 0);
-            //     precondition!((src as usize) & (bw - 1) == 0);
-            //     let result = *dst;
-            //     *dst = src;
-            //     result
-            // }
-            atomic_xchg!(atomic_xchg_seqcst__i8, i8);
-            atomic_xchg!(atomic_xchg_seqcst__i16, i16);
-            atomic_xchg!(atomic_xchg_seqcst__i32, i32);
-            atomic_xchg!(atomic_xchg_seqcst__i64, i64);
-            atomic_xchg!(atomic_xchg_seqcst__isize, isize);
-            atomic_xchg!(atomic_xchg_seqcst__u8, u8);
-            atomic_xchg!(atomic_xchg_seqcst__u16, u16);
-            atomic_xchg!(atomic_xchg_seqcst__u32, u32);
-            atomic_xchg!(atomic_xchg_seqcst__u64, u64);
-            atomic_xchg!(atomic_xchg_seqcst__usize, usize);
-            atomic_xchg!(atomic_xchg_seqcst__i128, i128);
-            atomic_xchg!(atomic_xchg_seqcst__u128, u128);
-
-            // pub unsafe fn atomic_xchg_acquire<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            // {
-            //     let bw = std::intrinsics::size_of::<T>();
-            //     precondition!((dst as usize) & (bw - 1) == 0);
-            //     precondition!((src as usize) & (bw - 1) == 0);
-            //     let result = *dst;
-            //     *dst = src;
-            //     result
-            // }
-            atomic_xchg!(atomic_xchg_acquire__i8, i8);
-            atomic_xchg!(atomic_xchg_acquire__i16, i16);
-            atomic_xchg!(atomic_xchg_acquire__i32, i32);
-            atomic_xchg!(atomic_xchg_acquire__i64, i64);
-            atomic_xchg!(atomic_xchg_acquire__isize, isize);
-            atomic_xchg!(atomic_xchg_acquire__u8, u8);
-            atomic_xchg!(atomic_xchg_acquire__u16, u16);
-            atomic_xchg!(atomic_xchg_acquire__u32, u32);
-            atomic_xchg!(atomic_xchg_acquire__u64, u64);
-            atomic_xchg!(atomic_xchg_acquire__usize, usize);
-            atomic_xchg!(atomic_xchg_acquire__i128, i128);
-            atomic_xchg!(atomic_xchg_acquire__u128, u128);
-
-            // pub unsafe fn atomic_xchg_release<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            // {
-            //     let bw = std::intrinsics::size_of::<T>();
-            //     precondition!((dst as usize) & (bw - 1) == 0);
-            //     precondition!((src as usize) & (bw - 1) == 0);
-            //     let result = *dst;
-            //     *dst = src;
-            //     result
-            // }
-            atomic_xchg!(atomic_xchg_release__i8, i8);
-            atomic_xchg!(atomic_xchg_release__i16, i16);
-            atomic_xchg!(atomic_xchg_release__i32, i32);
-            atomic_xchg!(atomic_xchg_release__i64, i64);
-            atomic_xchg!(atomic_xchg_release__isize, isize);
-            atomic_xchg!(atomic_xchg_release__u8, u8);
-            atomic_xchg!(atomic_xchg_release__u16, u16);
-            atomic_xchg!(atomic_xchg_release__u32, u32);
-            atomic_xchg!(atomic_xchg_release__u64, u64);
-            atomic_xchg!(atomic_xchg_release__usize, usize);
-            atomic_xchg!(atomic_xchg_release__i128, i128);
-            atomic_xchg!(atomic_xchg_release__u128, u128);
-
-            // pub unsafe fn atomic_xchg_acqrel<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            // {
-            //     let bw = std::intrinsics::size_of::<T>();
-            //     precondition!((dst as usize) & (bw - 1) == 0);
-            //     precondition!((src as usize) & (bw - 1) == 0);
-            //     let result = *dst;
-            //     *dst = src;
-            //     result
-            // }
-            atomic_xchg!(atomic_xchg_acqrel__i8, i8);
-            atomic_xchg!(atomic_xchg_acqrel__i16, i16);
-            atomic_xchg!(atomic_xchg_acqrel__i32, i32);
-            atomic_xchg!(atomic_xchg_acqrel__i64, i64);
-            atomic_xchg!(atomic_xchg_acqrel__isize, isize);
-            atomic_xchg!(atomic_xchg_acqrel__u8, u8);
-            atomic_xchg!(atomic_xchg_acqrel__u16, u16);
-            atomic_xchg!(atomic_xchg_acqrel__u32, u32);
-            atomic_xchg!(atomic_xchg_acqrel__u64, u64);
-            atomic_xchg!(atomic_xchg_acqrel__usize, usize);
-            atomic_xchg!(atomic_xchg_acqrel__i128, i128);
-            atomic_xchg!(atomic_xchg_acqrel__u128, u128);
-
-            // pub unsafe fn atomic_xchg_relaxed<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            // {
-            //     let bw = std::intrinsics::size_of::<T>();
-            //     precondition!((dst as usize) & (bw - 1) == 0);
-            //     precondition!((src as usize) & (bw - 1) == 0);
-            //     let result = *dst;
-            //     *dst = src;
-            //     result
-            // }
-            atomic_xchg!(atomic_xchg_relaxed__i8, i8);
-            atomic_xchg!(atomic_xchg_relaxed__i16, i16);
-            atomic_xchg!(atomic_xchg_relaxed__i32, i32);
-            atomic_xchg!(atomic_xchg_relaxed__i64, i64);
-            atomic_xchg!(atomic_xchg_relaxed__isize, isize);
-            atomic_xchg!(atomic_xchg_relaxed__u8, u8);
-            atomic_xchg!(atomic_xchg_relaxed__u16, u16);
-            atomic_xchg!(atomic_xchg_relaxed__u32, u32);
-            atomic_xchg!(atomic_xchg_relaxed__u64, u64);
-            atomic_xchg!(atomic_xchg_relaxed__usize, usize);
-            atomic_xchg!(atomic_xchg_relaxed__i128, i128);
-            atomic_xchg!(atomic_xchg_relaxed__u128, u128);
-
-            // pub unsafe fn atomic_xadd_seqcst<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::AddAssign,
-            // {
-            //     let result = *dst;
-            //     *dst += src;
-            //     result
-            // }
-            atomic_int!(atomic_xadd_seqcst__i8, i8, add_assign);
-            atomic_int!(atomic_xadd_seqcst__i16, i16, add_assign);
-            atomic_int!(atomic_xadd_seqcst__i32, i32, add_assign);
-            atomic_int!(atomic_xadd_seqcst__i64, i64, add_assign);
-            atomic_int!(atomic_xadd_seqcst__isize, isize, add_assign);
-            atomic_int!(atomic_xadd_seqcst__u8, u8, add_assign);
-            atomic_int!(atomic_xadd_seqcst__u16, u16, add_assign);
-            atomic_int!(atomic_xadd_seqcst__u32, u32, add_assign);
-            atomic_int!(atomic_xadd_seqcst__u64, u64, add_assign);
-            atomic_int!(atomic_xadd_seqcst__usize, usize, add_assign);
-            atomic_int!(atomic_xadd_seqcst__i128, i128, add_assign);
-            atomic_int!(atomic_xadd_seqcst__u128, u128, add_assign);
-
-            // pub unsafe fn atomic_xadd_acquire<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::AddAssign,
-            // {
-            //     let result = *dst;
-            //     *dst += src;
-            //     result
-            // }
-            atomic_int!(atomic_xadd_acquire__i8, i8, add_assign);
-            atomic_int!(atomic_xadd_acquire__i16, i16, add_assign);
-            atomic_int!(atomic_xadd_acquire__i32, i32, add_assign);
-            atomic_int!(atomic_xadd_acquire__i64, i64, add_assign);
-            atomic_int!(atomic_xadd_acquire__isize, isize, add_assign);
-            atomic_int!(atomic_xadd_acquire__u8, u8, add_assign);
-            atomic_int!(atomic_xadd_acquire__u16, u16, add_assign);
-            atomic_int!(atomic_xadd_acquire__u32, u32, add_assign);
-            atomic_int!(atomic_xadd_acquire__u64, u64, add_assign);
-            atomic_int!(atomic_xadd_acquire__usize, usize, add_assign);
-            atomic_int!(atomic_xadd_acquire__i128, i128, add_assign);
-            atomic_int!(atomic_xadd_acquire__u128, u128, add_assign);
-
-            // pub unsafe fn atomic_xadd_release<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::AddAssign,
-            // {
-            //     let result = *dst;
-            //     *dst += src;
-            //     result
-            // }
-            atomic_int!(atomic_xadd_release__i8, i8, add_assign);
-            atomic_int!(atomic_xadd_release__i16, i16, add_assign);
-            atomic_int!(atomic_xadd_release__i32, i32, add_assign);
-            atomic_int!(atomic_xadd_release__i64, i64, add_assign);
-            atomic_int!(atomic_xadd_release__isize, isize, add_assign);
-            atomic_int!(atomic_xadd_release__u8, u8, add_assign);
-            atomic_int!(atomic_xadd_release__u16, u16, add_assign);
-            atomic_int!(atomic_xadd_release__u32, u32, add_assign);
-            atomic_int!(atomic_xadd_release__u64, u64, add_assign);
-            atomic_int!(atomic_xadd_release__usize, usize, add_assign);
-            atomic_int!(atomic_xadd_release__i128, i128, add_assign);
-            atomic_int!(atomic_xadd_release__u128, u128, add_assign);
-
-            // pub unsafe fn atomic_xadd_acqrel<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::AddAssign,
-            // {
-            //     let result = *dst;
-            //     *dst += src;
-            //     result
-            // }
-            atomic_int!(atomic_xadd_acqrel__i8, i8, add_assign);
-            atomic_int!(atomic_xadd_acqrel__i16, i16, add_assign);
-            atomic_int!(atomic_xadd_acqrel__i32, i32, add_assign);
-            atomic_int!(atomic_xadd_acqrel__i64, i64, add_assign);
-            atomic_int!(atomic_xadd_acqrel__isize, isize, add_assign);
-            atomic_int!(atomic_xadd_acqrel__u8, u8, add_assign);
-            atomic_int!(atomic_xadd_acqrel__u16, u16, add_assign);
-            atomic_int!(atomic_xadd_acqrel__u32, u32, add_assign);
-            atomic_int!(atomic_xadd_acqrel__u64, u64, add_assign);
-            atomic_int!(atomic_xadd_acqrel__usize, usize, add_assign);
-            atomic_int!(atomic_xadd_acqrel__i128, i128, add_assign);
-            atomic_int!(atomic_xadd_acqrel__u128, u128, add_assign);
-
-            // pub unsafe fn atomic_xadd_relaxed<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::AddAssign,
-            // {
-            //     let result = *dst;
-            //     *dst += src;
-            //     result
-            // }
-            atomic_int!(atomic_xadd_relaxed__i8, i8, add_assign);
-            atomic_int!(atomic_xadd_relaxed__i16, i16, add_assign);
-            atomic_int!(atomic_xadd_relaxed__i32, i32, add_assign);
-            atomic_int!(atomic_xadd_relaxed__i64, i64, add_assign);
-            atomic_int!(atomic_xadd_relaxed__isize, isize, add_assign);
-            atomic_int!(atomic_xadd_relaxed__u8, u8, add_assign);
-            atomic_int!(atomic_xadd_relaxed__u16, u16, add_assign);
-            atomic_int!(atomic_xadd_relaxed__u32, u32, add_assign);
-            atomic_int!(atomic_xadd_relaxed__u64, u64, add_assign);
-            atomic_int!(atomic_xadd_relaxed__usize, usize, add_assign);
-            atomic_int!(atomic_xadd_relaxed__i128, i128, add_assign);
-            atomic_int!(atomic_xadd_relaxed__u128, u128, add_assign);
-
-            // pub unsafe fn atomic_xsub_seqcst<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::SubAssign,
-            // {
-            //     let result = *dst;
-            //     *dst -= src;
-            //     result
-            // }
-            atomic_int!(atomic_xsub_seqcst__i8, i8, sub_assign);
-            atomic_int!(atomic_xsub_seqcst__i16, i16, sub_assign);
-            atomic_int!(atomic_xsub_seqcst__i32, i32, sub_assign);
-            atomic_int!(atomic_xsub_seqcst__i64, i64, sub_assign);
-            atomic_int!(atomic_xsub_seqcst__isize, isize, sub_assign);
-            atomic_int!(atomic_xsub_seqcst__u8, u8, sub_assign);
-            atomic_int!(atomic_xsub_seqcst__u16, u16, sub_assign);
-            atomic_int!(atomic_xsub_seqcst__u32, u32, sub_assign);
-            atomic_int!(atomic_xsub_seqcst__u64, u64, sub_assign);
-            atomic_int!(atomic_xsub_seqcst__usize, usize, sub_assign);
-            atomic_int!(atomic_xsub_seqcst__i128, i128, sub_assign);
-            atomic_int!(atomic_xsub_seqcst__u128, u128, sub_assign);
-
-            // pub unsafe fn atomic_xsub_acquire<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::SubAssign,
-            // {
-            //     let result = *dst;
-            //     *dst -= src;
-            //     result
-            // }
-            atomic_int!(atomic_xsub_acquire__i8, i8, sub_assign);
-            atomic_int!(atomic_xsub_acquire__i16, i16, sub_assign);
-            atomic_int!(atomic_xsub_acquire__i32, i32, sub_assign);
-            atomic_int!(atomic_xsub_acquire__i64, i64, sub_assign);
-            atomic_int!(atomic_xsub_acquire__isize, isize, sub_assign);
-            atomic_int!(atomic_xsub_acquire__u8, u8, sub_assign);
-            atomic_int!(atomic_xsub_acquire__u16, u16, sub_assign);
-            atomic_int!(atomic_xsub_acquire__u32, u32, sub_assign);
-            atomic_int!(atomic_xsub_acquire__u64, u64, sub_assign);
-            atomic_int!(atomic_xsub_acquire__usize, usize, sub_assign);
-            atomic_int!(atomic_xsub_acquire__i128, i128, sub_assign);
-            atomic_int!(atomic_xsub_acquire__u128, u128, sub_assign);
-
-            // pub unsafe fn atomic_xsub_release<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::SubAssign,
-            // {
-            //     let result = *dst;
-            //     *dst -= src;
-            //     result
-            // }
-            atomic_int!(atomic_xsub_release__i8, i8, sub_assign);
-            atomic_int!(atomic_xsub_release__i16, i16, sub_assign);
-            atomic_int!(atomic_xsub_release__i32, i32, sub_assign);
-            atomic_int!(atomic_xsub_release__i64, i64, sub_assign);
-            atomic_int!(atomic_xsub_release__isize, isize, sub_assign);
-            atomic_int!(atomic_xsub_release__u8, u8, sub_assign);
-            atomic_int!(atomic_xsub_release__u16, u16, sub_assign);
-            atomic_int!(atomic_xsub_release__u32, u32, sub_assign);
-            atomic_int!(atomic_xsub_release__u64, u64, sub_assign);
-            atomic_int!(atomic_xsub_release__usize, usize, sub_assign);
-            atomic_int!(atomic_xsub_release__i128, i128, sub_assign);
-            atomic_int!(atomic_xsub_release__u128, u128, sub_assign);
-
-            // pub unsafe fn atomic_xsub_acqrel<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::SubAssign,
-            // {
-            //     let result = *dst;
-            //     *dst -= src;
-            //     result
-            // }
-            atomic_int!(atomic_xsub_acqrel__i8, i8, sub_assign);
-            atomic_int!(atomic_xsub_acqrel__i16, i16, sub_assign);
-            atomic_int!(atomic_xsub_acqrel__i32, i32, sub_assign);
-            atomic_int!(atomic_xsub_acqrel__i64, i64, sub_assign);
-            atomic_int!(atomic_xsub_acqrel__isize, isize, sub_assign);
-            atomic_int!(atomic_xsub_acqrel__u8, u8, sub_assign);
-            atomic_int!(atomic_xsub_acqrel__u16, u16, sub_assign);
-            atomic_int!(atomic_xsub_acqrel__u32, u32, sub_assign);
-            atomic_int!(atomic_xsub_acqrel__u64, u64, sub_assign);
-            atomic_int!(atomic_xsub_acqrel__usize, usize, sub_assign);
-            atomic_int!(atomic_xsub_acqrel__i128, i128, sub_assign);
-            atomic_int!(atomic_xsub_acqrel__u128, u128, sub_assign);
-
-            // pub unsafe fn atomic_xsub_relaxed<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::SubAssign,
-            // {
-            //     let result = *dst;
-            //     *dst -= src;
-            //     result
-            // }
-            atomic_int!(atomic_xsub_relaxed__i8, i8, sub_assign);
-            atomic_int!(atomic_xsub_relaxed__i16, i16, sub_assign);
-            atomic_int!(atomic_xsub_relaxed__i32, i32, sub_assign);
-            atomic_int!(atomic_xsub_relaxed__i64, i64, sub_assign);
-            atomic_int!(atomic_xsub_relaxed__isize, isize, sub_assign);
-            atomic_int!(atomic_xsub_relaxed__u8, u8, sub_assign);
-            atomic_int!(atomic_xsub_relaxed__u16, u16, sub_assign);
-            atomic_int!(atomic_xsub_relaxed__u32, u32, sub_assign);
-            atomic_int!(atomic_xsub_relaxed__u64, u64, sub_assign);
-            atomic_int!(atomic_xsub_relaxed__usize, usize, sub_assign);
-            atomic_int!(atomic_xsub_relaxed__i128, i128, sub_assign);
-            atomic_int!(atomic_xsub_relaxed__u128, u128, sub_assign);
-
-            // pub unsafe fn atomic_and_seqcst<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::BitAndAssign,
-            // {
-            //     let result = *dst;
-            //     *dst &= src;
-            //     result
-            // }
-            atomic_int!(atomic_and_seqcst__i8, i8, bitand_assign);
-            atomic_int!(atomic_and_seqcst__i16, i16, bitand_assign);
-            atomic_int!(atomic_and_seqcst__i32, i32, bitand_assign);
-            atomic_int!(atomic_and_seqcst__i64, i64, bitand_assign);
-            atomic_int!(atomic_and_seqcst__isize, isize, bitand_assign);
-            atomic_int!(atomic_and_seqcst__u8, u8, bitand_assign);
-            atomic_int!(atomic_and_seqcst__u16, u16, bitand_assign);
-            atomic_int!(atomic_and_seqcst__u32, u32, bitand_assign);
-            atomic_int!(atomic_and_seqcst__u64, u64, bitand_assign);
-            atomic_int!(atomic_and_seqcst__usize, usize, bitand_assign);
-            atomic_int!(atomic_and_seqcst__i128, i128, bitand_assign);
-            atomic_int!(atomic_and_seqcst__u128, u128, bitand_assign);
-
-            // pub unsafe fn atomic_and_acquire<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::BitAndAssign,
-            // {
-            //     let result = *dst;
-            //     *dst &= src;
-            //     result
-            // }
-            atomic_int!(atomic_and_acquire__i8, i8, bitand_assign);
-            atomic_int!(atomic_and_acquire__i16, i16, bitand_assign);
-            atomic_int!(atomic_and_acquire__i32, i32, bitand_assign);
-            atomic_int!(atomic_and_acquire__i64, i64, bitand_assign);
-            atomic_int!(atomic_and_acquire__isize, isize, bitand_assign);
-            atomic_int!(atomic_and_acquire__u8, u8, bitand_assign);
-            atomic_int!(atomic_and_acquire__u16, u16, bitand_assign);
-            atomic_int!(atomic_and_acquire__u32, u32, bitand_assign);
-            atomic_int!(atomic_and_acquire__u64, u64, bitand_assign);
-            atomic_int!(atomic_and_acquire__usize, usize, bitand_assign);
-            atomic_int!(atomic_and_acquire__i128, i128, bitand_assign);
-            atomic_int!(atomic_and_acquire__u128, u128, bitand_assign);
-
-            // pub unsafe fn atomic_and_release<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::BitAndAssign,
-            // {
-            //     let result = *dst;
-            //     *dst &= src;
-            //     result
-            // }
-            atomic_int!(atomic_and_release__i8, i8, bitand_assign);
-            atomic_int!(atomic_and_release__i16, i16, bitand_assign);
-            atomic_int!(atomic_and_release__i32, i32, bitand_assign);
-            atomic_int!(atomic_and_release__i64, i64, bitand_assign);
-            atomic_int!(atomic_and_release__isize, isize, bitand_assign);
-            atomic_int!(atomic_and_release__u8, u8, bitand_assign);
-            atomic_int!(atomic_and_release__u16, u16, bitand_assign);
-            atomic_int!(atomic_and_release__u32, u32, bitand_assign);
-            atomic_int!(atomic_and_release__u64, u64, bitand_assign);
-            atomic_int!(atomic_and_release__usize, usize, bitand_assign);
-            atomic_int!(atomic_and_release__i128, i128, bitand_assign);
-            atomic_int!(atomic_and_release__u128, u128, bitand_assign);
-
-            // pub unsafe fn atomic_and_acqrel<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::BitAndAssign,
-            // {
-            //     let result = *dst;
-            //     *dst &= src;
-            //     result
-            // }
-            atomic_int!(atomic_and_acqrel__i8, i8, bitand_assign);
-            atomic_int!(atomic_and_acqrel__i16, i16, bitand_assign);
-            atomic_int!(atomic_and_acqrel__i32, i32, bitand_assign);
-            atomic_int!(atomic_and_acqrel__i64, i64, bitand_assign);
-            atomic_int!(atomic_and_acqrel__isize, isize, bitand_assign);
-            atomic_int!(atomic_and_acqrel__u8, u8, bitand_assign);
-            atomic_int!(atomic_and_acqrel__u16, u16, bitand_assign);
-            atomic_int!(atomic_and_acqrel__u32, u32, bitand_assign);
-            atomic_int!(atomic_and_acqrel__u64, u64, bitand_assign);
-            atomic_int!(atomic_and_acqrel__usize, usize, bitand_assign);
-            atomic_int!(atomic_and_acqrel__i128, i128, bitand_assign);
-            atomic_int!(atomic_and_acqrel__u128, u128, bitand_assign);
-
-            // pub unsafe fn atomic_and_relaxed<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::BitAndAssign,
-            // {
-            //     let result = *dst;
-            //     *dst &= src;
-            //     result
-            // }
-            atomic_int!(atomic_and_relaxed__i8, i8, bitand_assign);
-            atomic_int!(atomic_and_relaxed__i16, i16, bitand_assign);
-            atomic_int!(atomic_and_relaxed__i32, i32, bitand_assign);
-            atomic_int!(atomic_and_relaxed__i64, i64, bitand_assign);
-            atomic_int!(atomic_and_relaxed__isize, isize, bitand_assign);
-            atomic_int!(atomic_and_relaxed__u8, u8, bitand_assign);
-            atomic_int!(atomic_and_relaxed__u16, u16, bitand_assign);
-            atomic_int!(atomic_and_relaxed__u32, u32, bitand_assign);
-            atomic_int!(atomic_and_relaxed__u64, u64, bitand_assign);
-            atomic_int!(atomic_and_relaxed__usize, usize, bitand_assign);
-            atomic_int!(atomic_and_relaxed__i128, i128, bitand_assign);
-            atomic_int!(atomic_and_relaxed__u128, u128, bitand_assign);
-
-            // pub unsafe fn atomic_nand_seqcst<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            // {
-            //     let result = *dst;
-            //     *dst = abstract_value!(result);
-            //     result
-            // }
-            atomic_nand!(atomic_nand_seqcst__i8, i8);
-            atomic_nand!(atomic_nand_seqcst__i16, i16);
-            atomic_nand!(atomic_nand_seqcst__i32, i32);
-            atomic_nand!(atomic_nand_seqcst__i64, i64);
-            atomic_nand!(atomic_nand_seqcst__isize, isize);
-            atomic_nand!(atomic_nand_seqcst__u8, u8);
-            atomic_nand!(atomic_nand_seqcst__u16, u16);
-            atomic_nand!(atomic_nand_seqcst__u32, u32);
-            atomic_nand!(atomic_nand_seqcst__u64, u64);
-            atomic_nand!(atomic_nand_seqcst__usize, usize);
-            atomic_nand!(atomic_nand_seqcst__i128, i128);
-            atomic_nand!(atomic_nand_seqcst__u128, u128);
-
-            // pub unsafe fn atomic_nand_acquire<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            // {
-            //     let result = *dst;
-            //     *dst = abstract_value!(result);
-            //     result
-            // }
-            atomic_nand!(atomic_nand_acquire__i8, i8);
-            atomic_nand!(atomic_nand_acquire__i16, i16);
-            atomic_nand!(atomic_nand_acquire__i32, i32);
-            atomic_nand!(atomic_nand_acquire__i64, i64);
-            atomic_nand!(atomic_nand_acquire__isize, isize);
-            atomic_nand!(atomic_nand_acquire__u8, u8);
-            atomic_nand!(atomic_nand_acquire__u16, u16);
-            atomic_nand!(atomic_nand_acquire__u32, u32);
-            atomic_nand!(atomic_nand_acquire__u64, u64);
-            atomic_nand!(atomic_nand_acquire__usize, usize);
-            atomic_nand!(atomic_nand_acquire__i128, i128);
-            atomic_nand!(atomic_nand_acquire__u128, u128);
-
-            // pub unsafe fn atomic_nand_release<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            // {
-            //     let result = *dst;
-            //     *dst = abstract_value!(result);
-            //     result
-            // }
-            atomic_nand!(atomic_nand_release__i8, i8);
-            atomic_nand!(atomic_nand_release__i16, i16);
-            atomic_nand!(atomic_nand_release__i32, i32);
-            atomic_nand!(atomic_nand_release__i64, i64);
-            atomic_nand!(atomic_nand_release__isize, isize);
-            atomic_nand!(atomic_nand_release__u8, u8);
-            atomic_nand!(atomic_nand_release__u16, u16);
-            atomic_nand!(atomic_nand_release__u32, u32);
-            atomic_nand!(atomic_nand_release__u64, u64);
-            atomic_nand!(atomic_nand_release__usize, usize);
-            atomic_nand!(atomic_nand_release__i128, i128);
-            atomic_nand!(atomic_nand_release__u128, u128);
-
-            // pub unsafe fn atomic_nand_acqrel<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            // {
-            //     let result = *dst;
-            //     *dst = abstract_value!(result);
-            //     result
-            // }
-            atomic_nand!(atomic_nand_acqrel__i8, i8);
-            atomic_nand!(atomic_nand_acqrel__i16, i16);
-            atomic_nand!(atomic_nand_acqrel__i32, i32);
-            atomic_nand!(atomic_nand_acqrel__i64, i64);
-            atomic_nand!(atomic_nand_acqrel__isize, isize);
-            atomic_nand!(atomic_nand_acqrel__u8, u8);
-            atomic_nand!(atomic_nand_acqrel__u16, u16);
-            atomic_nand!(atomic_nand_acqrel__u32, u32);
-            atomic_nand!(atomic_nand_acqrel__u64, u64);
-            atomic_nand!(atomic_nand_acqrel__usize, usize);
-            atomic_nand!(atomic_nand_acqrel__i128, i128);
-            atomic_nand!(atomic_nand_acqrel__u128, u128);
-
-            // pub unsafe fn atomic_nand_relaxed<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            // {
-            //     let result = *dst;
-            //     *dst = abstract_value!(result);
-            //     result
-            // }
-            atomic_nand!(atomic_nand_relaxed__i8, i8);
-            atomic_nand!(atomic_nand_relaxed__i16, i16);
-            atomic_nand!(atomic_nand_relaxed__i32, i32);
-            atomic_nand!(atomic_nand_relaxed__i64, i64);
-            atomic_nand!(atomic_nand_relaxed__isize, isize);
-            atomic_nand!(atomic_nand_relaxed__u8, u8);
-            atomic_nand!(atomic_nand_relaxed__u16, u16);
-            atomic_nand!(atomic_nand_relaxed__u32, u32);
-            atomic_nand!(atomic_nand_relaxed__u64, u64);
-            atomic_nand!(atomic_nand_relaxed__usize, usize);
-            atomic_nand!(atomic_nand_relaxed__i128, i128);
-            atomic_nand!(atomic_nand_relaxed__u128, u128);
-
-            // pub unsafe fn atomic_or_seqcst<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::BitOrAssign,
-            // {
-            //     let result = *dst;
-            //     *dst |= src;
-            //     result
-            // }
-            atomic_int!(atomic_or_seqcst__i8, i8, bitor_assign);
-            atomic_int!(atomic_or_seqcst__i16, i16, bitor_assign);
-            atomic_int!(atomic_or_seqcst__i32, i32, bitor_assign);
-            atomic_int!(atomic_or_seqcst__i64, i64, bitor_assign);
-            atomic_int!(atomic_or_seqcst__isize, isize, bitor_assign);
-            atomic_int!(atomic_or_seqcst__u8, u8, bitor_assign);
-            atomic_int!(atomic_or_seqcst__u16, u16, bitor_assign);
-            atomic_int!(atomic_or_seqcst__u32, u32, bitor_assign);
-            atomic_int!(atomic_or_seqcst__u64, u64, bitor_assign);
-            atomic_int!(atomic_or_seqcst__usize, usize, bitor_assign);
-            atomic_int!(atomic_or_seqcst__i128, i128, bitor_assign);
-            atomic_int!(atomic_or_seqcst__u128, u128, bitor_assign);
-
-            // pub unsafe fn atomic_or_acquire<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::BitOrAssign,
-            // {
-            //     let result = *dst;
-            //     *dst |= src;
-            //     result
-            // }
-            atomic_int!(atomic_or_acquire__i8, i8, bitor_assign);
-            atomic_int!(atomic_or_acquire__i16, i16, bitor_assign);
-            atomic_int!(atomic_or_acquire__i32, i32, bitor_assign);
-            atomic_int!(atomic_or_acquire__i64, i64, bitor_assign);
-            atomic_int!(atomic_or_acquire__isize, isize, bitor_assign);
-            atomic_int!(atomic_or_acquire__u8, u8, bitor_assign);
-            atomic_int!(atomic_or_acquire__u16, u16, bitor_assign);
-            atomic_int!(atomic_or_acquire__u32, u32, bitor_assign);
-            atomic_int!(atomic_or_acquire__u64, u64, bitor_assign);
-            atomic_int!(atomic_or_acquire__usize, usize, bitor_assign);
-            atomic_int!(atomic_or_acquire__i128, i128, bitor_assign);
-            atomic_int!(atomic_or_acquire__u128, u128, bitor_assign);
-
-            // pub unsafe fn atomic_or_release<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::BitOrAssign,
-            // {
-            //     let result = *dst;
-            //     *dst |= src;
-            //     result
-            // }
-            atomic_int!(atomic_or_release__i8, i8, bitor_assign);
-            atomic_int!(atomic_or_release__i16, i16, bitor_assign);
-            atomic_int!(atomic_or_release__i32, i32, bitor_assign);
-            atomic_int!(atomic_or_release__i64, i64, bitor_assign);
-            atomic_int!(atomic_or_release__isize, isize, bitor_assign);
-            atomic_int!(atomic_or_release__u8, u8, bitor_assign);
-            atomic_int!(atomic_or_release__u16, u16, bitor_assign);
-            atomic_int!(atomic_or_release__u32, u32, bitor_assign);
-            atomic_int!(atomic_or_release__u64, u64, bitor_assign);
-            atomic_int!(atomic_or_release__usize, usize, bitor_assign);
-            atomic_int!(atomic_or_release__i128, i128, bitor_assign);
-            atomic_int!(atomic_or_release__u128, u128, bitor_assign);
-
-            // pub unsafe fn atomic_or_acqrel<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::BitOrAssign,
-            // {
-            //     let result = *dst;
-            //     *dst |= src;
-            //     result
-            // }
-            atomic_int!(atomic_or_acqrel__i8, i8, bitor_assign);
-            atomic_int!(atomic_or_acqrel__i16, i16, bitor_assign);
-            atomic_int!(atomic_or_acqrel__i32, i32, bitor_assign);
-            atomic_int!(atomic_or_acqrel__i64, i64, bitor_assign);
-            atomic_int!(atomic_or_acqrel__isize, isize, bitor_assign);
-            atomic_int!(atomic_or_acqrel__u8, u8, bitor_assign);
-            atomic_int!(atomic_or_acqrel__u16, u16, bitor_assign);
-            atomic_int!(atomic_or_acqrel__u32, u32, bitor_assign);
-            atomic_int!(atomic_or_acqrel__u64, u64, bitor_assign);
-            atomic_int!(atomic_or_acqrel__usize, usize, bitor_assign);
-            atomic_int!(atomic_or_acqrel__i128, i128, bitor_assign);
-            atomic_int!(atomic_or_acqrel__u128, u128, bitor_assign);
-
-            // pub unsafe fn atomic_or_relaxed<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::BitOrAssign,
-            // {
-            //     let result = *dst;
-            //     *dst |= src;
-            //     result
-            // }
-            atomic_int!(atomic_or_relaxed__i8, i8, bitor_assign);
-            atomic_int!(atomic_or_relaxed__i16, i16, bitor_assign);
-            atomic_int!(atomic_or_relaxed__i32, i32, bitor_assign);
-            atomic_int!(atomic_or_relaxed__i64, i64, bitor_assign);
-            atomic_int!(atomic_or_relaxed__isize, isize, bitor_assign);
-            atomic_int!(atomic_or_relaxed__u8, u8, bitor_assign);
-            atomic_int!(atomic_or_relaxed__u16, u16, bitor_assign);
-            atomic_int!(atomic_or_relaxed__u32, u32, bitor_assign);
-            atomic_int!(atomic_or_relaxed__u64, u64, bitor_assign);
-            atomic_int!(atomic_or_relaxed__usize, usize, bitor_assign);
-            atomic_int!(atomic_or_relaxed__i128, i128, bitor_assign);
-            atomic_int!(atomic_or_relaxed__u128, u128, bitor_assign);
-
-            // pub unsafe fn atomic_xor_seqcst<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::BitXorAssign,
-            // {
-            //     let result = *dst;
-            //     *dst ^= src;
-            //     result
-            // }
-            atomic_int!(atomic_xor_seqcst__i8, i8, bitxor_assign);
-            atomic_int!(atomic_xor_seqcst__i16, i16, bitxor_assign);
-            atomic_int!(atomic_xor_seqcst__i32, i32, bitxor_assign);
-            atomic_int!(atomic_xor_seqcst__i64, i64, bitxor_assign);
-            atomic_int!(atomic_xor_seqcst__isize, isize, bitxor_assign);
-            atomic_int!(atomic_xor_seqcst__u8, u8, bitxor_assign);
-            atomic_int!(atomic_xor_seqcst__u16, u16, bitxor_assign);
-            atomic_int!(atomic_xor_seqcst__u32, u32, bitxor_assign);
-            atomic_int!(atomic_xor_seqcst__u64, u64, bitxor_assign);
-            atomic_int!(atomic_xor_seqcst__usize, usize, bitxor_assign);
-            atomic_int!(atomic_xor_seqcst__i128, i128, bitxor_assign);
-            atomic_int!(atomic_xor_seqcst__u128, u128, bitxor_assign);
-
-            // pub unsafe fn atomic_xor_acquire<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::BitXorAssign,
-            // {
-            //     let result = *dst;
-            //     *dst ^= src;
-            //     result
-            // }
-            atomic_int!(atomic_xor_acquire__i8, i8, bitxor_assign);
-            atomic_int!(atomic_xor_acquire__i16, i16, bitxor_assign);
-            atomic_int!(atomic_xor_acquire__i32, i32, bitxor_assign);
-            atomic_int!(atomic_xor_acquire__i64, i64, bitxor_assign);
-            atomic_int!(atomic_xor_acquire__isize, isize, bitxor_assign);
-            atomic_int!(atomic_xor_acquire__u8, u8, bitxor_assign);
-            atomic_int!(atomic_xor_acquire__u16, u16, bitxor_assign);
-            atomic_int!(atomic_xor_acquire__u32, u32, bitxor_assign);
-            atomic_int!(atomic_xor_acquire__u64, u64, bitxor_assign);
-            atomic_int!(atomic_xor_acquire__usize, usize, bitxor_assign);
-            atomic_int!(atomic_xor_acquire__i128, i128, bitxor_assign);
-            atomic_int!(atomic_xor_acquire__u128, u128, bitxor_assign);
-
-            // pub unsafe fn atomic_xor_release<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::BitXorAssign,
-            // {
-            //     let result = *dst;
-            //     *dst ^= src;
-            //     result
-            // }
-            atomic_int!(atomic_xor_release__i8, i8, bitxor_assign);
-            atomic_int!(atomic_xor_release__i16, i16, bitxor_assign);
-            atomic_int!(atomic_xor_release__i32, i32, bitxor_assign);
-            atomic_int!(atomic_xor_release__i64, i64, bitxor_assign);
-            atomic_int!(atomic_xor_release__isize, isize, bitxor_assign);
-            atomic_int!(atomic_xor_release__u8, u8, bitxor_assign);
-            atomic_int!(atomic_xor_release__u16, u16, bitxor_assign);
-            atomic_int!(atomic_xor_release__u32, u32, bitxor_assign);
-            atomic_int!(atomic_xor_release__u64, u64, bitxor_assign);
-            atomic_int!(atomic_xor_release__usize, usize, bitxor_assign);
-            atomic_int!(atomic_xor_release__i128, i128, bitxor_assign);
-            atomic_int!(atomic_xor_release__u128, u128, bitxor_assign);
-
-            // pub unsafe fn atomic_xor_acqrel<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::BitXorAssign,
-            // {
-            //     let result = *dst;
-            //     *dst ^= src;
-            //     result
-            // }
-            atomic_int!(atomic_xor_acqrel__i8, i8, bitxor_assign);
-            atomic_int!(atomic_xor_acqrel__i16, i16, bitxor_assign);
-            atomic_int!(atomic_xor_acqrel__i32, i32, bitxor_assign);
-            atomic_int!(atomic_xor_acqrel__i64, i64, bitxor_assign);
-            atomic_int!(atomic_xor_acqrel__isize, isize, bitxor_assign);
-            atomic_int!(atomic_xor_acqrel__u8, u8, bitxor_assign);
-            atomic_int!(atomic_xor_acqrel__u16, u16, bitxor_assign);
-            atomic_int!(atomic_xor_acqrel__u32, u32, bitxor_assign);
-            atomic_int!(atomic_xor_acqrel__u64, u64, bitxor_assign);
-            atomic_int!(atomic_xor_acqrel__usize, usize, bitxor_assign);
-            atomic_int!(atomic_xor_acqrel__i128, i128, bitxor_assign);
-            atomic_int!(atomic_xor_acqrel__u128, u128, bitxor_assign);
-
-            // pub unsafe fn atomic_xor_relaxed<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: std::ops::BitXorAssign,
-            // {
-            //     let result = *dst;
-            //     *dst ^= src;
-            //     result
-            // }
-            atomic_int!(atomic_xor_relaxed__i8, i8, bitxor_assign);
-            atomic_int!(atomic_xor_relaxed__i16, i16, bitxor_assign);
-            atomic_int!(atomic_xor_relaxed__i32, i32, bitxor_assign);
-            atomic_int!(atomic_xor_relaxed__i64, i64, bitxor_assign);
-            atomic_int!(atomic_xor_relaxed__isize, isize, bitxor_assign);
-            atomic_int!(atomic_xor_relaxed__u8, u8, bitxor_assign);
-            atomic_int!(atomic_xor_relaxed__u16, u16, bitxor_assign);
-            atomic_int!(atomic_xor_relaxed__u32, u32, bitxor_assign);
-            atomic_int!(atomic_xor_relaxed__u64, u64, bitxor_assign);
-            atomic_int!(atomic_xor_relaxed__usize, usize, bitxor_assign);
-            atomic_int!(atomic_xor_relaxed__i128, i128, bitxor_assign);
-            atomic_int!(atomic_xor_relaxed__u128, u128, bitxor_assign);
-
-            // pub unsafe fn atomic_max_seqcst<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: PartialOrd,
-            // {
-            //     if *dst <= src {
-            //         src
-            //     } else {
-            //         *dst
-            //     }
-            // }
-            atomic_max_min!(atomic_max_seqcst__i8, i8, <=);
-            atomic_max_min!(atomic_max_seqcst__i16, i16, <=);
-            atomic_max_min!(atomic_max_seqcst__i32, i32, <=);
-            atomic_max_min!(atomic_max_seqcst__i64, i64, <=);
-            atomic_max_min!(atomic_max_seqcst__isize, isize, <=);
-            atomic_max_min!(atomic_umax_seqcst__u8, u8, <=);
-            atomic_max_min!(atomic_umax_seqcst__u16, u16, <=);
-            atomic_max_min!(atomic_umax_seqcst__u32, u32, <=);
-            atomic_max_min!(atomic_umax_seqcst__u64, u64, <=);
-            atomic_max_min!(atomic_umax_seqcst__usize, usize, <=);
-            atomic_max_min!(atomic_max_seqcst__i128, i128, <=);
-            atomic_max_min!(atomic_umax_seqcst__u128, u128, <=);
-
-            // pub unsafe fn atomic_max_acquire<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: PartialOrd,
-            // {
-            //     if *dst <= src {
-            //         src
-            //     } else {
-            //         *dst
-            //     }
-            // }
-            atomic_max_min!(atomic_max_acquire__i8, i8, <=);
-            atomic_max_min!(atomic_max_acquire__i16, i16, <=);
-            atomic_max_min!(atomic_max_acquire__i32, i32, <=);
-            atomic_max_min!(atomic_max_acquire__i64, i64, <=);
-            atomic_max_min!(atomic_max_acquire__isize, isize, <=);
-            atomic_max_min!(atomic_umax_acquire__u8, u8, <=);
-            atomic_max_min!(atomic_umax_acquire__u16, u16, <=);
-            atomic_max_min!(atomic_umax_acquire__u32, u32, <=);
-            atomic_max_min!(atomic_umax_acquire__u64, u64, <=);
-            atomic_max_min!(atomic_umax_acquire__usize, usize, <=);
-            atomic_max_min!(atomic_max_acquire__i128, i128, <=);
-            atomic_max_min!(atomic_umax_acquire__u128, u128, <=);
-
-            // pub unsafe fn atomic_max_release<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: PartialOrd,
-            // {
-            //     if *dst <= src {
-            //         src
-            //     } else {
-            //         *dst
-            //     }
-            // }
-            atomic_max_min!(atomic_max_release__i8, i8, <=);
-            atomic_max_min!(atomic_max_release__i16, i16, <=);
-            atomic_max_min!(atomic_max_release__i32, i32, <=);
-            atomic_max_min!(atomic_max_release__i64, i64, <=);
-            atomic_max_min!(atomic_max_release__isize, isize, <=);
-            atomic_max_min!(atomic_umax_release__u8, u8, <=);
-            atomic_max_min!(atomic_umax_release__u16, u16, <=);
-            atomic_max_min!(atomic_umax_release__u32, u32, <=);
-            atomic_max_min!(atomic_umax_release__u64, u64, <=);
-            atomic_max_min!(atomic_umax_release__usize, usize, <=);
-            atomic_max_min!(atomic_max_release__i128, i128, <=);
-            atomic_max_min!(atomic_umax_release__u128, u128, <=);
-
-            // pub unsafe fn atomic_max_acqrel<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: PartialOrd,
-            // {
-            //     if *dst <= src {
-            //         src
-            //     } else {
-            //         *dst
-            //     }
-            // }
-            atomic_max_min!(atomic_max_acqrel__i8, i8, <=);
-            atomic_max_min!(atomic_max_acqrel__i16, i16, <=);
-            atomic_max_min!(atomic_max_acqrel__i32, i32, <=);
-            atomic_max_min!(atomic_max_acqrel__i64, i64, <=);
-            atomic_max_min!(atomic_max_acqrel__isize, isize, <=);
-            atomic_max_min!(atomic_umax_acqrel__u8, u8, <=);
-            atomic_max_min!(atomic_umax_acqrel__u16, u16, <=);
-            atomic_max_min!(atomic_umax_acqrel__u32, u32, <=);
-            atomic_max_min!(atomic_umax_acqrel__u64, u64, <=);
-            atomic_max_min!(atomic_umax_acqrel__usize, usize, <=);
-            atomic_max_min!(atomic_max_acqrel__i128, i128, <=);
-            atomic_max_min!(atomic_umax_acqrel__u128, u128, <=);
-
-            // pub unsafe fn atomic_max_relaxed<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: PartialOrd,
-            // {
-            //     if *dst <= src {
-            //         src
-            //     } else {
-            //         *dst
-            //     }
-            // }
-            atomic_max_min!(atomic_max_relaxed__i8, i8, <=);
-            atomic_max_min!(atomic_max_relaxed__i16, i16, <=);
-            atomic_max_min!(atomic_max_relaxed__i32, i32, <=);
-            atomic_max_min!(atomic_max_relaxed__i64, i64, <=);
-            atomic_max_min!(atomic_max_relaxed__isize, isize, <=);
-            atomic_max_min!(atomic_umax_relaxed__u8, u8, <=);
-            atomic_max_min!(atomic_umax_relaxed__u16, u16, <=);
-            atomic_max_min!(atomic_umax_relaxed__u32, u32, <=);
-            atomic_max_min!(atomic_umax_relaxed__u64, u64, <=);
-            atomic_max_min!(atomic_umax_relaxed__usize, usize, <=);
-            atomic_max_min!(atomic_max_relaxed__i128, i128, <=);
-            atomic_max_min!(atomic_umax_relaxed__u128, u128, <=);
-
-            // pub unsafe fn atomic_min_seqcst<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: PartialOrd,
-            // {
-            //     if *dst >= src {
-            //         src
-            //     } else {
-            //         *dst
-            //     }
-            // }
-            atomic_max_min!(atomic_min_seqcst__i8, i8, >=);
-            atomic_max_min!(atomic_min_seqcst__i16, i16, >=);
-            atomic_max_min!(atomic_min_seqcst__i32, i32, >=);
-            atomic_max_min!(atomic_min_seqcst__i64, i64, >=);
-            atomic_max_min!(atomic_min_seqcst__isize, isize, >=);
-            atomic_max_min!(atomic_umin_seqcst__u8, u8, >=);
-            atomic_max_min!(atomic_umin_seqcst__u16, u16, >=);
-            atomic_max_min!(atomic_umin_seqcst__u32, u32, >=);
-            atomic_max_min!(atomic_umin_seqcst__u64, u64, >=);
-            atomic_max_min!(atomic_umin_seqcst__usize, usize, >=);
-            atomic_max_min!(atomic_min_seqcst__i128, i128, >=);
-            atomic_max_min!(atomic_umin_seqcst__u128, u128, >=);
-
-            // pub unsafe fn atomic_min_acquire<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: PartialOrd,
-            // {
-            //     if *dst >= src {
-            //         src
-            //     } else {
-            //         *dst
-            //     }
-            // }
-            atomic_max_min!(atomic_min_acquire__i8, i8, >=);
-            atomic_max_min!(atomic_min_acquire__i16, i16, >=);
-            atomic_max_min!(atomic_min_acquire__i32, i32, >=);
-            atomic_max_min!(atomic_min_acquire__i64, i64, >=);
-            atomic_max_min!(atomic_min_acquire__isize, isize, >=);
-            atomic_max_min!(atomic_umin_acquire__u8, u8, >=);
-            atomic_max_min!(atomic_umin_acquire__u16, u16, >=);
-            atomic_max_min!(atomic_umin_acquire__u32, u32, >=);
-            atomic_max_min!(atomic_umin_acquire__u64, u64, >=);
-            atomic_max_min!(atomic_umin_acquire__usize, usize, >=);
-            atomic_max_min!(atomic_min_acquire__i128, i128, >=);
-            atomic_max_min!(atomic_umin_acquire__u128, u128, >=);
-
-            // pub unsafe fn atomic_min_release<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: PartialOrd,
-            // {
-            //     if *dst >= src {
-            //         src
-            //     } else {
-            //         *dst
-            //     }
-            // }
-            atomic_max_min!(atomic_min_release__i8, i8, >=);
-            atomic_max_min!(atomic_min_release__i16, i16, >=);
-            atomic_max_min!(atomic_min_release__i32, i32, >=);
-            atomic_max_min!(atomic_min_release__i64, i64, >=);
-            atomic_max_min!(atomic_min_release__isize, isize, >=);
-            atomic_max_min!(atomic_umin_release__u8, u8, >=);
-            atomic_max_min!(atomic_umin_release__u16, u16, >=);
-            atomic_max_min!(atomic_umin_release__u32, u32, >=);
-            atomic_max_min!(atomic_umin_release__u64, u64, >=);
-            atomic_max_min!(atomic_umin_release__usize, usize, >=);
-            atomic_max_min!(atomic_min_release__i128, i128, >=);
-            atomic_max_min!(atomic_umin_release__u128, u128, >=);
-
-            // pub unsafe fn atomic_min_acqrel<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: PartialOrd,
-            // {
-            //     if *dst >= src {
-            //         src
-            //     } else {
-            //         *dst
-            //     }
-            // }
-            atomic_max_min!(atomic_min_acqrel__i8, i8, >=);
-            atomic_max_min!(atomic_min_acqrel__i16, i16, >=);
-            atomic_max_min!(atomic_min_acqrel__i32, i32, >=);
-            atomic_max_min!(atomic_min_acqrel__i64, i64, >=);
-            atomic_max_min!(atomic_min_acqrel__isize, isize, >=);
-            atomic_max_min!(atomic_umin_acqrel__u8, u8, >=);
-            atomic_max_min!(atomic_umin_acqrel__u16, u16, >=);
-            atomic_max_min!(atomic_umin_acqrel__u32, u32, >=);
-            atomic_max_min!(atomic_umin_acqrel__u64, u64, >=);
-            atomic_max_min!(atomic_umin_acqrel__usize, usize, >=);
-            atomic_max_min!(atomic_min_acqrel__i128, i128, >=);
-            atomic_max_min!(atomic_umin_acqrel__u128, u128, >=);
-
-            // pub unsafe fn atomic_min_relaxed<T>(dst: *mut T, src: T) -> T
-            // where
-            //     T: Copy,
-            //     T: PartialOrd,
-            // {
-            //     if *dst >= src {
-            //         src
-            //     } else {
-            //         *dst
-            //     }
-            // }
-            atomic_max_min!(atomic_min_relaxed__i8, i8, >=);
-            atomic_max_min!(atomic_min_relaxed__i16, i16, >=);
-            atomic_max_min!(atomic_min_relaxed__i32, i32, >=);
-            atomic_max_min!(atomic_min_relaxed__i64, i64, >=);
-            atomic_max_min!(atomic_min_relaxed__isize, isize, >=);
-            atomic_max_min!(atomic_umin_relaxed__u8, u8, >=);
-            atomic_max_min!(atomic_umin_relaxed__u16, u16, >=);
-            atomic_max_min!(atomic_umin_relaxed__u32, u32, >=);
-            atomic_max_min!(atomic_umin_relaxed__u64, u64, >=);
-            atomic_max_min!(atomic_umin_relaxed__usize, usize, >=);
-            atomic_max_min!(atomic_min_relaxed__i128, i128, >=);
-            atomic_max_min!(atomic_umin_relaxed__u128, u128, >=);
-
-            default_contract!(atomic_fence_seqcst);
-            default_contract!(atomic_fence_acquire);
-            default_contract!(atomic_fence_release);
-            default_contract!(atomic_fence_acqrel);
-            default_contract!(atomic_singlethreadfence_seqcst);
-            default_contract!(atomic_singlethreadfence_acquire);
-            default_contract!(atomic_singlethreadfence_release);
-            default_contract!(atomic_singlethreadfence_acqrel);
-
-            default_contract!(prefetch_read_data);
-            default_contract!(prefetch_write_data);
-            default_contract!(prefetch_read_instruction);
-            default_contract!(prefetch_write_instruction);
-            default_contract!(is_aligned_and_not_null);
-            default_contract!(is_nonoverlapping);
-
-            default_contract!(assert_inhabited);
-            default_contract!(assert_zero_valid);
-            default_contract!(assert_uninit_valid);
-            default_contract!(rustc_peek);
-            pub fn abort() {
-                assume_unreachable!();
-            }
-            pub fn unreachable() {
-                assume_unreachable!();
-            }
-            pub fn assume(b: bool) {
-                assumed_postcondition!(b);
-            }
-            pub fn likely(b: bool) -> bool {
-                b
-            }
-            pub fn unlikely(b: bool) -> bool {
-                b
-            }
-            default_contract!(breakpoint);
-            // pub unsafe fn move_val_init<T>(dst: *mut T, src: T)
-            // where
-            //     T: Copy,
-            // {
-            //     let bw = std::intrinsics::size_of::<T>();
-            //     precondition!((dst as usize) & (bw - 1) == 0);
-            //     *dst = src;
-            // }
-            atomic_store!(move_val_init__i8, i8);
-            atomic_store!(move_val_init__i16, i16);
-            atomic_store!(move_val_init__i32, i32);
-            atomic_store!(move_val_init__i64, i64);
-            atomic_store!(move_val_init__isize, isize);
-            atomic_store!(move_val_init__u8, u8);
-            atomic_store!(move_val_init__u16, u16);
-            atomic_store!(move_val_init__u32, u32);
-            atomic_store!(move_val_init__u64, u64);
-            atomic_store!(move_val_init__usize, usize);
-            atomic_store!(move_val_init__i128, i128);
-            atomic_store!(move_val_init__u128, u128);
-
-            // Call to these are not present in optimized MIR
-            // default_contract!(min_align_of);
-            // default_contract!(pref_align_of);
-
-            pub fn type_name<T: ?Sized>() -> &'static str {
-                result!()
-            }
-            pub fn type_id<T: ?Sized + 'static>() -> u64 {
-                result!()
-            }
-            pub fn panic_if_uninhabited<T>() {
-                // Compiler bootstrapping support. Nothing to do here when analyzing.
-            }
-            default_contract!(caller_location);
-            default_contract!(init);
-            default_contract!(uninit);
-            pub fn forget<T>(_: T) {}
+            // extern "rust-intrinsic" { in core/intrinsics.mod.rs
             pub unsafe fn volatile_copy_nonoverlapping_memory<T>(
                 dst: *mut T,
                 src: *const T,
@@ -2952,282 +3234,486 @@ pub mod core {
                 *dst = val
             }
 
-            default_contract!(float_to_int_unchecked);
+            // Known names
+            // pub fn sqrtf16(x: f16) -> f16;
+            // pub fn sqrtf32(x: f32) -> f32;
+            // pub fn sqrtf64(x: f64) -> f64;
+            // pub fn sqrtf128(x: f128) -> f128;
+            // pub fn powif16(a: f16, x: i32) -> f16;
+            // pub fn powif32(a: f32, x: i32) -> f32;
+            // pub fn powif64(a: f64, x: i32) -> f64;
+            // pub fn powif128(a: f128, x: i32) -> f128;
+            // pub fn sinf16(x: f16) -> f16;
+            // pub fn sinf32(x: f32) -> f32;
+            // pub fn sinf64(x: f64) -> f64;
+            // pub fn sinf128(x: f128) -> f128;
+            // pub fn cosf16(x: f16) -> f16;
+            // pub fn cosf32(x: f32) -> f32;
+            // pub fn cosf64(x: f64) -> f64;
+            // pub fn cosf128(x: f128) -> f128;
+            // pub fn powf16(a: f16, x: f16) -> f16;
+            // pub fn powf32(a: f32, x: f32) -> f32;
+            // pub fn powf64(a: f64, x: f64) -> f64;
+            // pub fn powf128(a: f128, x: f128) -> f128;
+            // pub fn expf16(x: f16) -> f16;
+            // pub fn expf32(x: f32) -> f32;
+            // pub fn expf64(x: f64) -> f64;
+            // pub fn expf128(x: f128) -> f128;
+            // pub fn exp2f16(x: f16) -> f16;
+            // pub fn exp2f32(x: f32) -> f32;
+            // pub fn exp2f64(x: f64) -> f64;
+            // pub fn exp2f128(x: f128) -> f128;
+            // pub fn logf16(x: f16) -> f16;
+            // pub fn logf32(x: f32) -> f32;
+            // pub fn logf64(x: f64) -> f64;
+            // pub fn logf128(x: f128) -> f128;
+            // pub fn log10f16(x: f16) -> f16;
+            // pub fn log10f32(x: f32) -> f32;
+            // pub fn log10f64(x: f64) -> f64;
+            // pub fn log10f128(x: f128) -> f128;
+            // pub fn log2f16(x: f16) -> f16;
+            // pub fn log2f32(x: f32) -> f32;
+            // pub fn log2f64(x: f64) -> f64;
+            // pub fn log2f128(x: f128) -> f128;
+
+            pub fn fmaf16(a: f16, b: f16, c: f16) -> f16 {
+                a * b + c
+            }
             pub fn fmaf32(a: f32, b: f32, c: f32) -> f32 {
                 a * b + c
             }
             pub fn fmaf64(a: f64, b: f64, c: f64) -> f64 {
                 a * b + c
             }
-
-            add_with_overflow!(i8, i128, add_with_overflow__i8, I8_MAX!());
-            add_with_overflow!(i16, i128, add_with_overflow__i16, I16_MAX!());
-            add_with_overflow!(i32, i128, add_with_overflow__i32, I32_MAX!());
-            add_with_overflow!(i64, i128, add_with_overflow__i64, I64_MAX!());
-            add_with_overflow!(isize, i128, add_with_overflow__isize, ISIZE_MAX!());
-            add_with_overflow!(u8, u128, add_with_overflow__u8, U8_MAX!());
-            add_with_overflow!(u16, u128, add_with_overflow__u16, U16_MAX!());
-            add_with_overflow!(u32, u128, add_with_overflow__u32, U32_MAX!());
-            add_with_overflow!(u64, u128, add_with_overflow__u64, U64_MAX!());
-            add_with_overflow!(usize, u128, add_with_overflow__usize, USIZE_MAX!());
-            default_contract!(add_with_overflow__i128);
-            default_contract!(add_with_overflow__u128);
-
-            sub_with_overflow!(i8, i128, sub_with_overflow__i8, I8_MAX!());
-            sub_with_overflow!(i16, i128, sub_with_overflow__i16, I16_MAX!());
-            sub_with_overflow!(i32, i128, sub_with_overflow__i32, I32_MAX!());
-            sub_with_overflow!(i64, i128, sub_with_overflow__i64, I64_MAX!());
-            sub_with_overflow!(isize, i128, sub_with_overflow__isize, ISIZE_MAX!());
-            sub_with_overflow!(u8, i128, sub_with_overflow__u8, U8_MAX!());
-            sub_with_overflow!(u16, i128, sub_with_overflow__u16, U16_MAX!());
-            sub_with_overflow!(u32, i128, sub_with_overflow__u32, U32_MAX!());
-            sub_with_overflow!(u64, i128, sub_with_overflow__u64, U64_MAX!());
-            sub_with_overflow!(usize, i128, sub_with_overflow__usize, USIZE_MAX!());
-            default_contract!(sub_with_overflow__i128);
-            default_contract!(sub_with_overflow__u128);
-
-            // Performs an exact division, resulting in undefined behavior when
-            // `x % y != 0` or `y == 0` or `x == T::min_value() && y == -1`
-            exact_signed_div!(i8, exact_div__i8, I8_MIN!());
-            exact_signed_div!(i16, exact_div__i16, I16_MIN!());
-            exact_signed_div!(i32, exact_div__i32, I32_MIN!());
-            exact_signed_div!(i64, exact_div__i64, I64_MIN!());
-            exact_signed_div!(i128, exact_div__i128, I128_MIN!());
-            exact_signed_div!(isize, exact_div__isize, ISIZE_MIN!());
-            exact_div!(u8, exact_div__u8);
-            exact_div!(u16, exact_div__u16);
-            exact_div!(u32, exact_div__u32);
-            exact_div!(u64, exact_div__u64);
-            exact_div!(u128, exact_div__u128);
-            exact_div!(usize, exact_div__usize);
-
-            unchecked_signed_div!(i8, unchecked_div__i8, I8_MIN!());
-            unchecked_signed_div!(i16, unchecked_div__i16, I16_MIN!());
-            unchecked_signed_div!(i32, unchecked_div__i32, I32_MIN!());
-            unchecked_signed_div!(i64, unchecked_div__i64, I64_MIN!());
-            unchecked_signed_div!(i128, unchecked_div__i128, I128_MIN!());
-            unchecked_signed_div!(isize, unchecked_div__isize, ISIZE_MIN!());
-            unchecked_div!(u8, unchecked_div__u8);
-            unchecked_div!(u16, unchecked_div__u16);
-            unchecked_div!(u32, unchecked_div__u32);
-            unchecked_div!(u64, unchecked_div__u64);
-            unchecked_div!(u128, unchecked_div__u128);
-            unchecked_div!(usize, unchecked_div__usize);
-
-            unchecked_signed_rem!(i8, unchecked_rem__i8, I8_MIN!());
-            unchecked_signed_rem!(i16, unchecked_rem__i16, I16_MIN!());
-            unchecked_signed_rem!(i32, unchecked_rem__i32, I32_MIN!());
-            unchecked_signed_rem!(i64, unchecked_rem__i64, I64_MIN!());
-            unchecked_signed_rem!(i128, unchecked_rem__i128, I128_MIN!());
-            unchecked_signed_rem!(isize, unchecked_rem__isize, ISIZE_MIN!());
-            unchecked_rem!(u8, unchecked_rem__u8);
-            unchecked_rem!(u16, unchecked_rem__u16);
-            unchecked_rem!(u32, unchecked_rem__u32);
-            unchecked_rem!(u64, unchecked_rem__u64);
-            unchecked_rem!(u128, unchecked_rem__u128);
-            unchecked_rem!(usize, unchecked_rem__usize);
-
-            unchecked_shl!(i8, unchecked_shl__i8);
-            unchecked_shl!(i16, unchecked_shl__i16);
-            unchecked_shl!(i32, unchecked_shl__i32);
-            unchecked_shl!(i64, unchecked_shl__i64);
-            unchecked_shl!(i128, unchecked_shl__i128);
-            unchecked_shl!(isize, unchecked_shl__isize);
-            unchecked_shl!(u8, unchecked_shl__u8);
-            unchecked_shl!(u16, unchecked_shl__u16);
-            unchecked_shl!(u32, unchecked_shl__u32);
-            unchecked_shl!(u64, unchecked_shl__u64);
-            unchecked_shl!(u128, unchecked_shl__u128);
-            unchecked_shl!(usize, unchecked_shl__usize);
-
-            unchecked_shr!(i8, unchecked_shr__i8);
-            unchecked_shr!(i16, unchecked_shr__i16);
-            unchecked_shr!(i32, unchecked_shr__i32);
-            unchecked_shr!(i64, unchecked_shr__i64);
-            unchecked_shr!(i128, unchecked_shr__i128);
-            unchecked_shr!(isize, unchecked_shr__isize);
-            unchecked_shr!(u8, unchecked_shr__u8);
-            unchecked_shr!(u16, unchecked_shr__u16);
-            unchecked_shr!(u32, unchecked_shr__u32);
-            unchecked_shr!(u64, unchecked_shr__u64);
-            unchecked_shr!(u128, unchecked_shr__u128);
-            unchecked_shr!(usize, unchecked_shr__usize);
-
-            unchecked_add!(i8, i128, unchecked_add__i8, I8_MAX!());
-            unchecked_add!(i16, i128, unchecked_add__i16, I16_MAX!());
-            unchecked_add!(i32, i128, unchecked_add__i32, I32_MAX!());
-            unchecked_add!(i64, i128, unchecked_add__i64, I64_MAX!());
-            unchecked_add!(i128, i128, unchecked_add__i128, I128_MAX!());
-            unchecked_add!(isize, i128, unchecked_add__isize, I128_MAX!());
-            unchecked_add!(u8, u128, unchecked_add__u8, U8_MAX!());
-            unchecked_add!(u16, u128, unchecked_add__u16, U16_MAX!());
-            unchecked_add!(u32, u128, unchecked_add__u32, U32_MAX!());
-            unchecked_add!(u64, u128, unchecked_add__u64, U64_MAX!());
-            unchecked_add!(u128, u128, unchecked_add__u128, u128_MAX!());
-            unchecked_add!(usize, u128, unchecked_add__usize, USIZE_MAX!());
-
-            unchecked_sub!(i8, unchecked_sub__i8, I8_MAX!());
-            unchecked_sub!(i16, unchecked_sub__i16, I16_MAX!());
-            unchecked_sub!(i32, unchecked_sub__i32, I32_MAX!());
-            unchecked_sub!(i64, unchecked_sub__i64, I64_MAX!());
-            unchecked_sub!(isize, unchecked_sub__isize, I128_MAX!());
-            unchecked_sub!(u8, unchecked_sub__u8, U8_MAX!());
-            unchecked_sub!(u16, unchecked_sub__u16, U16_MAX!());
-            unchecked_sub!(u32, unchecked_sub__u32, U32_MAX!());
-            unchecked_sub!(u64, unchecked_sub__u64, U64_MAX!());
-            pub fn unchecked_sub__usize(x: usize, y: usize) -> usize {
-                // Do not enable these preconditions until the prover can handle ptr1 - ptr2
-                // where ptr1 has been widened.
-                // precondition!((x as i128) - (y as i128) >= 0);
-                // precondition!((x as i128) - (y as i128) <= (usize::MAX as i128));
-                use ::std::num::Wrapping;
-                use std::ops::Sub;
-                Wrapping(x).sub(Wrapping(y)).0
+            pub fn fmaf128(a: f128, b: f128, c: f128) -> f128 {
+                a * b + c
             }
-
-            unchecked_mul!(i8, i128, unchecked_mul__i8, I8_MAX!());
-            unchecked_mul!(i16, i128, unchecked_mul__i16, I16_MAX!());
-            unchecked_mul!(i32, i128, unchecked_mul__i32, I32_MAX!());
-            unchecked_mul!(i64, i128, unchecked_mul__i64, I64_MAX!());
-            unchecked_mul!(i128, i128, unchecked_mul__i128, I128_MAX!());
-            unchecked_mul!(isize, i128, unchecked_mul__isize, ISIZE_MAX!());
-            unchecked_mul!(u8, u128, unchecked_mul__u8, U8_MAX!());
-            unchecked_mul!(u16, u128, unchecked_mul__u16, U16_MAX!());
-            unchecked_mul!(u32, u128, unchecked_mul__u32, U32_MAX!());
-            unchecked_mul!(u64, u128, unchecked_mul__u64, U64_MAX!());
-            unchecked_mul!(u128, u128, unchecked_mul__u128, u128_MAX!());
-            unchecked_mul!(usize, u128, unchecked_mul__usize, USIZE_MAX!());
-
-            // rotate_left: (X << (S % BW)) | (X >> ((BW - S) % BW))
-            rotate_left!(i8, rotate_left__i8);
-            rotate_left!(i16, rotate_left__i16);
-            rotate_left!(i32, rotate_left__i32);
-            rotate_left!(i64, rotate_left__i64);
-            rotate_left!(i128, rotate_left__i128);
-            rotate_left!(isize, rotate_left__isize);
-            rotate_left!(u8, rotate_left__u8);
-            rotate_left!(u16, rotate_left__u16);
-            rotate_left!(u32, rotate_left__u32);
-            rotate_left!(u64, rotate_left__u64);
-            rotate_left!(u128, rotate_left__u128);
-            rotate_left!(usize, rotate_left__usize);
-
-            // rotate_right: (X << ((BW - S) % BW)) | (X >> (S % BW))
-            rotate_right!(i8, rotate_right__i8);
-            rotate_right!(i16, rotate_right__i16);
-            rotate_right!(i32, rotate_right__i32);
-            rotate_right!(i64, rotate_right__i64);
-            rotate_right!(i128, rotate_right__i128);
-            rotate_right!(isize, rotate_right__isize);
-            rotate_right!(u8, rotate_right__u8);
-            rotate_right!(u16, rotate_right__u16);
-            rotate_right!(u32, rotate_right__u32);
-            rotate_right!(u64, rotate_right__u64);
-            rotate_right!(u128, rotate_right__u128);
-            rotate_right!(usize, rotate_right__usize);
-
-            // (a + b) mod 2<sup>N</sup>, where N is the width of T
-            wrapping_add!(i8, i128, wrapping_add__i8, I8_MAX!());
-            wrapping_add!(i16, i128, wrapping_add__i16, I16_MAX!());
-            wrapping_add!(i32, i128, wrapping_add__i32, I32_MAX!());
-            wrapping_add!(i64, i128, wrapping_add__i64, I64_MAX!());
-            wrapping_add!(isize, i128, wrapping_add__isize, ISIZE_MAX!());
-            wrapping_add!(u8, u128, wrapping_add__u8, U8_MAX!());
-            wrapping_add!(u16, u128, wrapping_add__u16, U16_MAX!());
-            wrapping_add!(u32, u128, wrapping_add__u32, U32_MAX!());
-            wrapping_add!(u64, u128, wrapping_add__u64, U64_MAX!());
-            wrapping_add!(usize, u128, wrapping_add__usize, USIZE_MAX!());
-            default_contract!(wrapping_add__i128);
-            default_contract!(wrapping_add__u128);
-
-            // (a - b) mod 2 ** N, where N is the width of T in bits.
-            wrapping_sub!(i8, i128, wrapping_sub__i8, I8_MAX!());
-            wrapping_sub!(i16, i128, wrapping_sub__i16, I16_MAX!());
-            wrapping_sub!(i32, i128, wrapping_sub__i32, I32_MAX!());
-            wrapping_sub!(i64, i128, wrapping_sub__i64, I64_MAX!());
-            wrapping_sub!(isize, i128, wrapping_sub__isize, ISIZE_MAX!());
-            wrapping_sub!(u8, i128, wrapping_sub__u8, U8_MAX!());
-            wrapping_sub!(u16, i128, wrapping_sub__u16, U16_MAX!());
-            wrapping_sub!(u32, i128, wrapping_sub__u32, U32_MAX!());
-            wrapping_sub!(u64, i128, wrapping_sub__u64, U64_MAX!());
-            wrapping_sub!(usize, i128, wrapping_sub__usize, USIZE_MAX!());
-            default_contract!(wrapping_sub__i128);
-            default_contract!(wrapping_sub__u128);
-
-            // (a * b) mod 2 ** N, where N is the width of T in bits.
-            wrapping_mul!(i8, i128, wrapping_mul__i8, I8_MAX!());
-            wrapping_mul!(i16, i128, wrapping_mul__i16, I16_MAX!());
-            wrapping_mul!(i32, i128, wrapping_mul__i32, I32_MAX!());
-            wrapping_mul!(i64, i128, wrapping_mul__i64, I64_MAX!());
-            wrapping_mul!(isize, i128, wrapping_mul__isize, ISIZE_MAX!());
-            wrapping_mul!(u8, u128, wrapping_mul__u8, U8_MAX!());
-            wrapping_mul!(u16, u128, wrapping_mul__u16, U16_MAX!());
-            wrapping_mul!(u32, u128, wrapping_mul__u32, U32_MAX!());
-            wrapping_mul!(u64, u128, wrapping_mul__u64, U64_MAX!());
-            wrapping_mul!(usize, u128, wrapping_mul__usize, USIZE_MAX!());
-            default_contract!(wrapping_mul__i128);
-            default_contract!(wrapping_mul__u128);
-
-            saturating_add!(i8, i128, saturating_add__i8, I8_MAX!());
-            saturating_add!(i16, i128, saturating_add__i16, I16_MAX!());
-            saturating_add!(i32, i128, saturating_add__i32, I32_MAX!());
-            saturating_add!(i64, i128, saturating_add__i64, I64_MAX!());
-            saturating_add!(isize, i128, saturating_add__isize, ISIZE_MAX!());
-            saturating_add!(u8, u128, saturating_add__u8, U8_MAX!());
-            saturating_add!(u16, u128, saturating_add__u16, U16_MAX!());
-            saturating_add!(u32, u128, saturating_add__u32, U32_MAX!());
-            saturating_add!(u64, u128, saturating_add__u64, U64_MAX!());
-            saturating_add!(usize, u128, saturating_add__usize, USIZE_MAX!());
-            default_contract!(saturating_add__i128);
-            default_contract!(saturating_add__u128);
-
-            saturating_sub!(i8, saturating_sub__i8);
-            saturating_sub!(i16, saturating_sub__i16);
-            saturating_sub!(i32, saturating_sub__i32);
-            saturating_sub!(i64, saturating_sub__i64);
-            saturating_sub!(i128, saturating_sub__i128);
-            saturating_sub!(isize, saturating_sub__isize);
-            saturating_sub!(u8, saturating_sub__u8);
-            saturating_sub!(u16, saturating_sub__u16);
-            saturating_sub!(u32, saturating_sub__u32);
-            saturating_sub!(u64, saturating_sub__u64);
-            saturating_sub!(u128, saturating_sub__u128);
-            saturating_sub!(usize, saturating_sub__usize);
-            default_contract!(r#try);
-            // pub fn nontemporal_store<T>(ptr: *mut T, val: T) {
-            //     *ptr = val;
-            // }
-            pub fn ptr_mask<T>(ptr: *const T, mask: usize) -> *const T {
-                // todo: implement this inside MIRAI
-                result!()
+            pub fn fmuladdf16(a: f16, b: f16, c: f16) -> f16 {
+                a * b + c
             }
-            pub fn ptr_offset_from<T>(ptr: *const T, base: *const T) -> isize {
-                // todo: implement this inside MIRAI
-                result!()
+            pub fn fmuladdf32(a: f32, b: f32, c: f32) -> f32 {
+                a * b + c
             }
-            pub fn ptr_offset_from_unsigned<T>(ptr: *const T, base: *const T) -> isize {
-                // todo: implement this inside MIRAI
-                result!()
+            pub fn fmuladdf64(a: f64, b: f64, c: f64) -> f64 {
+                a * b + c
             }
-            pub fn miri_start_panic<T>(data: T) {
-                assume_unreachable!()
+            pub fn fmuladdf128(a: f128, b: f128, c: f128) -> f128 {
+                a * b + c
             }
-            default_contract!(count_code_region);
-            pub fn ptr_guaranteed_eq<T>(ptr: *const T, other: *const T) -> bool {
-                ptr == other
-            }
-            pub fn ptr_guaranteed_ne<T>(ptr: *const T, other: *const T) -> bool {
-                ptr != other
-            }
-            pub fn ptr_guaranteed_cmp(a: *const (), b: *const ()) -> u8 {
-                match (ptr_guaranteed_eq(a, b), ptr_guaranteed_ne(a, b)) {
-                    (false, false) => 2,
-                    (true, false) => 1,
-                    (false, true) => 0,
-                    (true, true) => unreachable!(),
-                }
+            // pub fn floorf16(x: f16) -> f16;
+            // pub fn floorf32(x: f32) -> f32;
+            // pub fn floorf64(x: f64) -> f64;
+            // pub fn floorf128(x: f128) -> f128;
+            // pub fn ceilf16(x: f16) -> f16;
+            // pub fn ceilf32(x: f32) -> f32;
+            // pub fn ceilf64(x: f64) -> f64;
+            // pub fn ceilf128(x: f128) -> f128;
+            // pub fn truncf16(x: f16) -> f16;
+            // pub fn truncf32(x: f32) -> f32;
+            // pub fn truncf64(x: f64) -> f64;
+            // pub fn truncf128(x: f128) -> f128;
+            // pub fn rintf16(x: f16) -> f16;
+            // pub fn rintf32(x: f32) -> f32;
+            // pub fn rintf64(x: f64) -> f64;
+            // pub fn rintf128(x: f128) -> f128;
+            // pub fn nearbyintf16(x: f16) -> f16;
+            // pub fn nearbyintf32(x: f32) -> f32;
+            // pub fn nearbyintf64(x: f64) -> f64;
+            // pub fn nearbyintf128(x: f128) -> f128;
+            // pub fn roundf16(x: f16) -> f16;
+            // pub fn roundf32(x: f32) -> f32;
+            // pub fn roundf64(x: f64) -> f64;
+            // pub fn roundf128(x: f128) -> f128;
+            // pub fn roundevenf16(x: f16) -> f16;
+            // pub fn roundevenf32(x: f32) -> f32;
+            // pub fn roundevenf64(x: f64) -> f64;
+            // pub fn roundevenf128(x: f128) -> f128;
+
+            // pub fn fadd_fast<T: Copy>(a: T, b: T) -> T;
+            // pub fn fsub_fast<T: Copy>(a: T, b: T) -> T;
+            // pub fn fmul_fast<T: Copy>(a: T, b: T) -> T;
+            // pub fn fdiv_fast<T: Copy>(a: T, b: T) -> T;
+            // pub fn frem_fast<T: Copy>(a: T, b: T) -> T;
+            // pub fn float_to_int_unchecked<Float: Copy, Int: Copy>(value: Float) -> Int;
+
+            // pub fn catch_unwind(try_fn: fn(*mut u8), data: *mut u8, catch_fn: fn(*mut u8, *mut u8)) -> i32;
+
+            pub fn nontemporal_store<T>(ptr: *mut T, val: T) {
+                unsafe { *ptr = val; }
             }
         }
+
+        // Known names
+        // pub fn fadd_algebraic<T: Copy>(_a: T, _b: T) -> T ;
+        // pub fn fsub_algebraic<T: Copy>(_a: T, _b: T) -> T;
+        // pub fn fmul_algebraic<T: Copy>(_a: T, _b: T) -> T ;
+        // pub fn fdiv_algebraic<T: Copy>(_a: T, _b: T) -> T;
+        // pub fn frem_algebraic<T: Copy>(_a: T, _b: T) -> T;
+        // pub const fn ctpop<T: Copy>(_x: T) -> u32;
+        // pub const fn ctlz<T: Copy>(_x: T) -> u32;
+        // pub const unsafe fn ctlz_nonzero<T: Copy>(_x: T) -> u32;
+        // pub const fn cttz<T: Copy>(_x: T) -> u32;
+        // pub const unsafe fn cttz_nonzero<T: Copy>(_x: T) -> u32;
+        // pub const fn bswap<T: Copy>(_x: T) -> T;
+        // pub const fn bitreverse<T: Copy>(_x: T) -> T;
+        // pub const fn three_way_compare<T: Copy>(_lhs: T, _rhss: T) -> crate::cmp::Ordering;
+
+        add_with_overflow!(i8, i128, add_with_overflow__i8, I8_MAX!());
+        add_with_overflow!(i16, i128, add_with_overflow__i16, I16_MAX!());
+        add_with_overflow!(i32, i128, add_with_overflow__i32, I32_MAX!());
+        add_with_overflow!(i64, i128, add_with_overflow__i64, I64_MAX!());
+        add_with_overflow!(isize, i128, add_with_overflow__isize, ISIZE_MAX!());
+        add_with_overflow!(u8, u128, add_with_overflow__u8, U8_MAX!());
+        add_with_overflow!(u16, u128, add_with_overflow__u16, U16_MAX!());
+        add_with_overflow!(u32, u128, add_with_overflow__u32, U32_MAX!());
+        add_with_overflow!(u64, u128, add_with_overflow__u64, U64_MAX!());
+        add_with_overflow!(usize, u128, add_with_overflow__usize, USIZE_MAX!());
+        default_contract!(add_with_overflow__i128);
+        default_contract!(add_with_overflow__u128);
+
+        sub_with_overflow!(i8, i128, sub_with_overflow__i8, I8_MAX!());
+        sub_with_overflow!(i16, i128, sub_with_overflow__i16, I16_MAX!());
+        sub_with_overflow!(i32, i128, sub_with_overflow__i32, I32_MAX!());
+        sub_with_overflow!(i64, i128, sub_with_overflow__i64, I64_MAX!());
+        sub_with_overflow!(isize, i128, sub_with_overflow__isize, ISIZE_MAX!());
+        sub_with_overflow!(u8, i128, sub_with_overflow__u8, U8_MAX!());
+        sub_with_overflow!(u16, i128, sub_with_overflow__u16, U16_MAX!());
+        sub_with_overflow!(u32, i128, sub_with_overflow__u32, U32_MAX!());
+        sub_with_overflow!(u64, i128, sub_with_overflow__u64, U64_MAX!());
+        sub_with_overflow!(usize, i128, sub_with_overflow__usize, USIZE_MAX!());
+        default_contract!(sub_with_overflow__i128);
+        default_contract!(sub_with_overflow__u128);
+
+        mul_with_overflow!(i8, i128, mul_with_overflow__i8, I8_MAX!());
+        mul_with_overflow!(i16, i128, mul_with_overflow__i16, I16_MAX!());
+        mul_with_overflow!(i32, i128, mul_with_overflow__i32, I32_MAX!());
+        mul_with_overflow!(i64, i128, mul_with_overflow__i64, I64_MAX!());
+        mul_with_overflow!(isize, i128, mul_with_overflow__isize, ISIZE_MAX!());
+        mul_with_overflow!(u8, u128, mul_with_overflow__u8, U8_MAX!());
+        mul_with_overflow!(u16, u128, mul_with_overflow__u16, U16_MAX!());
+        mul_with_overflow!(u32, u128, mul_with_overflow__u32, U32_MAX!());
+        mul_with_overflow!(u64, u128, mul_with_overflow__u64, U64_MAX!());
+        mul_with_overflow!(usize, u128, mul_with_overflow__usize, USIZE_MAX!());
+        default_contract!(mul_with_overflow__i128);
+        default_contract!(mul_with_overflow__u128);
+
+        // Performs an exact division, resulting in undefined behavior when
+        // `x % y != 0` or `y == 0` or `x == T::min_value() && y == -1`
+        exact_signed_div!(i8, exact_div__i8, I8_MIN!());
+        exact_signed_div!(i16, exact_div__i16, I16_MIN!());
+        exact_signed_div!(i32, exact_div__i32, I32_MIN!());
+        exact_signed_div!(i64, exact_div__i64, I64_MIN!());
+        exact_signed_div!(i128, exact_div__i128, I128_MIN!());
+        exact_signed_div!(isize, exact_div__isize, ISIZE_MIN!());
+        exact_div!(u8, exact_div__u8);
+        exact_div!(u16, exact_div__u16);
+        exact_div!(u32, exact_div__u32);
+        exact_div!(u64, exact_div__u64);
+        exact_div!(u128, exact_div__u128);
+        exact_div!(usize, exact_div__usize);
+
+        unchecked_signed_div!(i8, unchecked_div__i8, I8_MIN!());
+        unchecked_signed_div!(i16, unchecked_div__i16, I16_MIN!());
+        unchecked_signed_div!(i32, unchecked_div__i32, I32_MIN!());
+        unchecked_signed_div!(i64, unchecked_div__i64, I64_MIN!());
+        unchecked_signed_div!(i128, unchecked_div__i128, I128_MIN!());
+        unchecked_signed_div!(isize, unchecked_div__isize, ISIZE_MIN!());
+        unchecked_div!(u8, unchecked_div__u8);
+        unchecked_div!(u16, unchecked_div__u16);
+        unchecked_div!(u32, unchecked_div__u32);
+        unchecked_div!(u64, unchecked_div__u64);
+        unchecked_div!(u128, unchecked_div__u128);
+        unchecked_div!(usize, unchecked_div__usize);
+
+        unchecked_signed_rem!(i8, unchecked_rem__i8, I8_MIN!());
+        unchecked_signed_rem!(i16, unchecked_rem__i16, I16_MIN!());
+        unchecked_signed_rem!(i32, unchecked_rem__i32, I32_MIN!());
+        unchecked_signed_rem!(i64, unchecked_rem__i64, I64_MIN!());
+        unchecked_signed_rem!(i128, unchecked_rem__i128, I128_MIN!());
+        unchecked_signed_rem!(isize, unchecked_rem__isize, ISIZE_MIN!());
+        unchecked_rem!(u8, unchecked_rem__u8);
+        unchecked_rem!(u16, unchecked_rem__u16);
+        unchecked_rem!(u32, unchecked_rem__u32);
+        unchecked_rem!(u64, unchecked_rem__u64);
+        unchecked_rem!(u128, unchecked_rem__u128);
+        unchecked_rem!(usize, unchecked_rem__usize);
+
+        unchecked_shl!(i8, unchecked_shl__i8);
+        unchecked_shl!(i16, unchecked_shl__i16);
+        unchecked_shl!(i32, unchecked_shl__i32);
+        unchecked_shl!(i64, unchecked_shl__i64);
+        unchecked_shl!(i128, unchecked_shl__i128);
+        unchecked_shl!(isize, unchecked_shl__isize);
+        unchecked_shl!(u8, unchecked_shl__u8);
+        unchecked_shl!(u16, unchecked_shl__u16);
+        unchecked_shl!(u32, unchecked_shl__u32);
+        unchecked_shl!(u64, unchecked_shl__u64);
+        unchecked_shl!(u128, unchecked_shl__u128);
+        unchecked_shl!(usize, unchecked_shl__usize);
+
+        unchecked_shr!(i8, unchecked_shr__i8);
+        unchecked_shr!(i16, unchecked_shr__i16);
+        unchecked_shr!(i32, unchecked_shr__i32);
+        unchecked_shr!(i64, unchecked_shr__i64);
+        unchecked_shr!(i128, unchecked_shr__i128);
+        unchecked_shr!(isize, unchecked_shr__isize);
+        unchecked_shr!(u8, unchecked_shr__u8);
+        unchecked_shr!(u16, unchecked_shr__u16);
+        unchecked_shr!(u32, unchecked_shr__u32);
+        unchecked_shr!(u64, unchecked_shr__u64);
+        unchecked_shr!(u128, unchecked_shr__u128);
+        unchecked_shr!(usize, unchecked_shr__usize);
+
+        unchecked_add!(i8, i128, unchecked_add__i8, I8_MAX!());
+        unchecked_add!(i16, i128, unchecked_add__i16, I16_MAX!());
+        unchecked_add!(i32, i128, unchecked_add__i32, I32_MAX!());
+        unchecked_add!(i64, i128, unchecked_add__i64, I64_MAX!());
+        unchecked_add!(i128, i128, unchecked_add__i128, I128_MAX!());
+        unchecked_add!(isize, i128, unchecked_add__isize, I128_MAX!());
+        unchecked_add!(u8, u128, unchecked_add__u8, U8_MAX!());
+        unchecked_add!(u16, u128, unchecked_add__u16, U16_MAX!());
+        unchecked_add!(u32, u128, unchecked_add__u32, U32_MAX!());
+        unchecked_add!(u64, u128, unchecked_add__u64, U64_MAX!());
+        unchecked_add!(u128, u128, unchecked_add__u128, u128_MAX!());
+        unchecked_add!(usize, u128, unchecked_add__usize, USIZE_MAX!());
+
+        unchecked_sub!(i8, unchecked_sub__i8, I8_MAX!());
+        unchecked_sub!(i16, unchecked_sub__i16, I16_MAX!());
+        unchecked_sub!(i32, unchecked_sub__i32, I32_MAX!());
+        unchecked_sub!(i64, unchecked_sub__i64, I64_MAX!());
+        unchecked_sub!(isize, unchecked_sub__isize, I128_MAX!());
+        unchecked_sub!(u8, unchecked_sub__u8, U8_MAX!());
+        unchecked_sub!(u16, unchecked_sub__u16, U16_MAX!());
+        unchecked_sub!(u32, unchecked_sub__u32, U32_MAX!());
+        unchecked_sub!(u64, unchecked_sub__u64, U64_MAX!());
+        pub fn unchecked_sub__usize(x: usize, y: usize) -> usize {
+            // Do not enable these preconditions until the prover can handle ptr1 - ptr2
+            // where ptr1 has been widened.
+            // precondition!((x as i128) - (y as i128) >= 0);
+            // precondition!((x as i128) - (y as i128) <= (usize::MAX as i128));
+            use ::std::num::Wrapping;
+            use std::ops::Sub;
+            Wrapping(x).sub(Wrapping(y)).0
+        }
+
+        unchecked_mul!(i8, i128, unchecked_mul__i8, I8_MAX!());
+        unchecked_mul!(i16, i128, unchecked_mul__i16, I16_MAX!());
+        unchecked_mul!(i32, i128, unchecked_mul__i32, I32_MAX!());
+        unchecked_mul!(i64, i128, unchecked_mul__i64, I64_MAX!());
+        unchecked_mul!(i128, i128, unchecked_mul__i128, I128_MAX!());
+        unchecked_mul!(isize, i128, unchecked_mul__isize, ISIZE_MAX!());
+        unchecked_mul!(u8, u128, unchecked_mul__u8, U8_MAX!());
+        unchecked_mul!(u16, u128, unchecked_mul__u16, U16_MAX!());
+        unchecked_mul!(u32, u128, unchecked_mul__u32, U32_MAX!());
+        unchecked_mul!(u64, u128, unchecked_mul__u64, U64_MAX!());
+        unchecked_mul!(u128, u128, unchecked_mul__u128, u128_MAX!());
+        unchecked_mul!(usize, u128, unchecked_mul__usize, USIZE_MAX!());
+
+        // rotate_left: (X << (S % BW)) | (X >> ((BW - S) % BW))
+        rotate_left!(i8, rotate_left__i8);
+        rotate_left!(i16, rotate_left__i16);
+        rotate_left!(i32, rotate_left__i32);
+        rotate_left!(i64, rotate_left__i64);
+        rotate_left!(i128, rotate_left__i128);
+        rotate_left!(isize, rotate_left__isize);
+        rotate_left!(u8, rotate_left__u8);
+        rotate_left!(u16, rotate_left__u16);
+        rotate_left!(u32, rotate_left__u32);
+        rotate_left!(u64, rotate_left__u64);
+        rotate_left!(u128, rotate_left__u128);
+        rotate_left!(usize, rotate_left__usize);
+
+        // rotate_right: (X << ((BW - S) % BW)) | (X >> (S % BW))
+        rotate_right!(i8, rotate_right__i8);
+        rotate_right!(i16, rotate_right__i16);
+        rotate_right!(i32, rotate_right__i32);
+        rotate_right!(i64, rotate_right__i64);
+        rotate_right!(i128, rotate_right__i128);
+        rotate_right!(isize, rotate_right__isize);
+        rotate_right!(u8, rotate_right__u8);
+        rotate_right!(u16, rotate_right__u16);
+        rotate_right!(u32, rotate_right__u32);
+        rotate_right!(u64, rotate_right__u64);
+        rotate_right!(u128, rotate_right__u128);
+        rotate_right!(usize, rotate_right__usize);
+
+        // (a + b) mod 2<sup>N</sup>, where N is the width of T
+        wrapping_add!(i8, i128, wrapping_add__i8, I8_MAX!());
+        wrapping_add!(i16, i128, wrapping_add__i16, I16_MAX!());
+        wrapping_add!(i32, i128, wrapping_add__i32, I32_MAX!());
+        wrapping_add!(i64, i128, wrapping_add__i64, I64_MAX!());
+        wrapping_add!(isize, i128, wrapping_add__isize, ISIZE_MAX!());
+        wrapping_add!(u8, u128, wrapping_add__u8, U8_MAX!());
+        wrapping_add!(u16, u128, wrapping_add__u16, U16_MAX!());
+        wrapping_add!(u32, u128, wrapping_add__u32, U32_MAX!());
+        wrapping_add!(u64, u128, wrapping_add__u64, U64_MAX!());
+        wrapping_add!(usize, u128, wrapping_add__usize, USIZE_MAX!());
+        default_contract!(wrapping_add__i128);
+        default_contract!(wrapping_add__u128);
+
+        // (a - b) mod 2 ** N, where N is the width of T in bits.
+        wrapping_sub!(i8, i128, wrapping_sub__i8, I8_MAX!());
+        wrapping_sub!(i16, i128, wrapping_sub__i16, I16_MAX!());
+        wrapping_sub!(i32, i128, wrapping_sub__i32, I32_MAX!());
+        wrapping_sub!(i64, i128, wrapping_sub__i64, I64_MAX!());
+        wrapping_sub!(isize, i128, wrapping_sub__isize, ISIZE_MAX!());
+        wrapping_sub!(u8, i128, wrapping_sub__u8, U8_MAX!());
+        wrapping_sub!(u16, i128, wrapping_sub__u16, U16_MAX!());
+        wrapping_sub!(u32, i128, wrapping_sub__u32, U32_MAX!());
+        wrapping_sub!(u64, i128, wrapping_sub__u64, U64_MAX!());
+        wrapping_sub!(usize, i128, wrapping_sub__usize, USIZE_MAX!());
+        default_contract!(wrapping_sub__i128);
+        default_contract!(wrapping_sub__u128);
+
+        // (a * b) mod 2 ** N, where N is the width of T in bits.
+        wrapping_mul!(i8, i128, wrapping_mul__i8, I8_MAX!());
+        wrapping_mul!(i16, i128, wrapping_mul__i16, I16_MAX!());
+        wrapping_mul!(i32, i128, wrapping_mul__i32, I32_MAX!());
+        wrapping_mul!(i64, i128, wrapping_mul__i64, I64_MAX!());
+        wrapping_mul!(isize, i128, wrapping_mul__isize, ISIZE_MAX!());
+        wrapping_mul!(u8, u128, wrapping_mul__u8, U8_MAX!());
+        wrapping_mul!(u16, u128, wrapping_mul__u16, U16_MAX!());
+        wrapping_mul!(u32, u128, wrapping_mul__u32, U32_MAX!());
+        wrapping_mul!(u64, u128, wrapping_mul__u64, U64_MAX!());
+        wrapping_mul!(usize, u128, wrapping_mul__usize, USIZE_MAX!());
+        default_contract!(wrapping_mul__i128);
+        default_contract!(wrapping_mul__u128);
+
+        saturating_add!(i8, i128, saturating_add__i8, I8_MAX!());
+        saturating_add!(i16, i128, saturating_add__i16, I16_MAX!());
+        saturating_add!(i32, i128, saturating_add__i32, I32_MAX!());
+        saturating_add!(i64, i128, saturating_add__i64, I64_MAX!());
+        saturating_add!(isize, i128, saturating_add__isize, ISIZE_MAX!());
+        saturating_add!(u8, u128, saturating_add__u8, U8_MAX!());
+        saturating_add!(u16, u128, saturating_add__u16, U16_MAX!());
+        saturating_add!(u32, u128, saturating_add__u32, U32_MAX!());
+        saturating_add!(u64, u128, saturating_add__u64, U64_MAX!());
+        saturating_add!(usize, u128, saturating_add__usize, USIZE_MAX!());
+        default_contract!(saturating_add__i128);
+        default_contract!(saturating_add__u128);
+
+        saturating_sub!(i8, saturating_sub__i8);
+        saturating_sub!(i16, saturating_sub__i16);
+        saturating_sub!(i32, saturating_sub__i32);
+        saturating_sub!(i64, saturating_sub__i64);
+        saturating_sub!(i128, saturating_sub__i128);
+        saturating_sub!(isize, saturating_sub__isize);
+        saturating_sub!(u8, saturating_sub__u8);
+        saturating_sub!(u16, saturating_sub__u16);
+        saturating_sub!(u32, saturating_sub__u32);
+        saturating_sub!(u64, saturating_sub__u64);
+        saturating_sub!(u128, saturating_sub__u128);
+        saturating_sub!(usize, saturating_sub__usize);
+
+        pub fn read_via_copy<T: Copy>(ptr: *const T) -> T {
+            unsafe { *ptr }
+        }
+
+        pub unsafe fn write_via_move<T>(ptr: *mut T, value: T) {
+            *ptr = value;
+        }
+
+        // Known name
+        //pub const fn discriminant_value<T>(_v: &T) -> <T as DiscriminantKind>::Discriminant;
+
+        // todo: append to foreign
+        pub mod foreign2 {
+        }
+
+        pub fn ptr_offset_from<T>(ptr: *const T, base: *const T) -> isize {
+            // todo: implement this inside MIRAI
+            result!()
+        }
+        pub fn ptr_offset_from_unsigned<T>(ptr: *const T, base: *const T) -> isize {
+            // todo: implement this inside MIRAI
+            result!()
+        }
+        pub fn ptr_guaranteed_cmp(a: *const (), b: *const ()) -> u8 {
+            match (ptr_guaranteed_eq(a, b), ptr_guaranteed_ne(a, b)) {
+                (false, false) => 2,
+                (true, false) => 1,
+                (false, true) => 0,
+                (true, true) => unreachable!(),
+            }
+        }
+        fn ptr_guaranteed_eq<T>(ptr: *const T, other: *const T) -> bool {
+            ptr == other
+        }
+        fn ptr_guaranteed_ne<T>(ptr: *const T, other: *const T) -> bool {
+            ptr != other
+        }
+
+        // Known names
+        // pub fn raw_eq<T>(a: &T, b: &T) -> bool;
+        // pub const unsafe fn compare_bytes(_left: *const u8, _right: *const u8, _bytes: usize) -> i32;
+
+        pub fn black_box<T>(t: T) -> T {
+            t
+        }
+
+        // pub const fn const_eval_select<ARG: Tuple, F, G, RET>(
+        // pub const fn is_val_statically_known<T: Copy>(_arg: T) -> bool {
+
+        pub fn typed_swap<T>(x: *mut T, y: *mut T) {
+            unsafe { std::ptr::swap_nonoverlapping(x, y, 1) };
+        }
+
+        default_contract!(ub_checks);
+
+        pub const unsafe fn const_allocate(_size: usize, _align: usize) -> *mut u8 {
+            std::ptr::null_mut()
+        }
+
+        pub const unsafe fn const_deallocate(_ptr: *mut u8, _size: usize, _align: usize) {
+            // Runtime NOP
+        }
+
+        default_contract!(vtable_size);
+        default_contract!(vtable_align);
+
+        // Known names
+        // pub const fn size_of<T>() -> usize {
+        // pub const fn min_align_of<T>() -> usize {
+        // pub const unsafe fn pref_align_of<T>() -> usize {
+        // pub const fn variant_count<T>() -> usize {
+        // pub const unsafe fn size_of_val<T: ?Sized>(_ptr: *const T) -> usize {
+        // pub const unsafe fn min_align_of_val<T: ?Sized>(_ptr: *const T) -> usize {
+
+        pub fn type_name<T: ?Sized>() -> &'static str {
+            result!()
+        }
+        pub fn type_id<T: ?Sized + 'static>() -> u64 {
+            result!()
+        }
+
+        pub fn aggregate_raw_ptr() {
+            assume_unreachable!()
+        }
+
+        pub fn ptr_metadata() {
+            assume_unreachable!()
+        }
+
+        // Known names
+        // pub const unsafe fn copy_nonoverlapping<T>(src: *const T, dst: *mut T, count: usize) {
+        // pub const unsafe fn copy<T>(src: *const T, dst: *mut T, count: usize) {
+        // pub const unsafe fn write_bytes<T>(dst: *mut T, val: u8, count: usize) {
+        // pub const fn minnumf16(_x: f16, _y: f16) -> f16;
+        // pub const fn minnumf32(_x: f32, _y: f32) -> f32;
+        // pub const fn minnumf64(_x: f64, _y: f64) -> f64;
+        // pub const fn minnumf128(_x: f128, _y: f128) -> f128;
+        // pub const fn maxnumf16(_x: f16, _y: f16) -> f16;
+        // pub const fn maxnumf32(_x: f32, _y: f32) -> f32;
+        // pub const fn maxnumf64(_x: f64, _y: f64) -> f64;
+        // pub const fn maxnumf128(_x: f128, _y: f128) -> f128;
+        // pub const unsafe fn fabsf16(_x: f16) -> f16;
+        // pub const unsafe fn fabsf32(_x: f32) -> f32;
+        // pub const unsafe fn fabsf64(_x: f64) -> f64;
+        // pub const unsafe fn fabsf128(_x: f128) -> f128;
+        // pub const unsafe fn copysignf16(_x: f16, _y: f16) -> f16;
+        // pub const unsafe fn copysignf32(_x: f32, _y: f32) -> f32;
+        // pub const unsafe fn copysignf64(_x: f64, _y: f64) -> f64;
+        // pub const unsafe fn copysignf128(_x: f128, _y: f128) -> f128;
     }
 
     pub mod isize {
@@ -3353,6 +3839,12 @@ pub mod core {
 
             fn eq<T>(_self: &Discriminant, rhs: &Discriminant) -> bool {
                 (_self.0 as u128) == (rhs.0 as u128)
+            }
+        }
+
+        pub mod SizedTypeProperties {
+            pub fn IS_ZST() -> bool {
+                false
             }
         }
     }
@@ -3892,10 +4384,7 @@ pub mod core {
         }
 
         pub mod read_volatile {
-            pub fn precondition_check(message: &str, condition: bool) {
-                if !condition {
-                    panic!("{}", message);
-                }
+            pub fn precondition_check() {
             }
         }
 
@@ -4085,6 +4574,11 @@ pub mod core {
         pub mod implement_core_time_Duration {
             default_contract!(mul);
         }
+    }
+
+    pub mod ubchecks {
+        default_contract!(is_aligned_and_not_null);
+        default_contract!(is_nonoverlapping);
     }
 
     pub mod unicode {

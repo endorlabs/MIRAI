@@ -137,6 +137,17 @@ macro_rules! exact_signed_div {
     };
 }
 
+macro_rules! mul_with_overflow {
+    ($t:ty, $tt:ty, $n:ident, $m:expr ) => {
+        pub fn $n(x: $t, y: $t) -> ($tt, bool) {
+            use ::std::num::Wrapping;
+            use std::ops::Mul;
+            let result = Wrapping(x as $tt).mul(Wrapping(y as $tt)).0;
+            (result % (($m as $tt) + 1), result > ($m as $tt))
+        }
+    };
+}
+
 macro_rules! rotate_left {
     ($t:ty, $n:ident) => {
         pub fn $n(x: $t, y: $t) -> $t {

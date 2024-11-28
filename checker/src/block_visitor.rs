@@ -3,6 +3,7 @@
 // This source code is licensed under the MIT license found in the
 // LICENSE file in the root directory of this source tree.
 
+use rustc_middle::ty::TypingMode;
 use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Formatter, Result};
@@ -23,6 +24,7 @@ use rustc_middle::ty::{
 use rustc_middle::ty::{GenericArg, GenericArgsRef};
 use rustc_span::source_map::Spanned;
 use rustc_target::abi::{FieldIdx, Primitive, TagEncoding, VariantIdx, Variants};
+use rustc_trait_selection::infer::TyCtxtInferExt;
 
 use crate::abstract_value::{AbstractValue, AbstractValueTrait, BOTTOM};
 use crate::body_visitor::BodyVisitor;
@@ -2886,9 +2888,8 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
     pub fn visit_const(&mut self, literal: &Const<'tcx>) -> Rc<AbstractValue> {
         let mut kind = literal.kind();
         if let rustc_middle::ty::ConstKind::Unevaluated(_unevaluated) = &kind {
-            kind = literal
-                .normalize_internal(self.bv.tcx, self.type_visitor().get_param_env())
-                .kind();
+            let infcx = self.bv.tcx.infer_ctxt().build(TypingMode::non_body_analysis());
+            kind = rustc_trait_selection::traits::evaluate_const(&infcx, *literal, self.type_visitor().get_param_env()).kind()
         }
 
         match &kind {

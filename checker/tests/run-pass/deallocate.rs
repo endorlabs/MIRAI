@@ -27,7 +27,7 @@ pub fn t2() {
         let layout42 = std::alloc::Layout::from_size_align(4, 2).unwrap();
         let a = std::alloc::alloc(layout42);
         let layout82 = std::alloc::Layout::from_size_align(8, 2).unwrap();
-        std::alloc::dealloc(a, layout82); //~  possibly deallocates the pointer with layout information inconsistent with the allocation
+        std::alloc::dealloc(a, layout82); //~ deallocates the pointer with layout information inconsistent with the allocation
     }
 }
 
@@ -36,7 +36,7 @@ pub fn t2a() {
         let layout42 = std::alloc::Layout::from_size_align(4, 2).unwrap();
         let a = std::alloc::alloc(layout42);
         let layout41 = std::alloc::Layout::from_size_align(4, 1).unwrap();
-        std::alloc::dealloc(a, layout41); //~ possibly deallocates the pointer with layout information inconsistent with the allocation
+        std::alloc::dealloc(a, layout41); //~ deallocates the pointer with layout information inconsistent with the allocation
     }
 }
 
@@ -54,7 +54,7 @@ pub fn t4() {
         let layout42 = std::alloc::Layout::from_size_align(4, 2).unwrap();
         let a = std::alloc::alloc(layout42);
         let layout41 = std::alloc::Layout::from_size_align(4, 1).unwrap();
-        let _ = std::alloc::realloc(a, layout41, 8); //~ possibly reallocates the pointer with layout information inconsistent with the allocation
+        let _ = std::alloc::realloc(a, layout41, 8); //~ reallocates the pointer with layout information inconsistent with the allocation
     }
 }
 
@@ -63,7 +63,7 @@ pub fn t4a() {
         let layout42 = std::alloc::Layout::from_size_align(4, 2).unwrap();
         let a = std::alloc::alloc(layout42);
         let layout82 = std::alloc::Layout::from_size_align(8, 2).unwrap();
-        let _ = std::alloc::realloc(a, layout82, 16); //~ possibly reallocates the pointer with layout information inconsistent with the allocation
+        let _ = std::alloc::realloc(a, layout82, 16); //~ reallocates the pointer with layout information inconsistent with the allocation
     }
 }
 

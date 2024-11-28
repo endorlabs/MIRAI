@@ -34,8 +34,10 @@ pub struct Z3Solver {
     any_sort: z3_sys::Z3_sort,
     bool_sort: z3_sys::Z3_sort,
     int_sort: z3_sys::Z3_sort,
-    f32_sort: z3_sys::Z3_sort,
+    f16_sort: z3_sys::Z3_sort,
     f64_sort: z3_sys::Z3_sort,
+    f32_sort: z3_sys::Z3_sort,
+    f128_sort: z3_sys::Z3_sort,
     nearest_even: z3_sys::Z3_ast,
     zero: z3_sys::Z3_ast,
     one: z3_sys::Z3_ast,
@@ -69,8 +71,10 @@ impl Z3Solver {
             let any_sort = z3_sys::Z3_mk_uninterpreted_sort(z3_context, symbol);
             let bool_sort = z3_sys::Z3_mk_bool_sort(z3_context);
             let int_sort = z3_sys::Z3_mk_int_sort(z3_context);
+            let f16_sort = z3_sys::Z3_mk_fpa_sort_16(z3_context);
             let f32_sort = z3_sys::Z3_mk_fpa_sort_32(z3_context);
             let f64_sort = z3_sys::Z3_mk_fpa_sort_64(z3_context);
+            let f128_sort = z3_sys::Z3_mk_fpa_sort_128(z3_context);
             let nearest_even = z3_sys::Z3_mk_fpa_round_nearest_ties_to_even(z3_context);
             let zero = z3_sys::Z3_mk_int(z3_context, 0, int_sort);
             let one = z3_sys::Z3_mk_int(z3_context, 1, int_sort);
@@ -93,8 +97,10 @@ impl Z3Solver {
                 any_sort,
                 bool_sort,
                 int_sort,
+                f16_sort,
                 f32_sort,
                 f64_sort,
+                f128_sort,
                 nearest_even,
                 zero,
                 one,
@@ -907,8 +913,10 @@ impl Z3Solver {
             Char | I8 | I16 | I32 | I64 | I128 | Isize | U8 | U16 | U32 | U64 | U128 | Usize => {
                 self.int_sort
             }
+            F16 => self.f16_sort,
             F32 => self.f32_sort,
             F64 => self.f64_sort,
+            F128 => self.f128_sort,
             NonPrimitive | ThinPointer | Unit => self.any_sort,
         }
     }
@@ -964,6 +972,11 @@ impl Z3Solver {
                     z3_sys::Z3_mk_numeral(self.z3_context, c_string.into_raw(), self.int_sort)
                 }
             },
+            ConstantDomain::F16(v) => unsafe {
+                let num_str = format!("{}", *v);
+                let c_string = CString::new(num_str).unwrap();
+                z3_sys::Z3_mk_numeral(self.z3_context, c_string.into_raw(), self.f16_sort)
+            },
             ConstantDomain::F32(v) => unsafe {
                 let fv = f32::from_bits(*v);
                 z3_sys::Z3_mk_fpa_numeral_float(self.z3_context, fv, self.f32_sort)
@@ -971,6 +984,11 @@ impl Z3Solver {
             ConstantDomain::F64(v) => unsafe {
                 let fv = f64::from_bits(*v);
                 z3_sys::Z3_mk_fpa_numeral_double(self.z3_context, fv, self.f64_sort)
+            },
+            ConstantDomain::F128(v) => unsafe {
+                let num_str = format!("{}", *v);
+                let c_string = CString::new(num_str).unwrap();
+                z3_sys::Z3_mk_numeral(self.z3_context, c_string.into_raw(), self.f128_sort)
             },
             ConstantDomain::U128(v) => unsafe {
                 let v64 = u64::try_from(*v);
@@ -1527,7 +1545,7 @@ impl Z3Solver {
             ConstantDomain::Char(..) | ConstantDomain::I128(..) | ConstantDomain::U128(..) => {
                 (false, self.get_constant_as_ast(const_domain))
             }
-            ConstantDomain::F32(..) | ConstantDomain::F64(..) => {
+            ConstantDomain::F16(..) | ConstantDomain::F32(..) | ConstantDomain::F64(..) | ConstantDomain::F128(..) => {
                 (true, self.get_constant_as_ast(const_domain))
             }
             ConstantDomain::False => unsafe {
