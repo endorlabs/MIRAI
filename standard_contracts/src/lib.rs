@@ -15,6 +15,8 @@
 #![feature(ptr_internals)]
 #![feature(ptr_metadata)]
 #![feature(ptr_alignment_type)]
+#![allow(unexpected_cfgs)]
+
 #[macro_use]
 extern crate mirai_annotations;
 

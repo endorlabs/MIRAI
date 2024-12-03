@@ -129,13 +129,14 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             mir::StatementKind::StorageLive(local) => self.visit_storage_live(*local),
             mir::StatementKind::StorageDead(local) => self.visit_storage_dead(*local),
             mir::StatementKind::Retag(retag_kind, place) => self.visit_retag(*retag_kind, place),
+            mir::StatementKind::PlaceMention(_) => (),
             mir::StatementKind::AscribeUserType(..) => assume_unreachable!(),
             mir::StatementKind::Coverage(..) => (),
             mir::StatementKind::Intrinsic(box non_diverging_intrinsic) => {
                 self.visit_non_diverging_intrinsic(non_diverging_intrinsic);
             }
             mir::StatementKind::Nop => (),
-            mir::StatementKind::PlaceMention(_) => (),
+            mir::StatementKind::BackwardIncompatibleDropHint { .. } => (),
         }
     }
 
@@ -2510,7 +2511,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         .bv
                         .tcx
                         .offset_of_subfield(
-                            self.type_visitor().get_param_env(),
+                            self.type_visitor().get_typing_env(),
                             ty_and_layout,
                             fields.iter(),
                         )
@@ -2824,12 +2825,12 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             }
             None => {
                 if !args.is_empty() {
-                    let param_env = rustc_middle::ty::ParamEnv::reveal_all();
+                    let typing_env = rustc_middle::ty::TypingEnv::fully_monomorphized();
                     trace!("devirtualize resolving def_id {:?}: {:?}", def_id, def_ty);
                     trace!("args {:?}", args);
                     if let Ok(Some(instance)) = rustc_middle::ty::Instance::try_resolve(
                         self.bv.tcx,
-                        param_env,
+                        typing_env,
                         def_id,
                         args,
                     ) {

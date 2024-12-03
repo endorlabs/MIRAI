@@ -20,6 +20,7 @@
 #![feature(f16)]
 #![feature(f128)]
 #![allow(clippy::mutable_key_type)]
+#![allow(unexpected_cfgs)]
 
 #[macro_use]
 extern crate log;

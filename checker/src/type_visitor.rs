@@ -238,6 +238,21 @@ impl<'tcx> TypeVisitor<'tcx> {
         self.tcx.param_env(env_def_id)
     }
 
+    pub fn get_typing_env(&self) -> rustc_middle::ty::TypingEnv<'tcx> {
+        let param_env = self.get_param_env();
+        rustc_middle::ty::TypingEnv { typing_mode: rustc_middle::ty::TypingMode::PostAnalysis, param_env }
+    }
+
+    pub fn get_typing_env_for(&self, def_id: DefId) -> rustc_middle::ty::TypingEnv<'tcx> {
+        let env_def_id = if self.tcx.is_closure_like(def_id) {
+            self.tcx.typeck_root_def_id(def_id)
+        } else {
+            def_id
+        };
+        let param_env = self.tcx.param_env(env_def_id);
+        rustc_middle::ty::TypingEnv { typing_mode: rustc_middle::ty::TypingMode::PostAnalysis, param_env }
+    }
+
     /// Returns a shared reference to the path type cache of the visitor
     pub fn get_path_type_cache(&self) -> &HashMap<Rc<Path>, Ty<'tcx>> {
         &self.path_ty_cache
@@ -983,9 +998,9 @@ impl<'tcx> TypeVisitor<'tcx> {
         rustc_middle::ty::layout::TyAndLayout<'tcx>,
         &'tcx rustc_middle::ty::layout::LayoutError<'tcx>,
     > {
-        let param_env = self.get_param_env();
+        let typing_env = self.get_typing_env();
         if utils::is_concrete(ty.kind()) {
-            self.tcx.layout_of(param_env.and(ty))
+            self.tcx.layout_of(typing_env.as_query_input(ty))
         } else {
             Err(&*self
                 .tcx
@@ -1053,12 +1068,10 @@ impl<'tcx> TypeVisitor<'tcx> {
             let specialized_substs = self.specialize_generic_args(projection.args, map);
             let item_def_id = projection.def_id;
             return if utils::are_concrete(specialized_substs) {
-                let param_env = self
-                    .tcx
-                    .param_env(self.tcx.associated_item(item_def_id).container_id(self.tcx));
+                let typing_env = self.get_typing_env_for(self.tcx.associated_item(item_def_id).container_id(self.tcx));
                 if let Ok(Some(instance)) = rustc_middle::ty::Instance::try_resolve(
                     self.tcx,
-                    param_env,
+                    typing_env,
                     item_def_id,
                     specialized_substs,
                 ) {

@@ -3193,154 +3193,157 @@ pub mod core {
             assume_unreachable!()
         }
 
+        pub unsafe fn volatile_copy_nonoverlapping_memory<T>(
+            dst: *mut T,
+            src: *const T,
+            count: usize,
+        ) {
+            std::intrinsics::copy_nonoverlapping(src, dst, count);
+        }
+        pub unsafe fn volatile_copy_memory<T>(dst: *mut T, src: *const T, count: usize) {
+            std::intrinsics::copy_nonoverlapping(src, dst, count);
+        }
+        pub unsafe fn volatile_set_memory<T>(dst: *mut T, val: T, count: usize) {
+            // todo: add a intrinsic function for this to MIRAI
+            *dst = val;
+        }
+        pub unsafe fn volatile_load<T>(src: *const T) -> T
+        where
+            T: Copy,
+        {
+            *src
+        }
+        pub unsafe fn volatile_store<T>(dst: *mut T, val: T)
+        where
+            T: Copy,
+        {
+            *dst = val;
+        }
+        pub unsafe fn unaligned_volatile_load<T>(src: *const T) -> T
+        where
+            T: Copy,
+        {
+            *src
+        }
+        pub unsafe fn unaligned_volatile_store<T>(dst: *mut T, val: T)
+        where
+            T: Copy,
+        {
+            *dst = val
+        }
+
+        // Known names
+        // pub fn sqrtf16(x: f16) -> f16;
+        // pub fn sqrtf32(x: f32) -> f32;
+        // pub fn sqrtf64(x: f64) -> f64;
+        // pub fn sqrtf128(x: f128) -> f128;
+        // pub fn powif16(a: f16, x: i32) -> f16;
+        // pub fn powif32(a: f32, x: i32) -> f32;
+        // pub fn powif64(a: f64, x: i32) -> f64;
+        // pub fn powif128(a: f128, x: i32) -> f128;
+        // pub fn sinf16(x: f16) -> f16;
+        // pub fn sinf32(x: f32) -> f32;
+        // pub fn sinf64(x: f64) -> f64;
+        // pub fn sinf128(x: f128) -> f128;
+        // pub fn cosf16(x: f16) -> f16;
+        // pub fn cosf32(x: f32) -> f32;
+        // pub fn cosf64(x: f64) -> f64;
+        // pub fn cosf128(x: f128) -> f128;
+        // pub fn powf16(a: f16, x: f16) -> f16;
+        // pub fn powf32(a: f32, x: f32) -> f32;
+        // pub fn powf64(a: f64, x: f64) -> f64;
+        // pub fn powf128(a: f128, x: f128) -> f128;
+        // pub fn expf16(x: f16) -> f16;
+        // pub fn expf32(x: f32) -> f32;
+        // pub fn expf64(x: f64) -> f64;
+        // pub fn expf128(x: f128) -> f128;
+        // pub fn exp2f16(x: f16) -> f16;
+        // pub fn exp2f32(x: f32) -> f32;
+        // pub fn exp2f64(x: f64) -> f64;
+        // pub fn exp2f128(x: f128) -> f128;
+        // pub fn logf16(x: f16) -> f16;
+        // pub fn logf32(x: f32) -> f32;
+        // pub fn logf64(x: f64) -> f64;
+        // pub fn logf128(x: f128) -> f128;
+        // pub fn log10f16(x: f16) -> f16;
+        // pub fn log10f32(x: f32) -> f32;
+        // pub fn log10f64(x: f64) -> f64;
+        // pub fn log10f128(x: f128) -> f128;
+        // pub fn log2f16(x: f16) -> f16;
+        // pub fn log2f32(x: f32) -> f32;
+        // pub fn log2f64(x: f64) -> f64;
+        // pub fn log2f128(x: f128) -> f128;
+
+        pub fn fmaf16(a: f16, b: f16, c: f16) -> f16 {
+            a * b + c
+        }
+        pub fn fmaf32(a: f32, b: f32, c: f32) -> f32 {
+            a * b + c
+        }
+        pub fn fmaf64(a: f64, b: f64, c: f64) -> f64 {
+            a * b + c
+        }
+        pub fn fmaf128(a: f128, b: f128, c: f128) -> f128 {
+            a * b + c
+        }
+        pub fn fmuladdf16(a: f16, b: f16, c: f16) -> f16 {
+            a * b + c
+        }
+        pub fn fmuladdf32(a: f32, b: f32, c: f32) -> f32 {
+            a * b + c
+        }
+        pub fn fmuladdf64(a: f64, b: f64, c: f64) -> f64 {
+            a * b + c
+        }
+        pub fn fmuladdf128(a: f128, b: f128, c: f128) -> f128 {
+            a * b + c
+        }
+
+        // Known names
+        // pub fn floorf16(x: f16) -> f16;
+        // pub fn floorf32(x: f32) -> f32;
+        // pub fn floorf64(x: f64) -> f64;
+        // pub fn floorf128(x: f128) -> f128;
+        // pub fn ceilf16(x: f16) -> f16;
+        // pub fn ceilf32(x: f32) -> f32;
+        // pub fn ceilf64(x: f64) -> f64;
+        // pub fn ceilf128(x: f128) -> f128;
+        // pub fn truncf16(x: f16) -> f16;
+        // pub fn truncf32(x: f32) -> f32;
+        // pub fn truncf64(x: f64) -> f64;
+        // pub fn truncf128(x: f128) -> f128;
+        // pub fn rintf16(x: f16) -> f16;
+        // pub fn rintf32(x: f32) -> f32;
+        // pub fn rintf64(x: f64) -> f64;
+        // pub fn rintf128(x: f128) -> f128;
+        // pub fn nearbyintf16(x: f16) -> f16;
+        // pub fn nearbyintf32(x: f32) -> f32;
+        // pub fn nearbyintf64(x: f64) -> f64;
+        // pub fn nearbyintf128(x: f128) -> f128;
+        // pub fn roundf16(x: f16) -> f16;
+        // pub fn roundf32(x: f32) -> f32;
+        // pub fn roundf64(x: f64) -> f64;
+        // pub fn roundf128(x: f128) -> f128;
+        // pub fn roundevenf16(x: f16) -> f16;
+        // pub fn roundevenf32(x: f32) -> f32;
+        // pub fn roundevenf64(x: f64) -> f64;
+        // pub fn roundevenf128(x: f128) -> f128;
+        // pub fn fadd_fast<T: Copy>(a: T, b: T) -> T;
+        // pub fn fsub_fast<T: Copy>(a: T, b: T) -> T;
+        // pub fn fmul_fast<T: Copy>(a: T, b: T) -> T;
+        // pub fn fdiv_fast<T: Copy>(a: T, b: T) -> T;
+        // pub fn frem_fast<T: Copy>(a: T, b: T) -> T;
+
+        pub fn nontemporal_store<T>(ptr: *mut T, val: T) {
+            unsafe { *ptr = val; }
+        }
+
         pub mod foreign {
-            // extern "rust-intrinsic" { in core/intrinsics.mod.rs
-            pub unsafe fn volatile_copy_nonoverlapping_memory<T>(
-                dst: *mut T,
-                src: *const T,
-                count: usize,
-            ) {
-                std::intrinsics::copy_nonoverlapping(src, dst, count);
-            }
-            pub unsafe fn volatile_copy_memory<T>(dst: *mut T, src: *const T, count: usize) {
-                std::intrinsics::copy_nonoverlapping(src, dst, count);
-            }
-            pub unsafe fn volatile_set_memory<T>(dst: *mut T, val: T, count: usize) {
-                // todo: add a intrinsic function for this to MIRAI
-                *dst = val;
-            }
-            pub unsafe fn volatile_load<T>(src: *const T) -> T
-            where
-                T: Copy,
-            {
-                *src
-            }
-            pub unsafe fn volatile_store<T>(dst: *mut T, val: T)
-            where
-                T: Copy,
-            {
-                *dst = val;
-            }
-            pub unsafe fn unaligned_volatile_load<T>(src: *const T) -> T
-            where
-                T: Copy,
-            {
-                *src
-            }
-            pub unsafe fn unaligned_volatile_store<T>(dst: *mut T, val: T)
-            where
-                T: Copy,
-            {
-                *dst = val
-            }
-
-            // Known names
-            // pub fn sqrtf16(x: f16) -> f16;
-            // pub fn sqrtf32(x: f32) -> f32;
-            // pub fn sqrtf64(x: f64) -> f64;
-            // pub fn sqrtf128(x: f128) -> f128;
-            // pub fn powif16(a: f16, x: i32) -> f16;
-            // pub fn powif32(a: f32, x: i32) -> f32;
-            // pub fn powif64(a: f64, x: i32) -> f64;
-            // pub fn powif128(a: f128, x: i32) -> f128;
-            // pub fn sinf16(x: f16) -> f16;
-            // pub fn sinf32(x: f32) -> f32;
-            // pub fn sinf64(x: f64) -> f64;
-            // pub fn sinf128(x: f128) -> f128;
-            // pub fn cosf16(x: f16) -> f16;
-            // pub fn cosf32(x: f32) -> f32;
-            // pub fn cosf64(x: f64) -> f64;
-            // pub fn cosf128(x: f128) -> f128;
-            // pub fn powf16(a: f16, x: f16) -> f16;
-            // pub fn powf32(a: f32, x: f32) -> f32;
-            // pub fn powf64(a: f64, x: f64) -> f64;
-            // pub fn powf128(a: f128, x: f128) -> f128;
-            // pub fn expf16(x: f16) -> f16;
-            // pub fn expf32(x: f32) -> f32;
-            // pub fn expf64(x: f64) -> f64;
-            // pub fn expf128(x: f128) -> f128;
-            // pub fn exp2f16(x: f16) -> f16;
-            // pub fn exp2f32(x: f32) -> f32;
-            // pub fn exp2f64(x: f64) -> f64;
-            // pub fn exp2f128(x: f128) -> f128;
-            // pub fn logf16(x: f16) -> f16;
-            // pub fn logf32(x: f32) -> f32;
-            // pub fn logf64(x: f64) -> f64;
-            // pub fn logf128(x: f128) -> f128;
-            // pub fn log10f16(x: f16) -> f16;
-            // pub fn log10f32(x: f32) -> f32;
-            // pub fn log10f64(x: f64) -> f64;
-            // pub fn log10f128(x: f128) -> f128;
-            // pub fn log2f16(x: f16) -> f16;
-            // pub fn log2f32(x: f32) -> f32;
-            // pub fn log2f64(x: f64) -> f64;
-            // pub fn log2f128(x: f128) -> f128;
-
-            pub fn fmaf16(a: f16, b: f16, c: f16) -> f16 {
-                a * b + c
-            }
-            pub fn fmaf32(a: f32, b: f32, c: f32) -> f32 {
-                a * b + c
-            }
-            pub fn fmaf64(a: f64, b: f64, c: f64) -> f64 {
-                a * b + c
-            }
-            pub fn fmaf128(a: f128, b: f128, c: f128) -> f128 {
-                a * b + c
-            }
-            pub fn fmuladdf16(a: f16, b: f16, c: f16) -> f16 {
-                a * b + c
-            }
-            pub fn fmuladdf32(a: f32, b: f32, c: f32) -> f32 {
-                a * b + c
-            }
-            pub fn fmuladdf64(a: f64, b: f64, c: f64) -> f64 {
-                a * b + c
-            }
-            pub fn fmuladdf128(a: f128, b: f128, c: f128) -> f128 {
-                a * b + c
-            }
-            // pub fn floorf16(x: f16) -> f16;
-            // pub fn floorf32(x: f32) -> f32;
-            // pub fn floorf64(x: f64) -> f64;
-            // pub fn floorf128(x: f128) -> f128;
-            // pub fn ceilf16(x: f16) -> f16;
-            // pub fn ceilf32(x: f32) -> f32;
-            // pub fn ceilf64(x: f64) -> f64;
-            // pub fn ceilf128(x: f128) -> f128;
-            // pub fn truncf16(x: f16) -> f16;
-            // pub fn truncf32(x: f32) -> f32;
-            // pub fn truncf64(x: f64) -> f64;
-            // pub fn truncf128(x: f128) -> f128;
-            // pub fn rintf16(x: f16) -> f16;
-            // pub fn rintf32(x: f32) -> f32;
-            // pub fn rintf64(x: f64) -> f64;
-            // pub fn rintf128(x: f128) -> f128;
-            // pub fn nearbyintf16(x: f16) -> f16;
-            // pub fn nearbyintf32(x: f32) -> f32;
-            // pub fn nearbyintf64(x: f64) -> f64;
-            // pub fn nearbyintf128(x: f128) -> f128;
-            // pub fn roundf16(x: f16) -> f16;
-            // pub fn roundf32(x: f32) -> f32;
-            // pub fn roundf64(x: f64) -> f64;
-            // pub fn roundf128(x: f128) -> f128;
-            // pub fn roundevenf16(x: f16) -> f16;
-            // pub fn roundevenf32(x: f32) -> f32;
-            // pub fn roundevenf64(x: f64) -> f64;
-            // pub fn roundevenf128(x: f128) -> f128;
-
-            // pub fn fadd_fast<T: Copy>(a: T, b: T) -> T;
-            // pub fn fsub_fast<T: Copy>(a: T, b: T) -> T;
-            // pub fn fmul_fast<T: Copy>(a: T, b: T) -> T;
-            // pub fn fdiv_fast<T: Copy>(a: T, b: T) -> T;
-            // pub fn frem_fast<T: Copy>(a: T, b: T) -> T;
+            // Known name
             // pub fn float_to_int_unchecked<Float: Copy, Int: Copy>(value: Float) -> Int;
 
+            // todo:
             // pub fn catch_unwind(try_fn: fn(*mut u8), data: *mut u8, catch_fn: fn(*mut u8, *mut u8)) -> i32;
-
-            pub fn nontemporal_store<T>(ptr: *mut T, val: T) {
-                unsafe { *ptr = val; }
-            }
         }
 
         // Known names

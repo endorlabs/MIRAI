@@ -236,7 +236,7 @@ fn append_mangled_type<'tcx>(str: &mut String, ty: Ty<'tcx>, tcx: TyCtxt<'tcx>) 
             str.push_str("trait_");
             if let Some(principal) = trait_data.principal() {
                 let principal =
-                    tcx.normalize_erasing_late_bound_regions(ty::ParamEnv::reveal_all(), principal);
+                    tcx.normalize_erasing_late_bound_regions(ty::TypingEnv::fully_monomorphized(), principal);
                 str.push_str(qualified_type_name(tcx, principal.def_id).as_str());
                 for sub in principal.args {
                     if let GenericArgKind::Type(ty) = sub.unpack() {

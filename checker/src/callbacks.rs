@@ -16,7 +16,7 @@ use crate::utils;
 use log::info;
 use log_derive::*;
 use rustc_driver::Compilation;
-use rustc_interface::{interface, Queries};
+use rustc_interface::{interface};
 use rustc_middle::ty::TyCtxt;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -102,7 +102,7 @@ impl rustc_driver::Callbacks for MiraiCallbacks {
     fn after_analysis<'tcx>(
         &mut self,
         compiler: &interface::Compiler,
-        queries: &'tcx Queries<'tcx>,
+        tcx: TyCtxt<'tcx>,
     ) -> Compilation {
         compiler.sess.dcx().abort_if_errors();
         if self
@@ -114,10 +114,7 @@ impl rustc_driver::Callbacks for MiraiCallbacks {
             // No need to analyze a build script, but do generate code.
             return Compilation::Continue;
         }
-        queries
-            .global_ctxt()
-            .unwrap()
-            .enter(|tcx| self.analyze_with_mirai(compiler, tcx));
+        self.analyze_with_mirai(compiler, tcx);
         if self.test_run {
             // We avoid code gen for test cases because LLVM is not used in a thread safe manner.
             Compilation::Stop

@@ -204,7 +204,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
         }
         if let Some(gen_args) = self.callee_generic_arguments {
             // The parameter environment of the caller provides a resolution context for the callee.
-            let param_env = rustc_middle::ty::ParamEnv::reveal_all();
+            let typing_env = rustc_middle::ty::TypingEnv::fully_monomorphized();
             trace!(
                 "devirtualize resolving def_id {:?}: {:?}",
                 self.callee_def_id,
@@ -228,7 +228,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
             let resolved_instance = if abi == rustc_target::spec::abi::Abi::Rust {
                 Some(rustc_middle::ty::Instance::try_resolve(
                     tcx,
-                    param_env,
+                    typing_env,
                     self.callee_def_id,
                     gen_args,
                 ))
@@ -293,7 +293,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
             } else {
                 debug!(
                     "could not resolve function {:?}, {:?}, {:?}",
-                    self.callee_def_id, param_env, gen_args,
+                    self.callee_def_id, typing_env, gen_args,
                 )
             }
         }
@@ -2335,8 +2335,8 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
             .get(&sym)
             .expect("std::intrinsics::needs_drop must have generic argument T")
             .expect_ty();
-        let param_env = self.block_visitor.bv.tcx.param_env(self.callee_def_id);
-        let result = t.needs_drop(self.block_visitor.bv.tcx, param_env);
+        let typing_env = self.type_visitor().get_typing_env_for(self.callee_def_id);
+        let result = t.needs_drop(self.block_visitor.bv.tcx, typing_env);
         Rc::new(result.into())
     }
 
