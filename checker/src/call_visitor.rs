@@ -3,11 +3,11 @@
 // This source code is licensed under the MIT license found in the
 // LICENSE file in the root directory of this source tree.
 
-use core::f16;
+// use std::{f16, f64, f128};
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter, Result};
 use std::rc::Rc;
-use std::{f128, f64};
+use std::{f16, f64};
 
 use log_derive::*;
 
@@ -2132,11 +2132,11 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 let i = unsafe { f64::to_int_unchecked::<i64>(f) };
                 Rc::new(ConstantDomain::I128(i as i128).into())
             }
-            Expression::CompileTimeConstant(ConstantDomain::F128(v)) => {
-                let f = f128::from_bits(v);
-                let i = unsafe { f128::to_int_unchecked::<i128>(f) };
-                Rc::new(ConstantDomain::I128(i).into())
-            }
+            // Expression::CompileTimeConstant(ConstantDomain::F128(v)) => {
+            //     let f = f128::from_bits(v);
+            //     let i = unsafe { f128::to_int_unchecked::<i128>(f) };
+            //     Rc::new(ConstantDomain::I128(i).into())
+            // }
             _ => {
                 // todo: use a delayed operator that can get specialized away
                 let target_path = self.block_visitor.visit_rh_place(&self.destination);

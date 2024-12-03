@@ -4,18 +4,17 @@
 // LICENSE file in the root directory of this source tree.
 #![allow(clippy::float_cmp)]
 
+use log_derive::{logfn, logfn_inputs};
+use mirai_annotations::*;
+use rustc_hir::def_id::DefId;
+use rustc_middle::ty::{GenericArgsRef, Ty, TyCtxt};
+use serde::{Deserialize, Serialize};
+// use std::{f128, f16, f64};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter, Result};
 use std::rc::Rc;
-use std::{f128, f16, f64};
-
-use log_derive::{logfn, logfn_inputs};
-use serde::{Deserialize, Serialize};
-
-use mirai_annotations::*;
-use rustc_hir::def_id::DefId;
-use rustc_middle::ty::{GenericArgsRef, Ty, TyCtxt};
+use std::{f16, f64};
 
 use crate::expression::{Expression, ExpressionType};
 use crate::known_names::{KnownNames, KnownNamesCache};
@@ -37,8 +36,8 @@ pub enum ConstantDomain {
     Function(Rc<FunctionReference>),
     /// Signed 16 byte integer.
     I128(i128),
-    /// 128 bit floating point, stored as a u128 to make it comparable.
-    F128(u128),
+    // /// 128 bit floating point, stored as a u128 to make it comparable.
+    // F128(u128),
     /// 64 bit floating point, stored as a u64 to make it comparable.
     F64(u64),
     /// 32 bit floating point, stored as a u32 to make it comparable.
@@ -75,7 +74,7 @@ impl Debug for ConstantDomain {
                 }
             }
             ConstantDomain::I128(val) => val.fmt(f),
-            ConstantDomain::F128(val) => (f128::from_bits(*val)).fmt(f),
+            //ConstantDomain::F128(val) => (f128::from_bits(*val)).fmt(f),
             ConstantDomain::F64(val) => (f64::from_bits(*val)).fmt(f),
             ConstantDomain::F32(val) => (f32::from_bits(*val)).fmt(f),
             ConstantDomain::F16(val) => (f16::from_bits(*val)).fmt(f),
@@ -187,9 +186,9 @@ impl ConstantDomain {
             (ConstantDomain::F64(val1), ConstantDomain::F64(val2)) => {
                 ConstantDomain::F64((f64::from_bits(*val1) + f64::from_bits(*val2)).to_bits())
             }
-            (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
-                ConstantDomain::F128((f128::from_bits(*val1) + f128::from_bits(*val2)).to_bits())
-            }
+            // (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
+            //     ConstantDomain::F128((f128::from_bits(*val1) + f128::from_bits(*val2)).to_bits())
+            // }
             (ConstantDomain::I128(val1), ConstantDomain::I128(val2)) => {
                 ConstantDomain::I128(val1.wrapping_add(*val2))
             }
@@ -388,8 +387,8 @@ impl ConstantDomain {
                     ConstantDomain::F32((f as f32).to_bits())
                 } else if target_type == ExpressionType::F64 {
                     ConstantDomain::F64((f as f64).to_bits())
-                } else if target_type == ExpressionType::F128 {
-                    ConstantDomain::F128((f as f128).to_bits())
+                    // } else if target_type == ExpressionType::F128 {
+                    //     ConstantDomain::F128((f as f128).to_bits())
                 } else if target_type.is_signed_integer() {
                     ConstantDomain::I128(f as i128).cast(target_type)
                 } else if target_type.is_unsigned_integer() {
@@ -406,8 +405,8 @@ impl ConstantDomain {
                     ConstantDomain::F16((f as f16).to_bits())
                 } else if target_type == ExpressionType::F64 {
                     ConstantDomain::F64((f as f64).to_bits())
-                } else if target_type == ExpressionType::F128 {
-                    ConstantDomain::F128((f as f128).to_bits())
+                    // } else if target_type == ExpressionType::F128 {
+                    //     ConstantDomain::F128((f as f128).to_bits())
                 } else if target_type.is_signed_integer() {
                     ConstantDomain::I128(f as i128).cast(target_type)
                 } else if target_type.is_unsigned_integer() {
@@ -424,8 +423,8 @@ impl ConstantDomain {
                     ConstantDomain::F16((f as f16).to_bits())
                 } else if target_type == ExpressionType::F32 {
                     ConstantDomain::F32((f as f32).to_bits())
-                } else if target_type == ExpressionType::F128 {
-                    ConstantDomain::F128((f as f128).to_bits())
+                    // } else if target_type == ExpressionType::F128 {
+                    //     ConstantDomain::F128((f as f128).to_bits())
                 } else if target_type.is_signed_integer() {
                     ConstantDomain::I128(f as i128).cast(target_type)
                 } else if target_type.is_unsigned_integer() {
@@ -468,10 +467,10 @@ impl ConstantDomain {
                 let result = f64::from_bits(*val1) / f64::from_bits(*val2);
                 ConstantDomain::F64(result.to_bits())
             }
-            (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
-                let result = f128::from_bits(*val1) / f128::from_bits(*val2);
-                ConstantDomain::F128(result.to_bits())
-            }
+            // (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
+            //     let result = f128::from_bits(*val1) / f128::from_bits(*val2);
+            //     ConstantDomain::F128(result.to_bits())
+            // }
             (ConstantDomain::I128(val1), ConstantDomain::I128(val2)) => {
                 if *val2 == 0 {
                     ConstantDomain::Bottom
@@ -506,9 +505,9 @@ impl ConstantDomain {
             (ConstantDomain::F64(val1), ConstantDomain::F64(val2)) => {
                 f64::from_bits(*val1) == f64::from_bits(*val2)
             }
-            (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
-                f128::from_bits(*val1) == f128::from_bits(*val2)
-            }
+            // (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
+            //     f128::from_bits(*val1) == f128::from_bits(*val2)
+            // }
             (ConstantDomain::I128(val1), ConstantDomain::U128(val2)) => {
                 *val1 >= 0 && (*val1 as u128) == *val2
             }
@@ -534,9 +533,9 @@ impl ConstantDomain {
             (ConstantDomain::F64(val1), ConstantDomain::F64(val2)) => {
                 f64::from_bits(*val1) >= f64::from_bits(*val2)
             }
-            (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
-                f128::from_bits(*val1) >= f128::from_bits(*val2)
-            }
+            // (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
+            //     f128::from_bits(*val1) >= f128::from_bits(*val2)
+            // }
             _ => *self >= *other,
         }
         .into()
@@ -556,9 +555,9 @@ impl ConstantDomain {
             (ConstantDomain::F64(val1), ConstantDomain::F64(val2)) => {
                 f64::from_bits(*val1) > f64::from_bits(*val2)
             }
-            (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
-                f128::from_bits(*val1) > f128::from_bits(*val2)
-            }
+            // (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
+            //     f128::from_bits(*val1) > f128::from_bits(*val2)
+            // }
             _ => *self > *other,
         }
         .into()
@@ -641,30 +640,30 @@ impl ConstantDomain {
                     .to_bits(),
                 )
             }
-            (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
-                let left = f128::from_bits(*val1);
-                let right = f128::from_bits(*val2);
-                ConstantDomain::F128(
-                    match name {
-                        KnownNames::StdIntrinsicsCopysignf128 => left.copysign(right),
-                        KnownNames::StdIntrinsicsMaxnumf128 => left.max(right),
-                        KnownNames::StdIntrinsicsMinnumf128 => left.min(right),
-                        KnownNames::StdIntrinsicsPowf128 => left.powf(right),
-                        KnownNames::StdIntrinsicsFaddAlgebraic => left + right,
-                        KnownNames::StdIntrinsicsFaddFast => left + right,
-                        KnownNames::StdIntrinsicsFdivAlgebraic => left / right,
-                        KnownNames::StdIntrinsicsFdivFast => left / right,
-                        KnownNames::StdIntrinsicsFmulAlgebraic => left * right,
-                        KnownNames::StdIntrinsicsFmulFast => left * right,
-                        KnownNames::StdIntrinsicsFremAlgebraic => left % right,
-                        KnownNames::StdIntrinsicsFremFast => left % right,
-                        KnownNames::StdIntrinsicsFsubAlgebraic => left - right,
-                        KnownNames::StdIntrinsicsFsubFast => left - right,
-                        _ => assume_unreachable!("invalid arguments for intrinsic {:?}", name),
-                    }
-                    .to_bits(),
-                )
-            }
+            // (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
+            //     let left = f128::from_bits(*val1);
+            //     let right = f128::from_bits(*val2);
+            //     ConstantDomain::F128(
+            //         match name {
+            //             KnownNames::StdIntrinsicsCopysignf128 => left.copysign(right),
+            //             KnownNames::StdIntrinsicsMaxnumf128 => left.max(right),
+            //             KnownNames::StdIntrinsicsMinnumf128 => left.min(right),
+            //             KnownNames::StdIntrinsicsPowf128 => left.powf(right),
+            //             KnownNames::StdIntrinsicsFaddAlgebraic => left + right,
+            //             KnownNames::StdIntrinsicsFaddFast => left + right,
+            //             KnownNames::StdIntrinsicsFdivAlgebraic => left / right,
+            //             KnownNames::StdIntrinsicsFdivFast => left / right,
+            //             KnownNames::StdIntrinsicsFmulAlgebraic => left * right,
+            //             KnownNames::StdIntrinsicsFmulFast => left * right,
+            //             KnownNames::StdIntrinsicsFremAlgebraic => left % right,
+            //             KnownNames::StdIntrinsicsFremFast => left % right,
+            //             KnownNames::StdIntrinsicsFsubAlgebraic => left - right,
+            //             KnownNames::StdIntrinsicsFsubFast => left - right,
+            //             _ => assume_unreachable!("invalid arguments for intrinsic {:?}", name),
+            //         }
+            //         .to_bits(),
+            //     )
+            // }
             (ConstantDomain::F16(val1), ConstantDomain::I128(val2)) => {
                 let left = f16::from_bits(*val1);
                 ConstantDomain::F16(
@@ -698,17 +697,17 @@ impl ConstantDomain {
                     .to_bits(),
                 )
             }
-            (ConstantDomain::F128(val1), ConstantDomain::I128(val2)) => {
-                let left = f128::from_bits(*val1);
-                ConstantDomain::F128(
-                    if name == KnownNames::StdIntrinsicsPowif128 {
-                        left.powi(*val2 as i32)
-                    } else {
-                        assume_unreachable!("invalid arguments for intrinsic {:?}", name)
-                    }
-                    .to_bits(),
-                )
-            }
+            // (ConstantDomain::F128(val1), ConstantDomain::I128(val2)) => {
+            //     let left = f128::from_bits(*val1);
+            //     ConstantDomain::F128(
+            //         if name == KnownNames::StdIntrinsicsPowif128 {
+            //             left.powi(*val2 as i32)
+            //         } else {
+            //             assume_unreachable!("invalid arguments for intrinsic {:?}", name)
+            //         }
+            //         .to_bits(),
+            //     )
+            // }
             _ => assume_unreachable!("invalid arguments for intrinsic {:?}", name),
         }
     }
@@ -925,35 +924,35 @@ impl ConstantDomain {
                     .to_bits(),
                 )
             }
-            ConstantDomain::F128(val) => {
-                let val = f128::from_bits(*val);
-                ConstantDomain::F128(
-                    match name {
-                        KnownNames::StdIntrinsicsCeilf128 => val.ceil(),
-                        KnownNames::StdIntrinsicsCosf128 => val.cos(),
-                        KnownNames::StdIntrinsicsFloorf128 => val.floor(),
-                        KnownNames::StdIntrinsicsExp2f128 => val.exp2(),
-                        KnownNames::StdIntrinsicsExpf128 => val.exp(),
-                        KnownNames::StdIntrinsicsFabsf128 => val.abs(),
-                        KnownNames::StdIntrinsicsLog10f128 => val.log10(),
-                        KnownNames::StdIntrinsicsLog2f128 => val.log2(),
-                        KnownNames::StdIntrinsicsLogf128 => val.ln(),
-                        KnownNames::StdIntrinsicsNearbyintf128 => unsafe {
-                            std::intrinsics::nearbyintf128(val)
-                        },
-                        KnownNames::StdIntrinsicsRintf128 => unsafe {
-                            std::intrinsics::rintf128(val)
-                        },
-                        KnownNames::StdIntrinsicsRoundf128 => val.round(),
-                        KnownNames::StdIntrinsicsRevenf128 => f128::round_ties_even(val),
-                        KnownNames::StdIntrinsicsSinf128 => val.sin(),
-                        KnownNames::StdIntrinsicsSqrtf128 => val.sqrt(),
-                        KnownNames::StdIntrinsicsTruncf128 => val.trunc(),
-                        _ => assume_unreachable!("invalid argument for intrinsic {:?}", name),
-                    }
-                    .to_bits(),
-                )
-            }
+            // ConstantDomain::F128(val) => {
+            //     let val = f128::from_bits(*val);
+            //     ConstantDomain::F128(
+            //         match name {
+            //             KnownNames::StdIntrinsicsCeilf128 => val.ceil(),
+            //             KnownNames::StdIntrinsicsCosf128 => val.cos(),
+            //             KnownNames::StdIntrinsicsFloorf128 => val.floor(),
+            //             KnownNames::StdIntrinsicsExp2f128 => val.exp2(),
+            //             KnownNames::StdIntrinsicsExpf128 => val.exp(),
+            //             KnownNames::StdIntrinsicsFabsf128 => val.abs(),
+            //             KnownNames::StdIntrinsicsLog10f128 => val.log10(),
+            //             KnownNames::StdIntrinsicsLog2f128 => val.log2(),
+            //             KnownNames::StdIntrinsicsLogf128 => val.ln(),
+            //             KnownNames::StdIntrinsicsNearbyintf128 => unsafe {
+            //                 std::intrinsics::nearbyintf128(val)
+            //             },
+            //             KnownNames::StdIntrinsicsRintf128 => unsafe {
+            //                 std::intrinsics::rintf128(val)
+            //             },
+            //             KnownNames::StdIntrinsicsRoundf128 => val.round(),
+            //             KnownNames::StdIntrinsicsRevenf128 => f128::round_ties_even(val),
+            //             KnownNames::StdIntrinsicsSinf128 => val.sin(),
+            //             KnownNames::StdIntrinsicsSqrtf128 => val.sqrt(),
+            //             KnownNames::StdIntrinsicsTruncf128 => val.trunc(),
+            //             _ => assume_unreachable!("invalid argument for intrinsic {:?}", name),
+            //         }
+            //         .to_bits(),
+            //     )
+            // }
             _ => assume_unreachable!("invalid argument for intrinsic {:?}", name),
         }
     }
@@ -969,7 +968,7 @@ impl ConstantDomain {
             ConstantDomain::False => tcx.types.bool,
             ConstantDomain::Function(..) => tcx.types.never,
             ConstantDomain::I128(..) => tcx.types.i128,
-            ConstantDomain::F128(..) => tcx.types.f128,
+            // ConstantDomain::F128(..) => tcx.types.f128,
             ConstantDomain::F64(..) => tcx.types.f64,
             ConstantDomain::F32(..) => tcx.types.f32,
             ConstantDomain::F16(..) => tcx.types.f16,
@@ -1009,7 +1008,7 @@ impl ConstantDomain {
             ConstantDomain::F16(val) => *val == 0,
             ConstantDomain::F32(val) => *val == 0,
             ConstantDomain::F64(val) => *val == 0,
-            ConstantDomain::F128(val) => *val == 0,
+            // ConstantDomain::F128(val) => *val == 0,
             ConstantDomain::I128(val) => *val == 0,
             ConstantDomain::U128(val) => *val == 0,
             _ => false,
@@ -1030,9 +1029,9 @@ impl ConstantDomain {
             (ConstantDomain::F64(val1), ConstantDomain::F64(val2)) => {
                 f64::from_bits(*val1) <= f64::from_bits(*val2)
             }
-            (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
-                f128::from_bits(*val1) <= f128::from_bits(*val2)
-            }
+            // (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
+            //     f128::from_bits(*val1) <= f128::from_bits(*val2)
+            // }
             _ => *self <= *other,
         }
         .into()
@@ -1052,9 +1051,9 @@ impl ConstantDomain {
             (ConstantDomain::F64(val1), ConstantDomain::F64(val2)) => {
                 f64::from_bits(*val1) < f64::from_bits(*val2)
             }
-            (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
-                f128::from_bits(*val1) < f128::from_bits(*val2)
-            }
+            // (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
+            //     f128::from_bits(*val1) < f128::from_bits(*val2)
+            // }
             _ => *self < *other,
         }
         .into()
@@ -1077,10 +1076,10 @@ impl ConstantDomain {
                 let result = f64::from_bits(*val1) * f64::from_bits(*val2);
                 ConstantDomain::F64(result.to_bits())
             }
-            (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
-                let result = f128::from_bits(*val1) * f128::from_bits(*val2);
-                ConstantDomain::F128(result.to_bits())
-            }
+            // (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
+            //     let result = f128::from_bits(*val1) * f128::from_bits(*val2);
+            //     ConstantDomain::F128(result.to_bits())
+            // }
             (ConstantDomain::I128(val1), ConstantDomain::I128(val2)) => {
                 ConstantDomain::I128(val1.wrapping_mul(*val2))
             }
@@ -1161,9 +1160,9 @@ impl ConstantDomain {
             (ConstantDomain::F64(val1), ConstantDomain::F64(val2)) => {
                 f64::from_bits(*val1) != f64::from_bits(*val2)
             }
-            (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
-                f128::from_bits(*val1) != f128::from_bits(*val2)
-            }
+            // (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
+            //     f128::from_bits(*val1) != f128::from_bits(*val2)
+            // }
             (ConstantDomain::I128(val1), ConstantDomain::U128(val2)) => {
                 *val1 < 0 || ((*val1 as u128) != *val2)
             }
@@ -1216,10 +1215,10 @@ impl ConstantDomain {
                 let result = f64::from_bits(*val1) % f64::from_bits(*val2);
                 ConstantDomain::F64(result.to_bits())
             }
-            (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
-                let result = f128::from_bits(*val1) % f128::from_bits(*val2);
-                ConstantDomain::F128(result.to_bits())
-            }
+            // (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
+            //     let result = f128::from_bits(*val1) % f128::from_bits(*val2);
+            //     ConstantDomain::F128(result.to_bits())
+            // }
             (ConstantDomain::I128(val1), ConstantDomain::I128(val2)) => {
                 if *val2 == 0 {
                     ConstantDomain::Bottom
@@ -1363,10 +1362,10 @@ impl ConstantDomain {
                 let result = f64::from_bits(*val1) - f64::from_bits(*val2);
                 ConstantDomain::F64(result.to_bits())
             }
-            (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
-                let result = f128::from_bits(*val1) - f128::from_bits(*val2);
-                ConstantDomain::F128(result.to_bits())
-            }
+            // (ConstantDomain::F128(val1), ConstantDomain::F128(val2)) => {
+            //     let result = f128::from_bits(*val1) - f128::from_bits(*val2);
+            //     ConstantDomain::F128(result.to_bits())
+            // }
             (ConstantDomain::I128(val1), ConstantDomain::I128(val2)) => {
                 ConstantDomain::I128(val1.wrapping_sub(*val2))
             }
@@ -1416,7 +1415,7 @@ impl ConstantDomain {
             match self {
                 ConstantDomain::Char(val) => ConstantDomain::U128(*val as u128),
                 ConstantDomain::False => ConstantDomain::U128(0),
-                ConstantDomain::F128(val) => ConstantDomain::U128(*val),
+                // ConstantDomain::F128(val) => ConstantDomain::U128(*val),
                 ConstantDomain::F64(val) => ConstantDomain::U128(*val as u128),
                 ConstantDomain::F32(val) => ConstantDomain::U128(*val as u128),
                 ConstantDomain::F16(val) => ConstantDomain::U128(*val as u128),
@@ -1472,7 +1471,7 @@ impl ConstantDomain {
         match self {
             ConstantDomain::Char(val) => ConstantDomain::U128((*val as u128) << num_bits),
             ConstantDomain::False => ConstantDomain::U128(0),
-            ConstantDomain::F128(val) => ConstantDomain::U128(*val << num_bits),
+            // ConstantDomain::F128(val) => ConstantDomain::U128(*val << num_bits),
             ConstantDomain::F64(val) => ConstantDomain::U128((*val as u128) << num_bits),
             ConstantDomain::F32(val) => ConstantDomain::U128((*val as u128) << num_bits),
             ConstantDomain::F16(val) => ConstantDomain::U128((*val as u128) << num_bits),

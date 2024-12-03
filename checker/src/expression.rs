@@ -3,15 +3,13 @@
 // This source code is licensed under the MIT license found in the
 // LICENSE file in the root directory of this source tree.
 
+use log_derive::*;
+use mirai_annotations::*;
+use rustc_middle::ty::{FloatTy, IntTy, Ty, TyCtxt, TyKind, UintTy};
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fmt::{Debug, Formatter, Result};
 use std::rc::Rc;
-
-use log_derive::*;
-use serde::{Deserialize, Serialize};
-
-use mirai_annotations::*;
-use rustc_middle::ty::{FloatTy, IntTy, Ty, TyCtxt, TyKind, UintTy};
 
 use crate::abstract_value::{AbstractValue, AbstractValueTrait};
 use crate::constant_domain::ConstantDomain;
@@ -1049,11 +1047,11 @@ impl Expression {
                 | KnownNames::StdIntrinsicsMinnumf64
                 | KnownNames::StdIntrinsicsPowf64
                 | KnownNames::StdIntrinsicsPowif64 => ExpressionType::F64,
-                KnownNames::StdIntrinsicsCopysignf128
-                | KnownNames::StdIntrinsicsMaxnumf128
-                | KnownNames::StdIntrinsicsMinnumf128
-                | KnownNames::StdIntrinsicsPowf128
-                | KnownNames::StdIntrinsicsPowif128 => ExpressionType::F128,
+                // KnownNames::StdIntrinsicsCopysignf128
+                // | KnownNames::StdIntrinsicsMaxnumf128
+                // | KnownNames::StdIntrinsicsMinnumf128
+                // | KnownNames::StdIntrinsicsPowf128
+                // | KnownNames::StdIntrinsicsPowif128 => ExpressionType::F128,
                 KnownNames::StdIntrinsicsFaddAlgebraic
                 | KnownNames::StdIntrinsicsFaddFast
                 | KnownNames::StdIntrinsicsFdivAlgebraic
@@ -1140,23 +1138,22 @@ impl Expression {
                 | KnownNames::StdIntrinsicsSinf64
                 | KnownNames::StdIntrinsicsSqrtf64
                 | KnownNames::StdIntrinsicsTruncf64 => ExpressionType::F64,
-                KnownNames::StdIntrinsicsCeilf128
-                | KnownNames::StdIntrinsicsCosf128
-                | KnownNames::StdIntrinsicsFloorf128
-                | KnownNames::StdIntrinsicsExp2f128
-                | KnownNames::StdIntrinsicsExpf128
-                | KnownNames::StdIntrinsicsFabsf128
-                | KnownNames::StdIntrinsicsLog10f128
-                | KnownNames::StdIntrinsicsLog2f128
-                | KnownNames::StdIntrinsicsLogf128
-                | KnownNames::StdIntrinsicsNearbyintf128
-                | KnownNames::StdIntrinsicsRintf128
-                | KnownNames::StdIntrinsicsRoundf128
-                | KnownNames::StdIntrinsicsRevenf128
-                | KnownNames::StdIntrinsicsSinf128
-                | KnownNames::StdIntrinsicsSqrtf128
-                | KnownNames::StdIntrinsicsTruncf128 => ExpressionType::F128,
-
+                // KnownNames::StdIntrinsicsCeilf128
+                // | KnownNames::StdIntrinsicsCosf128
+                // | KnownNames::StdIntrinsicsFloorf128
+                // | KnownNames::StdIntrinsicsExp2f128
+                // | KnownNames::StdIntrinsicsExpf128
+                // | KnownNames::StdIntrinsicsFabsf128
+                // | KnownNames::StdIntrinsicsLog10f128
+                // | KnownNames::StdIntrinsicsLog2f128
+                // | KnownNames::StdIntrinsicsLogf128
+                // | KnownNames::StdIntrinsicsNearbyintf128
+                // | KnownNames::StdIntrinsicsRintf128
+                // | KnownNames::StdIntrinsicsRoundf128
+                // | KnownNames::StdIntrinsicsRevenf128
+                // | KnownNames::StdIntrinsicsSinf128
+                // | KnownNames::StdIntrinsicsSqrtf128
+                // | KnownNames::StdIntrinsicsTruncf128 => ExpressionType::F128,
                 _ => assume_unreachable!("invalid name {:?} for intrinsic unary", name),
             },
             Expression::BitXor { left, .. } => left.expression.infer_type(),
@@ -1421,7 +1418,7 @@ pub enum ExpressionType {
     F16,
     F32,
     F64,
-    F128,
+    //F128,
     I8,
     I16,
     I32,
@@ -1449,7 +1446,7 @@ impl From<&ConstantDomain> for ExpressionType {
             ConstantDomain::False => Bool,
             ConstantDomain::Function(..) => NonPrimitive,
             ConstantDomain::I128(..) => I128,
-            ConstantDomain::F128(..) => F128,
+            // ConstantDomain::F128(..) => F128,
             ConstantDomain::F64(..) => F64,
             ConstantDomain::F32(..) => F32,
             ConstantDomain::F16(..) => F16,
@@ -1509,7 +1506,7 @@ impl ExpressionType {
             F16 => tcx.types.f16,
             F32 => tcx.types.f32,
             F64 => tcx.types.f64,
-            F128 => tcx.types.f128,
+            // F128 => tcx.types.f128,
             I8 => tcx.types.i8,
             I16 => tcx.types.i16,
             I32 => tcx.types.i32,
@@ -1594,7 +1591,7 @@ impl ExpressionType {
             F16 => 16,
             F32 => 32,
             F64 => 64,
-            F128 => 128,
+            // F128 => 128,
             I8 => 8,
             I16 => 16,
             I32 => 32,

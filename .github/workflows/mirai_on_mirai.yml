@@ -53,4 +53,5 @@ jobs:
           cargo install --force --path ./checker --no-default-features --features=vcpkg
       - name: Run MIRAI on MIRAI
         run: |
-          cargo mirai --no-default-features
+          cargo mirai --no-default-features --features=vcpkg
+        if: matrix.os != 'windows-latest'

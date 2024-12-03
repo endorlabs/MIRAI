@@ -18,7 +18,7 @@
 #![feature(box_patterns)]
 #![feature(core_intrinsics)]
 #![feature(f16)]
-#![feature(f128)]
+//#![feature(f128)]
 #![allow(clippy::mutable_key_type)]
 #![allow(unexpected_cfgs)]
 
