@@ -50,7 +50,7 @@ shellwords = "*"
 sled = "*"
 tar = "*"
 tempfile = "*"
-z3-sys = { version = "*", git = "https://github.com/prove-rs/z3.rs.git", optional = true }
+z3-sys = { version = "*", git = "https://github.com/prove-rs/z3.rs.git", rev = "cb10013a2a0a017048b1d218bc734afa390f34ff", optional = true }
 
 [dev-dependencies]
 walkdir = "*"

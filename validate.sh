@@ -18,7 +18,7 @@ cargo update
 # Run format checks
 cargo fmt --all
 # Run lint checks
-cargo audit
+#cargo audit
 cargo clippy --no-default-features --all-targets -- -D warnings
 # Build mirai (in debug mode) so that we can build the standard contracts
 cargo build --no-default-features

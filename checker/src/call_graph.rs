@@ -1415,7 +1415,7 @@ impl CallSiteOutput {
                 let mut file_name = None;
                 if let rustc_span::FileName::Real(real_fname) = fname {
                     if let Some(p) = real_fname.remapped_path_if_available().to_str() {
-                        file_name = Some(p.into());
+                        file_name = p.split("/lib/rustlib/src").last().map(|s| s.to_string());
                     }
                 }
                 files.push(file_name.unwrap_or_else(|| "unknown".into()));

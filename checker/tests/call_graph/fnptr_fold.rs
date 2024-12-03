@@ -68,8 +68,8 @@ commit;
 /* EXPECTED:CALL_SITES{
   "files": [
     "tests/call_graph/fnptr_fold.rs",
-    "/Users/hermanventer/.rustup/toolchains/nightly-2024-12-02-aarch64-apple-darwin/lib/rustlib/src/rust/library/std/src/io/stdio.rs",
-    "/Users/hermanventer/.rustup/toolchains/nightly-2024-12-02-aarch64-apple-darwin/lib/rustlib/src/rust/library/core/src/fmt/mod.rs"
+    "/rust/library/std/src/io/stdio.rs",
+    "/rust/library/core/src/fmt/mod.rs"
   ],
   "callables": [
     {
