@@ -916,10 +916,10 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                 }
             }
             self.reset_visitor_state();
+            *self.type_visitor_mut() = saved_type_visitor.clone();
         }
         self.def_id = saved_def_id;
         self.mir = saved_mir;
-        *self.type_visitor_mut() = saved_type_visitor;
         environment
     }
 
