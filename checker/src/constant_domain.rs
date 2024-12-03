@@ -6,9 +6,9 @@
 
 use std::cmp::Ordering;
 use std::collections::HashMap;
-use std::{f128, f16, f64};
 use std::fmt::{Debug, Formatter, Result};
 use std::rc::Rc;
+use std::{f128, f16, f64};
 
 use log_derive::{logfn, logfn_inputs};
 use serde::{Deserialize, Serialize};
@@ -116,17 +116,7 @@ pub struct FunctionReference {
 
 impl PartialOrd for FunctionReference {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let mut result = self.generic_arguments.partial_cmp(&other.generic_arguments);
-        if matches!(result, Some(Ordering::Equal)) {
-            result = self.known_name.partial_cmp(&other.known_name);
-            if matches!(result, Some(Ordering::Equal)) {
-                result = self.summary_cache_key.partial_cmp(&other.summary_cache_key);
-                if matches!(result, Some(Ordering::Equal)) {
-                    result = self.argument_type_key.partial_cmp(&other.argument_type_key);
-                }
-            }
-        }
-        result
+        Some(self.cmp(other))
     }
 }
 
@@ -395,7 +385,7 @@ impl ConstantDomain {
             ConstantDomain::F16(val) => {
                 let f = f16::from_bits(*val);
                 if target_type == ExpressionType::F32 {
-                    ConstantDomain::F16((f as f16).to_bits())
+                    ConstantDomain::F32((f as f32).to_bits())
                 } else if target_type == ExpressionType::F64 {
                     ConstantDomain::F64((f as f64).to_bits())
                 } else if target_type == ExpressionType::F128 {
@@ -741,9 +731,7 @@ impl ConstantDomain {
                 64 => ConstantDomain::I128(
                     Self::call_intrinsic_bit_vector_unary(*val as i64, name) as i128,
                 ),
-                128 => {
-                    ConstantDomain::I128(Self::call_intrinsic_bit_vector_unary(*val, name) as i128)
-                }
+                128 => ConstantDomain::I128(Self::call_intrinsic_bit_vector_unary(*val, name)),
                 _ => assume_unreachable!("invalid bit length for intrinsic {:?}", name),
             },
             ConstantDomain::U128(val) => match bit_length {
@@ -770,10 +758,7 @@ impl ConstantDomain {
     }
 
     /// Dispatches val to the named intrinsic function
-    fn call_intrinsic_bit_vector_unary<T: ?Sized>(val: T, name: KnownNames) -> T
-    where
-        T: Copy,
-    {
+    fn call_intrinsic_bit_vector_unary<T: Copy>(val: T, name: KnownNames) -> T {
         match name {
             KnownNames::StdIntrinsicsBitreverse => std::intrinsics::bitreverse(val),
             KnownNames::StdIntrinsicsBswap => std::intrinsics::bswap(val),
@@ -835,10 +820,7 @@ impl ConstantDomain {
         }
     }
 
-    fn call_intrinsic_bit_counting_unary<T: ?Sized>(val: T, name: KnownNames) -> u32
-    where
-        T: Copy,
-    {
+    fn call_intrinsic_bit_counting_unary<T: Copy>(val: T, name: KnownNames) -> u32 {
         unsafe {
             match name {
                 KnownNames::StdIntrinsicsCtlz => std::intrinsics::ctlz(val),
@@ -1530,7 +1512,7 @@ pub struct ConstantValueCache<'tcx> {
     heap_address_counter: usize,
 }
 
-impl<'tcx> Debug for ConstantValueCache<'tcx> {
+impl Debug for ConstantValueCache<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         "ConstantValueCache".fmt(f)
     }
@@ -1646,7 +1628,7 @@ impl<'tcx> ConstantValueCache<'tcx> {
     }
 }
 
-impl<'tcx> Default for ConstantValueCache<'tcx> {
+impl Default for ConstantValueCache<'_> {
     #[logfn_inputs(TRACE)]
     fn default() -> Self {
         Self::new()

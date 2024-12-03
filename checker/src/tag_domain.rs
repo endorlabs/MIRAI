@@ -3,13 +3,14 @@
 // This source code is licensed under the MIT license found in the
 // LICENSE file in the root directory of this source tree.
 
-use crate::bool_domain::BoolDomain;
-
 use log_derive::*;
-use mirai_annotations::*;
 use rpds::{rbt_map, RedBlackTreeMap};
-use rustc_hir::def_id::{CrateNum, DefId, DefIndex};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+
+use mirai_annotations::*;
+use rustc_hir::def_id::{CrateNum, DefId, DefIndex};
+
+use crate::bool_domain::BoolDomain;
 
 /// A replication of the `DefId` type from rustc. The type is used to implement serialization.
 #[derive(Ord, PartialOrd, Eq, PartialEq, Copy, Clone, Hash)]
@@ -33,7 +34,7 @@ impl std::fmt::Debug for SerializableDefId {
             "{:?}",
             DefId {
                 krate: self.krate,
-                index: self.index
+                index: self.index,
             }
         ))
     }
@@ -57,7 +58,7 @@ impl<'de> Deserialize<'de> for SerializableDefId {
     {
         struct U64Visitor;
 
-        impl<'de> de::Visitor<'de> for U64Visitor {
+        impl de::Visitor<'_> for U64Visitor {
             type Value = u64;
 
             fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

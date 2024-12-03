@@ -79,7 +79,7 @@ pub struct BodyVisitor<'analysis, 'compilation, 'tcx> {
     type_visitor: TypeVisitor<'tcx>,
 }
 
-impl<'analysis, 'compilation, 'tcx> Debug for BodyVisitor<'analysis, 'compilation, 'tcx> {
+impl Debug for BodyVisitor<'_, '_, '_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         "BodyVisitor".fmt(f)
     }
@@ -757,7 +757,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
             let qualifier = closure_path.clone();
             let closure_path = Path::new_field(Path::new_field(qualifier, 0), i);
             // skip(1) above ensures this
-            assume!(i < usize::max_value());
+            assume!(i < usize::MAX);
             let specialized_type = self.type_visitor().specialize_generic_argument_type(
                 loc.ty,
                 &self.type_visitor().generic_argument_map,
@@ -2072,15 +2072,15 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                     val = val.unsigned_modulo(target_bits_to_write);
                 }
                 if let Expression::Reference(p) = &val.expression {
-                    if target_expression_type == ExpressionType::Usize {
-                        if matches!(p.value, PathEnum::HeapBlock { .. }) {
-                            let layout_path = Path::new_layout(p.clone());
-                            if let Some(layout) = self.current_environment.value_at(&layout_path) {
-                                if let Expression::HeapBlockLayout { alignment, .. } =
-                                    &layout.expression
-                                {
-                                    val = alignment.clone();
-                                }
+                    if target_expression_type == ExpressionType::Usize
+                        && matches!(p.value, PathEnum::HeapBlock { .. })
+                    {
+                        let layout_path = Path::new_layout(p.clone());
+                        if let Some(layout) = self.current_environment.value_at(&layout_path) {
+                            if let Expression::HeapBlockLayout { alignment, .. } =
+                                &layout.expression
+                            {
+                                val = alignment.clone();
                             }
                         }
                     }

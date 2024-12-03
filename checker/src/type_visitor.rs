@@ -35,7 +35,7 @@ pub struct TypeCache<'tcx> {
     type_to_index_map: HashMap<Ty<'tcx>, usize>,
 }
 
-impl<'tcx> Default for type_visitor::TypeCache<'tcx> {
+impl Default for type_visitor::TypeCache<'_> {
     fn default() -> Self {
         Self::new()
     }
@@ -87,7 +87,7 @@ pub struct TypeVisitor<'tcx> {
     type_cache: Rc<RefCell<TypeCache<'tcx>>>,
 }
 
-impl<'tcx> Debug for TypeVisitor<'tcx> {
+impl Debug for TypeVisitor<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         "TypeVisitor".fmt(f)
     }
@@ -240,7 +240,10 @@ impl<'tcx> TypeVisitor<'tcx> {
 
     pub fn get_typing_env(&self) -> rustc_middle::ty::TypingEnv<'tcx> {
         let param_env = self.get_param_env();
-        rustc_middle::ty::TypingEnv { typing_mode: rustc_middle::ty::TypingMode::PostAnalysis, param_env }
+        rustc_middle::ty::TypingEnv {
+            typing_mode: rustc_middle::ty::TypingMode::PostAnalysis,
+            param_env,
+        }
     }
 
     pub fn get_typing_env_for(&self, def_id: DefId) -> rustc_middle::ty::TypingEnv<'tcx> {
@@ -250,7 +253,10 @@ impl<'tcx> TypeVisitor<'tcx> {
             def_id
         };
         let param_env = self.tcx.param_env(env_def_id);
-        rustc_middle::ty::TypingEnv { typing_mode: rustc_middle::ty::TypingMode::PostAnalysis, param_env }
+        rustc_middle::ty::TypingEnv {
+            typing_mode: rustc_middle::ty::TypingMode::PostAnalysis,
+            param_env,
+        }
     }
 
     /// Returns a shared reference to the path type cache of the visitor
@@ -1016,9 +1022,7 @@ impl<'tcx> TypeVisitor<'tcx> {
                 let v = &def.variants()[variant_0];
                 let non_zst_field = v.fields.iter().find(|field| {
                     let field_ty = self.tcx.type_of(field.did).skip_binder();
-                    let is_zst = self
-                        .layout_of(field_ty)
-                        .map_or(false, |layout| layout.is_zst());
+                    let is_zst = self.layout_of(field_ty).is_ok_and(|layout| layout.is_zst());
                     !is_zst
                 });
                 if let Some(f) = non_zst_field {
@@ -1068,7 +1072,9 @@ impl<'tcx> TypeVisitor<'tcx> {
             let specialized_substs = self.specialize_generic_args(projection.args, map);
             let item_def_id = projection.def_id;
             return if utils::are_concrete(specialized_substs) {
-                let typing_env = self.get_typing_env_for(self.tcx.associated_item(item_def_id).container_id(self.tcx));
+                let typing_env = self.get_typing_env_for(
+                    self.tcx.associated_item(item_def_id).container_id(self.tcx),
+                );
                 if let Ok(Some(instance)) = rustc_middle::ty::Instance::try_resolve(
                     self.tcx,
                     typing_env,
@@ -1159,13 +1165,15 @@ impl<'tcx> TypeVisitor<'tcx> {
                 let specialized_predicates = predicates.iter().map(
                     |bound_pred: rustc_middle::ty::Binder<'_, ExistentialPredicate<'tcx>>| {
                         bound_pred.map_bound(|pred| match pred {
-                            ExistentialPredicate::Trait(ExistentialTraitRef { def_id, args, .. }) => {
-                                ExistentialPredicate::Trait(ExistentialTraitRef::new_from_args(
-                                    self.tcx,
-                                    def_id,
-                                    self.specialize_generic_args(args, map),
-                                ))
-                            }
+                            ExistentialPredicate::Trait(ExistentialTraitRef {
+                                def_id,
+                                args,
+                                ..
+                            }) => ExistentialPredicate::Trait(ExistentialTraitRef::new_from_args(
+                                self.tcx,
+                                def_id,
+                                self.specialize_generic_args(args, map),
+                            )),
                             ExistentialPredicate::Projection(ExistentialProjection {
                                 def_id,
                                 args,
@@ -1173,19 +1181,23 @@ impl<'tcx> TypeVisitor<'tcx> {
                                 ..
                             }) => {
                                 if let Some(ty) = term.as_type() {
-                                    ExistentialPredicate::Projection(ExistentialProjection::new_from_args(
-                                        self.tcx,
-                                        def_id,
-                                        self.specialize_generic_args(args, map),
-                                        self.specialize_generic_argument_type(ty, map).into(),
-                                    ))
+                                    ExistentialPredicate::Projection(
+                                        ExistentialProjection::new_from_args(
+                                            self.tcx,
+                                            def_id,
+                                            self.specialize_generic_args(args, map),
+                                            self.specialize_generic_argument_type(ty, map).into(),
+                                        ),
+                                    )
                                 } else {
-                                    ExistentialPredicate::Projection(ExistentialProjection::new_from_args(
-                                        self.tcx,
-                                        def_id,
-                                        self.specialize_generic_args(args, map),
-                                        term,
-                                    ))
+                                    ExistentialPredicate::Projection(
+                                        ExistentialProjection::new_from_args(
+                                            self.tcx,
+                                            def_id,
+                                            self.specialize_generic_args(args, map),
+                                            term,
+                                        ),
+                                    )
                                 }
                             }
                             ExistentialPredicate::AutoTrait(_) => pred,
@@ -1264,9 +1276,9 @@ impl<'tcx> TypeVisitor<'tcx> {
 }
 
 pub fn is_transparent_wrapper(ty: Ty) -> bool {
-    return if let TyKind::Adt(def, _) = ty.kind() {
+    if let TyKind::Adt(def, _) = ty.kind() {
         def.repr().transparent()
     } else {
         false
-    };
+    }
 }

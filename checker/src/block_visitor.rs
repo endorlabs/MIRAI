@@ -3,13 +3,13 @@
 // This source code is licensed under the MIT license found in the
 // LICENSE file in the root directory of this source tree.
 
-use rustc_middle::ty::TypingMode;
 use std::borrow::Borrow;
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Debug, Formatter, Result};
 use std::rc::Rc;
 
 use log_derive::*;
+
 use mirai_annotations::*;
 use rustc_hir::def_id::DefId;
 use rustc_index::{Idx, IndexVec};
@@ -17,6 +17,7 @@ use rustc_middle::mir;
 use rustc_middle::mir::interpret::{alloc_range, GlobalAlloc, Scalar};
 use rustc_middle::mir::{ConstValue, UnwindTerminateReason};
 use rustc_middle::ty::adjustment::PointerCoercion;
+use rustc_middle::ty::TypingMode;
 use rustc_middle::ty::{
     Const, CoroutineArgsExt, FloatTy, IntTy, ParamConst, ScalarInt, Ty, TyKind, UintTy, ValTree,
     VariantDef,
@@ -49,9 +50,7 @@ pub struct BlockVisitor<'block, 'analysis, 'compilation, 'tcx> {
     pub bv: &'block mut BodyVisitor<'analysis, 'compilation, 'tcx>,
 }
 
-impl<'block, 'analysis, 'compilation, 'tcx> Debug
-    for BlockVisitor<'block, 'analysis, 'compilation, 'tcx>
-{
+impl Debug for BlockVisitor<'_, '_, '_, '_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         "BlockVisitor".fmt(f)
     }
@@ -1718,7 +1717,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         self.bv.emit_diagnostic(warning);
         // Don't stop the analysis if we are building a call graph.
         self.bv.analysis_is_incomplete = self.bv.cv.options.call_graph_config.is_none();
-        if let Some(target) = targets.get(0) {
+        if let Some(target) = targets.first() {
             // Propagate the entry condition to the successor block.
             self.bv
                 .current_environment
@@ -2889,8 +2888,17 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
     pub fn visit_const(&mut self, literal: &Const<'tcx>) -> Rc<AbstractValue> {
         let mut kind = literal.kind();
         if let rustc_middle::ty::ConstKind::Unevaluated(_unevaluated) = &kind {
-            let infcx = self.bv.tcx.infer_ctxt().build(TypingMode::non_body_analysis());
-            kind = rustc_trait_selection::traits::evaluate_const(&infcx, *literal, self.type_visitor().get_param_env()).kind()
+            let infcx = self
+                .bv
+                .tcx
+                .infer_ctxt()
+                .build(TypingMode::non_body_analysis());
+            kind = rustc_trait_selection::traits::evaluate_const(
+                &infcx,
+                *literal,
+                self.type_visitor().get_param_env(),
+            )
+            .kind()
         }
 
         match &kind {

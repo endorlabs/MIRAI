@@ -71,7 +71,7 @@ impl ShoppingCart {
 // individually.
 //#[invariant(self.invariant())]
 impl ShoppingCart {
-    #[requires(self.total <= std::u64::MAX - item.price && self.items.len() < std::usize::MAX)]
+    #[requires(self.total <= u64::MAX - item.price && self.items.len() < usize::MAX)]
     pub fn add(&mut self, item: Item) {
         self.total += item.price;
         self.items.push(item);

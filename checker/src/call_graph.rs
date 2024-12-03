@@ -4,20 +4,22 @@
 // LICENSE file in the root directory of this source tree.
 
 use core::fmt;
-use mirai_annotations::*;
+use std::collections::hash_map::Entry;
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::fs;
+use std::path::Path;
+
 use petgraph::dot::{Config, Dot};
 use petgraph::graph::{DefaultIx, NodeIndex};
 use petgraph::visit::Bfs;
 use petgraph::{Direction, Graph};
 use regex::Regex;
-use rustc_hir::def_id::DefId;
-use rustc_middle::ty::TyCtxt;
 use serde::ser::{SerializeMap, Serializer};
 use serde::{Deserialize, Serialize};
-use std::collections::hash_map::Entry;
-use std::collections::{HashMap, HashSet, VecDeque};
-use std::fs;
-use std::path::Path;
+
+use mirai_annotations::*;
+use rustc_hir::def_id::DefId;
+use rustc_middle::ty::TyCtxt;
 
 // An unique identifier for a Rust type string.
 type TypeId = u32;
@@ -1242,7 +1244,7 @@ impl DatalogOutput {
     ) -> String {
         let mut relation_strings = Vec::<String>::new();
         for relation in relations.iter() {
-            if filter.map_or(true, |x| x == relation.name) {
+            if filter.is_none_or(|x| x == relation.name) {
                 match backend {
                     DatalogBackend::DifferentialDatalog => relation_strings
                         .push(format!("insert {};", relation.to_differential_datalog())),
@@ -1264,7 +1266,7 @@ impl DatalogOutput {
                 self.output_relation_set(
                     &self.relations,
                     None,
-                    DatalogBackend::DifferentialDatalog
+                    DatalogBackend::DifferentialDatalog,
                 )
             ),
         )

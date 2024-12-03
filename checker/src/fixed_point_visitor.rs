@@ -3,20 +3,23 @@
 // This source code is licensed under the MIT license found in the
 // LICENSE file in the root directory of this source tree.
 
+use std::collections::{HashMap, HashSet};
+use std::fmt::{Debug, Formatter, Result};
+use std::rc::Rc;
+
+use log_derive::*;
+use rpds::{HashTrieMap, HashTrieSet};
+
+use mirai_annotations::*;
+use rustc_data_structures::graph::dominators::Dominators;
+use rustc_middle::mir;
+
 use crate::abstract_value::{AbstractValue, AbstractValueTrait};
 use crate::block_visitor::BlockVisitor;
 use crate::body_visitor::BodyVisitor;
 use crate::environment::Environment;
 use crate::options::DiagLevel;
 use crate::{abstract_value, k_limits};
-use log_derive::*;
-use mirai_annotations::*;
-use rpds::{HashTrieMap, HashTrieSet};
-use rustc_data_structures::graph::dominators::Dominators;
-use rustc_middle::mir;
-use std::collections::{HashMap, HashSet};
-use std::fmt::{Debug, Formatter, Result};
-use std::rc::Rc;
 
 pub struct FixedPointVisitor<'fixed, 'analysis, 'compilation, 'tcx> {
     pub bv: &'fixed mut BodyVisitor<'analysis, 'compilation, 'tcx>,
@@ -29,9 +32,7 @@ pub struct FixedPointVisitor<'fixed, 'analysis, 'compilation, 'tcx> {
     pub terminator_state: HashMap<mir::BasicBlock, Environment>,
 }
 
-impl<'fixed, 'analysis, 'compilation, 'tcx> Debug
-    for FixedPointVisitor<'fixed, 'analysis, 'compilation, 'tcx>
-{
+impl Debug for FixedPointVisitor<'_, '_, '_, '_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         "FixedPoint".fmt(f)
     }
@@ -367,7 +368,7 @@ fn add_predecessors_then_root_block<'tcx>(
             already_added,
         );
     }
-    assume!(block_indices.len() < std::usize::MAX); // We'll run out of memory long  before this overflows
+    assume!(block_indices.len() < usize::MAX); // We'll run out of memory long  before this overflows
     block_indices.push(root_block);
 }
 

@@ -7,20 +7,22 @@
 // 'tcx is the lifetime of the type context created during the lifetime of the after_analysis call back.
 // 'analysis is the life time of the analyze_with_mirai call back that is invoked with the type context.
 
-use log::*;
-use log_derive::{logfn, logfn_inputs};
-use mirai_annotations::*;
-use rustc_errors::Diag;
-use rustc_hir::def_id::{DefId, DefIndex};
-use rustc_middle::mir;
-use rustc_middle::ty::{GenericArgsRef, TyCtxt};
-use rustc_session::Session;
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter, Result};
 use std::rc::Rc;
 use std::time::Instant;
+
+use log::*;
+use log_derive::{logfn, logfn_inputs};
+
+use mirai_annotations::*;
+use rustc_errors::Diag;
+use rustc_hir::def_id::{DefId, DefIndex};
+use rustc_middle::mir;
+use rustc_middle::ty::{GenericArgsRef, TyCtxt};
+use rustc_session::Session;
 
 use crate::body_visitor::BodyVisitor;
 use crate::call_graph::CallGraph;
@@ -57,13 +59,13 @@ pub struct CrateVisitor<'compilation, 'tcx> {
     pub call_graph: CallGraph<'tcx>,
 }
 
-impl<'compilation, 'tcx> Debug for CrateVisitor<'compilation, 'tcx> {
+impl Debug for CrateVisitor<'_, '_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         "CrateVisitor".fmt(f)
     }
 }
 
-impl<'compilation, 'tcx> CrateVisitor<'compilation, 'tcx> {
+impl<'compilation> CrateVisitor<'compilation, '_> {
     /// Analyze some of the bodies in the crate that is being compiled.
     #[logfn(TRACE)]
     pub fn analyze_some_bodies(&mut self) {

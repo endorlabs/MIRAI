@@ -191,6 +191,7 @@ pub enum PathEnum {
 }
 
 impl PartialOrd for PathEnum {
+    #[allow(clippy::non_canonical_partial_ord_impl)]
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         use PathEnum::*;
         match (self, other) {
@@ -1361,11 +1362,11 @@ impl PathSelector {
         if self.eq(other) {
             return Rc::new(abstract_value::TRUE);
         }
-        return match (self, other.as_ref()) {
+        match (self, other.as_ref()) {
             (PathSelector::Index(v1), PathSelector::Index(v2))
             | (PathSelector::Slice(v1), PathSelector::Slice(v2)) => v1.equals(v2.clone()),
             _ => Rc::new(abstract_value::FALSE),
-        };
+        }
     }
 
     /// Adds any abstract heap addresses found in embedded index values to the given set.

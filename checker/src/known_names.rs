@@ -347,7 +347,9 @@ impl KnownNamesCache {
                                 "frem_fast" => KnownNames::StdIntrinsicsFremFast,
                                 "fsub_algebraic" => KnownNames::StdIntrinsicsFsubAlgebraic,
                                 "fsub_fast" => KnownNames::StdIntrinsicsFsubFast,
-                                "is_val_statically_known" => KnownNames::StdIntrinsicsIsValStaticallyKnown,
+                                "is_val_statically_known" => {
+                                    KnownNames::StdIntrinsicsIsValStaticallyKnown
+                                }
                                 "log10f16" => KnownNames::StdIntrinsicsLog10f16,
                                 "log10f32" => KnownNames::StdIntrinsicsLog10f32,
                                 "log10f64" => KnownNames::StdIntrinsicsLog10f64,

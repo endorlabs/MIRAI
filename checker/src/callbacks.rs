@@ -16,7 +16,7 @@ use crate::utils;
 use log::info;
 use log_derive::*;
 use rustc_driver::Compilation;
-use rustc_interface::{interface};
+use rustc_interface::interface;
 use rustc_middle::ty::TyCtxt;
 use std::cell::RefCell;
 use std::collections::HashMap;

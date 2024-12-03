@@ -3335,7 +3335,9 @@ pub mod core {
         // pub fn frem_fast<T: Copy>(a: T, b: T) -> T;
 
         pub fn nontemporal_store<T>(ptr: *mut T, val: T) {
-            unsafe { *ptr = val; }
+            unsafe {
+                *ptr = val;
+            }
         }
 
         pub mod foreign {
@@ -3620,8 +3622,7 @@ pub mod core {
         //pub const fn discriminant_value<T>(_v: &T) -> <T as DiscriminantKind>::Discriminant;
 
         // todo: append to foreign
-        pub mod foreign2 {
-        }
+        pub mod foreign2 {}
 
         pub fn ptr_offset_from<T>(ptr: *const T, base: *const T) -> isize {
             // todo: implement this inside MIRAI
@@ -4387,8 +4388,7 @@ pub mod core {
         }
 
         pub mod read_volatile {
-            pub fn precondition_check() {
-            }
+            pub fn precondition_check() {}
         }
 
         pub unsafe fn write<T>(dst: *mut T, src: T)

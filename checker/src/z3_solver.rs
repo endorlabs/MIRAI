@@ -1545,9 +1545,10 @@ impl Z3Solver {
             ConstantDomain::Char(..) | ConstantDomain::I128(..) | ConstantDomain::U128(..) => {
                 (false, self.get_constant_as_ast(const_domain))
             }
-            ConstantDomain::F16(..) | ConstantDomain::F32(..) | ConstantDomain::F64(..) | ConstantDomain::F128(..) => {
-                (true, self.get_constant_as_ast(const_domain))
-            }
+            ConstantDomain::F16(..)
+            | ConstantDomain::F32(..)
+            | ConstantDomain::F64(..)
+            | ConstantDomain::F128(..) => (true, self.get_constant_as_ast(const_domain)),
             ConstantDomain::False => unsafe {
                 (false, z3_sys::Z3_mk_int(self.z3_context, 0, self.int_sort))
             },

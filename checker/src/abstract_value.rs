@@ -5626,19 +5626,20 @@ impl AbstractValueTrait for Rc<AbstractValue> {
                 .widen(&alternate.get_as_interval()),
             Expression::Div { left, right } => left.get_as_interval().div(&right.get_as_interval()),
             Expression::IntrinsicBitVectorUnary {
-                name, bit_length, ..
-            } => match name {
-                KnownNames::StdIntrinsicsCtlz
-                | KnownNames::StdIntrinsicsCtlzNonzero
-                | KnownNames::StdIntrinsicsCtpop
-                | KnownNames::StdIntrinsicsCttz
-                | KnownNames::StdIntrinsicsCttzNonzero => {
-                    let min_value: IntervalDomain = IntervalDomain::from(0u128);
-                    let max_value = IntervalDomain::from(*bit_length as u128);
-                    min_value.widen(&max_value)
-                }
-                _ => interval_domain::BOTTOM,
-            },
+                name:
+                    KnownNames::StdIntrinsicsCtlz
+                    | KnownNames::StdIntrinsicsCtlzNonzero
+                    | KnownNames::StdIntrinsicsCtpop
+                    | KnownNames::StdIntrinsicsCttz
+                    | KnownNames::StdIntrinsicsCttzNonzero,
+                bit_length,
+                ..
+            } => {
+                let min_value: IntervalDomain = IntervalDomain::from(0u128);
+                let max_value = IntervalDomain::from(*bit_length as u128);
+                min_value.widen(&max_value)
+            }
+            Expression::IntrinsicBitVectorUnary { .. } => interval_domain::BOTTOM,
             Expression::Join { left, right, .. } => {
                 left.get_as_interval().widen(&right.get_as_interval())
             }

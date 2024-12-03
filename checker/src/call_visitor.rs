@@ -4,17 +4,17 @@
 // LICENSE file in the root directory of this source tree.
 
 use core::f16;
-use rustc_middle::ty::ConstKind;
 use std::collections::HashMap;
-use std::{f128, f64};
 use std::fmt::{Debug, Formatter, Result};
 use std::rc::Rc;
+use std::{f128, f64};
 
 use log_derive::*;
 
 use mirai_annotations::*;
 use rustc_hir::def_id::DefId;
 use rustc_middle::mir;
+use rustc_middle::ty::ConstKind;
 use rustc_middle::ty::{GenericArg, GenericArgKind, GenericArgsRef, Ty, TyKind, UintTy};
 use rustc_target::abi::VariantIdx;
 
@@ -51,9 +51,7 @@ pub struct CallVisitor<'call, 'block, 'analysis, 'compilation, 'tcx> {
     pub initial_type_cache: Option<Rc<HashMap<Rc<Path>, Ty<'tcx>>>>,
 }
 
-impl<'call, 'block, 'analysis, 'compilation, 'tcx> Debug
-    for CallVisitor<'call, 'block, 'analysis, 'compilation, 'tcx>
-{
+impl Debug for CallVisitor<'_, '_, '_, '_, '_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         "CallVisitor".fmt(f)
     }
@@ -729,11 +727,11 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                                     // caller (or on its callers) must ensure that is_zero will be true
                                     // at runtime when this call is issued.
                                     let precondition = Precondition {
-                                            condition: promotable_is_zero,
-                                            message: Rc::from("incomplete analysis of call because of failure to resolve std::Clone::clone method"),
-                                            provenance: None,
-                                            spans: vec![self.block_visitor.bv.current_span.source_callsite()],
-                                        };
+                                        condition: promotable_is_zero,
+                                        message: Rc::from("incomplete analysis of call because of failure to resolve std::Clone::clone method"),
+                                        provenance: None,
+                                        spans: vec![self.block_visitor.bv.current_span.source_callsite()],
+                                    };
                                     self.block_visitor.bv.preconditions.push(precondition);
                                     discr_0_val
                                 } else {
@@ -2121,23 +2119,23 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
         match value.expression {
             Expression::CompileTimeConstant(ConstantDomain::F16(v)) => {
                 let f = f16::from_bits(v);
-                let i = unsafe {f16::to_int_unchecked::<i16>(f)};
+                let i = unsafe { f16::to_int_unchecked::<i16>(f) };
                 Rc::new(ConstantDomain::I128(i as i128).into())
             }
             Expression::CompileTimeConstant(ConstantDomain::F32(v)) => {
                 let f = f32::from_bits(v);
-                let i = unsafe {f32::to_int_unchecked::<i32>(f)};
+                let i = unsafe { f32::to_int_unchecked::<i32>(f) };
                 Rc::new(ConstantDomain::I128(i as i128).into())
             }
             Expression::CompileTimeConstant(ConstantDomain::F64(v)) => {
                 let f = f64::from_bits(v);
-                let i = unsafe {f64::to_int_unchecked::<i64>(f)};
+                let i = unsafe { f64::to_int_unchecked::<i64>(f) };
                 Rc::new(ConstantDomain::I128(i as i128).into())
             }
             Expression::CompileTimeConstant(ConstantDomain::F128(v)) => {
                 let f = f128::from_bits(v);
-                let i = unsafe {f128::to_int_unchecked::<i128>(f)};
-                Rc::new(ConstantDomain::I128(i as i128).into())
+                let i = unsafe { f128::to_int_unchecked::<i128>(f) };
+                Rc::new(ConstantDomain::I128(i).into())
             }
             _ => {
                 // todo: use a delayed operator that can get specialized away
@@ -3304,7 +3302,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 .options
                 .constant_time_tag_name
                 .as_ref()
-                .map_or(false, |expected_tag_name| {
+                .is_some_and(|expected_tag_name| {
                     expected_tag_name.eq(&self.block_visitor.bv.tcx.def_path_str(tag_def_id))
                 });
             if matched {
