@@ -73,7 +73,7 @@ commit;
   ],
   "callables": [
     {
-      "name": "/fnptr_fold/fn1(u32,&'^0.Named(DefId(0:7 ~ fnptr_fold[b0a1]::fn1::'_), \"'_\") Binder { value: fn(u32) -> u32, bound_vars: [] })->u32",
+      "name": "/fnptr_fold/fn1(u32,&'^0.Named(DefId(0:7 ~ fnptr_fold[da30]::fn1::'_), \"'_\") Binder { value: fn(u32) -> u32, bound_vars: [] })->u32",
       "file_index": 0,
       "first_line": 10,
       "local": true
@@ -97,9 +97,9 @@ commit;
       "local": true
     },
     {
-      "name": "/std/std::io::_print(std::fmt::Arguments<'^0.Named(DefId(1:14015 ~ std[1c92]::io::stdio::_print::'_), \"'_\")>)->()",
+      "name": "/std/std::io::_print(std::fmt::Arguments<'^0.Named(DefId(1:14015 ~ std[e023]::io::stdio::_print::'_), \"'_\")>)->()",
       "file_index": 1,
-      "first_line": 1231,
+      "first_line": 1232,
       "local": false
     },
     {

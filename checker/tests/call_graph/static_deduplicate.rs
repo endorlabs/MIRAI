@@ -66,19 +66,19 @@ commit;
   ],
   "callables": [
     {
-      "name": "/static_deduplicate/fn1(u32,&'^0.Named(DefId(0:7 ~ static_deduplicate[c4e8]::fn1::'_), \"'_\") str)->(u32, &'^0.Named(DefId(0:7 ~ static_deduplicate[c4e8]::fn1::'_), \"'_\") str)",
+      "name": "/static_deduplicate/fn1(u32,&'^0.Named(DefId(0:7 ~ static_deduplicate[479f]::fn1::'_), \"'_\") str)->(u32, &'^0.Named(DefId(0:7 ~ static_deduplicate[479f]::fn1::'_), \"'_\") str)",
       "file_index": 0,
       "first_line": 10,
       "local": true
     },
     {
-      "name": "/static_deduplicate/fn2(u32,&'^0.Named(DefId(0:8 ~ static_deduplicate[c4e8]::fn2::'_), \"'_\") str)->(u32, &'^0.Named(DefId(0:8 ~ static_deduplicate[c4e8]::fn2::'_), \"'_\") str)",
+      "name": "/static_deduplicate/fn2(u32,&'^0.Named(DefId(0:8 ~ static_deduplicate[479f]::fn2::'_), \"'_\") str)->(u32, &'^0.Named(DefId(0:8 ~ static_deduplicate[479f]::fn2::'_), \"'_\") str)",
       "file_index": 0,
       "first_line": 13,
       "local": true
     },
     {
-      "name": "/static_deduplicate/fn3(u32,&'^0.Named(DefId(0:9 ~ static_deduplicate[c4e8]::fn3::'_), \"'_\") str)->(u32, &'^0.Named(DefId(0:9 ~ static_deduplicate[c4e8]::fn3::'_), \"'_\") str)",
+      "name": "/static_deduplicate/fn3(u32,&'^0.Named(DefId(0:9 ~ static_deduplicate[479f]::fn3::'_), \"'_\") str)->(u32, &'^0.Named(DefId(0:9 ~ static_deduplicate[479f]::fn3::'_), \"'_\") str)",
       "file_index": 0,
       "first_line": 16,
       "local": true
