@@ -109,12 +109,13 @@ pub fn is_public(def_id: DefId, tcx: TyCtxt<'_>) -> bool {
                         ..
                     })
                     | Node::Item(rustc_hir::Item {
-                        kind:
-                            rustc_hir::ItemKind::Use(_, rustc_hir::UseKind::ListStem)
-                            | rustc_hir::ItemKind::OpaqueTy(..),
+                        kind: rustc_hir::ItemKind::Use(_, rustc_hir::UseKind::ListStem),
                         ..
-                    }) => ty::Visibility::Restricted(tcx.parent_module(hir_id).to_def_id())
-                        .is_public(),
+                    })
+                    | Node::OpaqueTy(..) => {
+                        ty::Visibility::Restricted(tcx.parent_module(hir_id).to_def_id())
+                            .is_public()
+                    }
                     Node::ImplItem(..) => {
                         let parent_def_id: LocalDefId = tcx.hir().get_parent_item(hir_id).def_id;
                         match tcx.hir_node_by_def_id(parent_def_id) {
@@ -206,8 +207,10 @@ fn append_mangled_type<'tcx>(str: &mut String, ty: Ty<'tcx>, tcx: TyCtxt<'tcx>) 
         }
         TyKind::Float(float_ty) => {
             str.push_str(match float_ty {
+                FloatTy::F16 => "f16",
                 FloatTy::F32 => "f32",
                 FloatTy::F64 => "f64",
+                FloatTy::F128 => "f128",
             });
         }
         TyKind::Adt(def, subs) => {
@@ -232,8 +235,10 @@ fn append_mangled_type<'tcx>(str: &mut String, ty: Ty<'tcx>, tcx: TyCtxt<'tcx>) 
         TyKind::Dynamic(trait_data, ..) => {
             str.push_str("trait_");
             if let Some(principal) = trait_data.principal() {
-                let principal =
-                    tcx.normalize_erasing_late_bound_regions(ty::ParamEnv::reveal_all(), principal);
+                let principal = tcx.normalize_erasing_late_bound_regions(
+                    ty::TypingEnv::fully_monomorphized(),
+                    principal,
+                );
                 str.push_str(qualified_type_name(tcx, principal.def_id).as_str());
                 for sub in principal.args {
                     if let GenericArgKind::Type(ty) = sub.unpack() {
@@ -292,13 +297,13 @@ fn append_mangled_type<'tcx>(str: &mut String, ty: Ty<'tcx>, tcx: TyCtxt<'tcx>) 
             str.push_str("slice_");
             append_mangled_type(str, *ty, tcx);
         }
-        TyKind::RawPtr(ty_and_mut) => {
+        TyKind::RawPtr(ty, mutbl) => {
             str.push_str("pointer_");
-            match ty_and_mut.mutbl {
+            match mutbl {
                 rustc_hir::Mutability::Mut => str.push_str("mut_"),
                 rustc_hir::Mutability::Not => str.push_str("const_"),
             }
-            append_mangled_type(str, ty_and_mut.ty, tcx);
+            append_mangled_type(str, *ty, tcx);
         }
         TyKind::Ref(_, ty, mutability) => {
             str.push_str("ref_");
@@ -307,7 +312,8 @@ fn append_mangled_type<'tcx>(str: &mut String, ty: Ty<'tcx>, tcx: TyCtxt<'tcx>) 
             }
             append_mangled_type(str, *ty, tcx);
         }
-        TyKind::FnPtr(poly_fn_sig) => {
+        TyKind::FnPtr(poly_sig_tys, hdr) => {
+            let poly_fn_sig = poly_sig_tys.with(*hdr);
             let fn_sig = poly_fn_sig.skip_binder();
             str.push_str("fn_ptr_");
             for arg_type in fn_sig.inputs() {

@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 // Copyright (c) Facebook, Inc. and its affiliates.
 //
 // This source code is licensed under the MIT license found in the
@@ -131,7 +132,7 @@ impl Path {
 /// A path represents a left hand side expression.
 /// When the actual expression is evaluated at runtime it will resolve to a particular memory
 /// location. During analysis it is used to keep track of state changes.
-#[derive(Serialize, Deserialize, Clone, Eq, PartialEq, Hash, Ord, PartialOrd)]
+#[derive(Serialize, Deserialize, Clone, Eq, PartialEq, Hash)]
 pub enum PathEnum {
     /// A path that provides a location for a value that is not associated with a place in MIR.
     /// This can be a structured constant or it can be a computed value. A computed value can
@@ -187,6 +188,72 @@ pub enum PathEnum {
         qualifier: Rc<Path>,
         selector: Rc<PathSelector>,
     },
+}
+
+impl PartialOrd for PathEnum {
+    #[allow(clippy::non_canonical_partial_ord_impl)]
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        use PathEnum::*;
+        match (self, other) {
+            (Computed { value: lhs }, Computed { value: rhs }) => lhs.partial_cmp(rhs),
+            (HeapBlock { value: lhs }, HeapBlock { value: rhs }) => lhs.partial_cmp(rhs),
+            (
+                LocalVariable {
+                    ordinal: l,
+                    type_index: li,
+                },
+                LocalVariable {
+                    ordinal: r,
+                    type_index: ri,
+                },
+            ) => match l.partial_cmp(r) {
+                Some(std::cmp::Ordering::Equal) => li.partial_cmp(ri),
+                other => other,
+            },
+            (Offset { value: lhs }, Offset { value: rhs }) => lhs.partial_cmp(rhs),
+            (Parameter { ordinal: l }, Parameter { ordinal: r }) => l.partial_cmp(r),
+            (Result, Result) => Some(std::cmp::Ordering::Equal),
+            (
+                StaticVariable {
+                    summary_cache_key: lk,
+                    expression_type: lt,
+                    ..
+                },
+                StaticVariable {
+                    summary_cache_key: rk,
+                    expression_type: rt,
+                    ..
+                },
+            ) => match lk.partial_cmp(rk) {
+                Some(std::cmp::Ordering::Equal) => lt.partial_cmp(rt),
+                other => other,
+            },
+            (PhantomData, PhantomData) => Some(std::cmp::Ordering::Equal),
+            (PromotedConstant { ordinal: l }, PromotedConstant { ordinal: r }) => l.partial_cmp(r),
+            (
+                QualifiedPath {
+                    qualifier: lq,
+                    selector: ls,
+                    ..
+                },
+                QualifiedPath {
+                    qualifier: rq,
+                    selector: rs,
+                    ..
+                },
+            ) => match lq.partial_cmp(rq) {
+                Some(std::cmp::Ordering::Equal) => ls.partial_cmp(rs),
+                other => other,
+            },
+            (_, _) => None,
+        }
+    }
+}
+
+impl Ord for PathEnum {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.partial_cmp(other).unwrap()
+    }
 }
 
 impl Debug for PathEnum {
@@ -1295,11 +1362,11 @@ impl PathSelector {
         if self.eq(other) {
             return Rc::new(abstract_value::TRUE);
         }
-        return match (self, other.as_ref()) {
+        match (self, other.as_ref()) {
             (PathSelector::Index(v1), PathSelector::Index(v2))
             | (PathSelector::Slice(v1), PathSelector::Slice(v2)) => v1.equals(v2.clone()),
             _ => Rc::new(abstract_value::FALSE),
-        };
+        }
     }
 
     /// Adds any abstract heap addresses found in embedded index values to the given set.

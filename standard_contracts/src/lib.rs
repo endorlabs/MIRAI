@@ -8,12 +8,14 @@
 #![feature(allocator_api)]
 #![feature(core_intrinsics)]
 #![feature(discriminant_kind)]
-#![feature(exclusive_range_pattern)]
+#![feature(f16)]
+#![feature(f128)]
 #![feature(hashmap_internals)]
 #![feature(pattern)]
 #![feature(ptr_internals)]
 #![feature(ptr_metadata)]
-#![feature(control_flow_enum)]
+#![feature(ptr_alignment_type)]
+#![allow(unexpected_cfgs)]
 
 #[macro_use]
 extern crate mirai_annotations;

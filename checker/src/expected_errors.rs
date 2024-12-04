@@ -3,7 +3,6 @@
 // This source code is licensed under the MIT license found in the
 // LICENSE file in the root directory of this source tree.
 
-use rustc_errors::DiagnosticBuilder;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
@@ -13,7 +12,8 @@ use std::str::FromStr;
 use log_derive::logfn_inputs;
 
 use mirai_annotations::assume;
-use rustc_errors::{DiagnosticMessage, MultiSpan};
+use rustc_errors::Diag;
+use rustc_errors::{DiagMessage, MultiSpan};
 
 /// A collection of error strings that are expected for a test case.
 #[derive(Debug)]
@@ -34,7 +34,7 @@ impl ExpectedErrors {
 
     /// Checks if the given set of diagnostics matches the expected diagnostics.
     #[logfn_inputs(TRACE)]
-    pub fn check_messages(&mut self, diagnostics: &[DiagnosticBuilder<'_, ()>]) -> bool {
+    pub fn check_messages(&mut self, diagnostics: &[Diag<'_, ()>]) -> bool {
         for diag in diagnostics.iter() {
             if !self.remove_message(&diag.span, Self::expect_str(&diag.messages[0].0)) {
                 return false;
@@ -52,9 +52,9 @@ impl ExpectedErrors {
         true
     }
 
-    fn expect_str(diag: &DiagnosticMessage) -> &str {
+    fn expect_str(diag: &DiagMessage) -> &str {
         match diag {
-            DiagnosticMessage::Str(s) => s,
+            DiagMessage::Str(s) => s,
             _ => panic!("expected non-translatable diagnostic message"),
         }
     }
@@ -94,8 +94,7 @@ fn load_errors(testfile: &Path) -> Vec<String> {
     let rdr = BufReader::new(File::open(testfile).unwrap());
     let tag = "//~";
     rdr.lines()
-        .enumerate()
-        .filter_map(|(_line_num, line)| parse_expected(&line.unwrap(), tag))
+        .filter_map(|line| parse_expected(&line.unwrap(), tag))
         .collect()
 }
 
@@ -104,7 +103,7 @@ fn load_errors(testfile: &Path) -> Vec<String> {
 fn parse_expected(line: &str, tag: &str) -> Option<String> {
     let tag_start = line.find(tag)?;
     // If the tag has been found this following must be true.
-    assume!(tag_start < usize::max_value() - tag.len());
+    assume!(tag_start < usize::MAX - tag.len());
     let start = tag_start + tag.len();
     Some(String::from(line[start..].trim()))
 }

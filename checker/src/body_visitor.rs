@@ -5,7 +5,6 @@
 
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
-use std::convert::TryFrom;
 use std::fmt::{Debug, Formatter, Result};
 use std::rc::Rc;
 use std::time::Instant;
@@ -14,10 +13,10 @@ use log_derive::*;
 use rpds::HashTrieMap;
 
 use mirai_annotations::*;
-use rustc_errors::DiagnosticBuilder;
+use rustc_errors::Diag;
 use rustc_hir::def_id::DefId;
 use rustc_middle::mir;
-use rustc_middle::ty::{AdtDef, Const, GenericArgsRef, Ty, TyCtxt, TyKind, TypeAndMut, UintTy};
+use rustc_middle::ty::{AdtDef, Const, GenericArgsRef, Ty, TyCtxt, TyKind, UintTy};
 
 use crate::abstract_value::{self, AbstractValue, AbstractValueTrait, BOTTOM};
 use crate::block_visitor::BlockVisitor;
@@ -47,7 +46,7 @@ pub struct BodyVisitor<'analysis, 'compilation, 'tcx> {
     pub tcx: TyCtxt<'tcx>,
     pub def_id: DefId,
     pub mir: &'tcx mir::Body<'tcx>,
-    pub buffered_diagnostics: &'analysis mut Vec<DiagnosticBuilder<'compilation, ()>>,
+    pub buffered_diagnostics: &'analysis mut Vec<Diag<'compilation, ()>>,
     pub active_calls_map: &'analysis mut HashMap<DefId, u64>,
 
     pub already_reported_errors_for_call_to: HashSet<Rc<AbstractValue>>,
@@ -80,7 +79,7 @@ pub struct BodyVisitor<'analysis, 'compilation, 'tcx> {
     type_visitor: TypeVisitor<'tcx>,
 }
 
-impl<'analysis, 'compilation, 'tcx> Debug for BodyVisitor<'analysis, 'compilation, 'tcx> {
+impl Debug for BodyVisitor<'_, '_, '_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         "BodyVisitor".fmt(f)
     }
@@ -100,7 +99,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
     pub fn new(
         crate_visitor: &'analysis mut CrateVisitor<'compilation, 'tcx>,
         def_id: DefId,
-        buffered_diagnostics: &'analysis mut Vec<DiagnosticBuilder<'compilation, ()>>,
+        buffered_diagnostics: &'analysis mut Vec<Diag<'compilation, ()>>,
         active_calls_map: &'analysis mut HashMap<DefId, u64>,
         type_cache: Rc<RefCell<TypeCache<'tcx>>>,
     ) -> BodyVisitor<'analysis, 'compilation, 'tcx> {
@@ -109,11 +108,11 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
             .summary_cache
             .get_summary_key_for(def_id)
             .clone();
-        let mir = if tcx.is_const_fn_raw(def_id) {
+        let mir = if tcx.is_const_fn(def_id) {
             tcx.mir_for_ctfe(def_id)
         } else {
-            let def = rustc_middle::ty::InstanceDef::Item(def_id);
-            tcx.instance_mir(def)
+            let instance = rustc_middle::ty::InstanceKind::Item(def_id);
+            tcx.instance_mir(instance)
         };
         crate_visitor.call_graph.add_root(def_id);
         BodyVisitor {
@@ -189,7 +188,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
     ) -> Summary {
         let diag_level = self.cv.options.diag_level;
         let max_analysis_time_for_body = self.cv.options.max_analysis_time_for_body;
-        if cfg!(DEBUG) {
+        if option_env!("PRETTY_PRINT_MIR").is_some() {
             utils::pretty_print_mir(self.tcx, self.def_id);
         }
         debug!("entered body of {:?}", self.def_id);
@@ -330,7 +329,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
     /// Buffering diagnostics gives us the chance to sort them before printing them out,
     /// which is desirable for tools that compare the diagnostics from one run of MIRAI with another.
     #[logfn_inputs(TRACE)]
-    pub fn emit_diagnostic(&mut self, diagnostic_builder: DiagnosticBuilder<'compilation, ()>) {
+    pub fn emit_diagnostic(&mut self, diagnostic_builder: Diag<'compilation, ()>) {
         if (self.treat_as_foreign || !self.def_id.is_local())
             && !matches!(self.cv.options.diag_level, DiagLevel::Paranoid)
         {
@@ -758,7 +757,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
             let qualifier = closure_path.clone();
             let closure_path = Path::new_field(Path::new_field(qualifier, 0), i);
             // skip(1) above ensures this
-            assume!(i < usize::max_value());
+            assume!(i < usize::MAX);
             let specialized_type = self.type_visitor().specialize_generic_argument_type(
                 loc.ty,
                 &self.type_visitor().generic_argument_map,
@@ -1865,17 +1864,12 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                     s_path = Path::new_field(s_path, 0);
                     ty = self.type_visitor().remove_transparent_wrapper(ty);
                 }
-                let source_rustc_type = Ty::new_ref(
-                    self.tcx,
-                    *region,
-                    rustc_middle::ty::TypeAndMut { ty, mutbl: *mutbl },
-                );
+                let source_rustc_type = Ty::new_ref(self.tcx, *region, ty, *mutbl);
                 let s_ref_val = AbstractValue::make_reference(s_path);
                 let source_path = Path::new_computed(s_ref_val);
                 if self.type_visitor.is_slice_pointer(source_rustc_type.kind()) {
                     let pointer_path = Path::new_field(source_path.clone(), 0);
-                    let pointer_type =
-                        Ty::new_ptr(self.tcx, rustc_middle::ty::TypeAndMut { ty, mutbl: *mutbl });
+                    let pointer_type = Ty::new_ptr(self.tcx, ty, *mutbl);
                     source_fields.push((pointer_path, pointer_type));
                     let len_path = Path::new_length(source_path);
                     source_fields.push((len_path, self.tcx.types.usize));
@@ -1898,10 +1892,8 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                     let pointer_path = Path::new_field(source_path.clone(), 0);
                     let pointer_type = Ty::new_ptr(
                         self.tcx,
-                        rustc_middle::ty::TypeAndMut {
-                            ty: self.type_visitor.get_element_type(source_rustc_type),
-                            mutbl: rustc_hir::Mutability::Not,
-                        },
+                        self.type_visitor.get_element_type(source_rustc_type),
+                        rustc_hir::Mutability::Not,
                     );
                     source_fields.push((pointer_path, pointer_type));
                     let len_path = Path::new_length(source_path);
@@ -1941,11 +1933,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                     t_path = Path::new_field(t_path, 0);
                     ty = self.type_visitor().remove_transparent_wrapper(ty);
                 }
-                let target_rustc_type = Ty::new_ref(
-                    self.tcx,
-                    *region,
-                    rustc_middle::ty::TypeAndMut { ty, mutbl: *mutbl },
-                );
+                let target_rustc_type = Ty::new_ref(self.tcx, *region, ty, *mutbl);
                 let t_ref_val = AbstractValue::make_reference(t_path);
                 let target_path = Path::new_computed(t_ref_val);
                 if self
@@ -1955,10 +1943,8 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                     let pointer_path = Path::new_field(target_path.clone(), 0);
                     let pointer_type = Ty::new_ptr(
                         self.tcx,
-                        rustc_middle::ty::TypeAndMut {
-                            ty: self.type_visitor.get_element_type(target_rustc_type),
-                            mutbl: rustc_hir::Mutability::Not,
-                        },
+                        self.type_visitor.get_element_type(target_rustc_type),
+                        rustc_hir::Mutability::Not,
                     );
                     target_fields.push((pointer_path, pointer_type));
                     let len_path = Path::new_length(target_path);
@@ -1985,10 +1971,8 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                     let pointer_path = Path::new_field(target_path.clone(), 0);
                     let pointer_type = Ty::new_ptr(
                         self.tcx,
-                        rustc_middle::ty::TypeAndMut {
-                            ty: self.type_visitor.get_element_type(target_rustc_type),
-                            mutbl: rustc_hir::Mutability::Not,
-                        },
+                        self.type_visitor.get_element_type(target_rustc_type),
+                        rustc_hir::Mutability::Not,
                     );
                     target_fields.push((pointer_path, pointer_type));
                     let len_path = Path::new_length(target_path);
@@ -2044,7 +2028,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                             &value.expression
                         {
                             // The value is a string literal. See if the target might treat it as &[u8].
-                            if let TyKind::RawPtr(TypeAndMut { ty, .. }) = target_type.kind() {
+                            if let TyKind::RawPtr(ty, _) = target_type.kind() {
                                 if let TyKind::Uint(UintTy::U8) = ty.kind() {
                                     let thin_ptr_deref = Path::new_deref(
                                         source_path.clone(),
@@ -2086,6 +2070,20 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                 if source_bits - copied_source_bits > target_bits_to_write {
                     // discard higher order bits since they wont fit into the target field
                     val = val.unsigned_modulo(target_bits_to_write);
+                }
+                if let Expression::Reference(p) = &val.expression {
+                    if target_expression_type == ExpressionType::Usize
+                        && matches!(p.value, PathEnum::HeapBlock { .. })
+                    {
+                        let layout_path = Path::new_layout(p.clone());
+                        if let Some(layout) = self.current_environment.value_at(&layout_path) {
+                            if let Expression::HeapBlockLayout { alignment, .. } =
+                                &layout.expression
+                            {
+                                val = alignment.clone();
+                            }
+                        }
+                    }
                 }
                 if source_expression_type != target_expression_type {
                     val = val.transmute(target_expression_type);
@@ -2446,9 +2444,8 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
 
     /// Evaluates the length value of an Array type and returns its value as usize
     pub fn get_array_length(&self, length: &'tcx Const<'tcx>) -> usize {
-        let param_env = self.type_visitor().get_param_env();
         length
-            .try_eval_target_usize(self.tcx, param_env)
+            .try_to_target_usize(self.tcx)
             .expect("Array length constant to have a known value") as usize
     }
 

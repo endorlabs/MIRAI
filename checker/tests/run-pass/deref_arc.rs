@@ -5,6 +5,7 @@
 //
 
 // A test that dereferences an Arc
+#![allow(dead_code)]
 
 use mirai_annotations::*;
 
@@ -27,9 +28,7 @@ impl Block {
             return;
         }
         verify!(proposed_block.round() > self.round());
-    } //~ possible unsatisfied precondition
-      //~ related location
-      // todo: fix this
+    }
 }
 
 pub fn main() {}

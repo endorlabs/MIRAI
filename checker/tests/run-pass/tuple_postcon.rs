@@ -5,6 +5,7 @@
 //
 
 // A test that assumes a post condition on a structured return value
+#![allow(dead_code)]
 
 use mirai_annotations::*;
 

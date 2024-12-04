@@ -13,6 +13,7 @@
 // private and not very stable set of APIs from whatever compiler is in the path when we run Mirai.
 // While pretty bad, it is a lot less bad than having to write our own compiler, so here goes.
 #![feature(rustc_private)]
+#![allow(unexpected_cfgs)]
 
 extern crate env_logger;
 extern crate mirai;
@@ -136,8 +137,7 @@ fn main() {
         let compiler =
             rustc_driver::RunCompiler::new(&rustc_command_line_arguments, &mut callbacks);
         compiler.run()
-    })
-    .and_then(|result| result);
+    });
     let exit_code = match result {
         Ok(_) => rustc_driver::EXIT_SUCCESS,
         Err(_) => rustc_driver::EXIT_FAILURE,

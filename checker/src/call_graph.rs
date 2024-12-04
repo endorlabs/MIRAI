@@ -4,21 +4,22 @@
 // LICENSE file in the root directory of this source tree.
 
 use core::fmt;
-use mirai_annotations::*;
+use std::collections::hash_map::Entry;
+use std::collections::{HashMap, HashSet, VecDeque};
+use std::fs;
+use std::path::Path;
+
 use petgraph::dot::{Config, Dot};
 use petgraph::graph::{DefaultIx, NodeIndex};
 use petgraph::visit::Bfs;
 use petgraph::{Direction, Graph};
 use regex::Regex;
-use rustc_hir::def_id::DefId;
-use rustc_middle::ty::TyCtxt;
 use serde::ser::{SerializeMap, Serializer};
 use serde::{Deserialize, Serialize};
-use serde_json;
-use std::collections::hash_map::Entry;
-use std::collections::{HashMap, HashSet, VecDeque};
-use std::fs;
-use std::path::Path;
+
+use mirai_annotations::*;
+use rustc_hir::def_id::DefId;
+use rustc_middle::ty::TyCtxt;
 
 // An unique identifier for a Rust type string.
 type TypeId = u32;
@@ -334,7 +335,7 @@ pub struct CallGraph<'tcx> {
 }
 
 impl<'tcx> CallGraph<'tcx> {
-    pub fn new(path_to_config: Option<String>, tcx: TyCtxt<'tcx>) -> CallGraph {
+    pub fn new(path_to_config: Option<String>, tcx: TyCtxt<'tcx>) -> CallGraph<'tcx> {
         let config = match path_to_config {
             Some(path) => CallGraph::parse_config(Path::new(&path)),
             None => CallGraphConfig::default(),
@@ -1243,7 +1244,7 @@ impl DatalogOutput {
     ) -> String {
         let mut relation_strings = Vec::<String>::new();
         for relation in relations.iter() {
-            if filter.map_or(true, |x| x == relation.name) {
+            if filter.is_none_or(|x| x == relation.name) {
                 match backend {
                     DatalogBackend::DifferentialDatalog => relation_strings
                         .push(format!("insert {};", relation.to_differential_datalog())),
@@ -1265,7 +1266,7 @@ impl DatalogOutput {
                 self.output_relation_set(
                     &self.relations,
                     None,
-                    DatalogBackend::DifferentialDatalog
+                    DatalogBackend::DifferentialDatalog,
                 )
             ),
         )
@@ -1362,7 +1363,7 @@ impl CallSiteOutput {
         let mut calls = vec![];
         let mut sites: Vec<(&rustc_span::Span, &(DefId, DefId))> =
             call_graph.call_sites.iter().collect();
-        sites.sort();
+        sites.sort_by(|a, b| a.0.cmp(b.0));
         for (loc, (caller, callee)) in sites.iter() {
             let source_loc = loc.source_callsite();
             if let Ok(line_and_file) = source_map.span_to_lines(source_loc) {
@@ -1414,7 +1415,7 @@ impl CallSiteOutput {
                 let mut file_name = None;
                 if let rustc_span::FileName::Real(real_fname) = fname {
                     if let Some(p) = real_fname.remapped_path_if_available().to_str() {
-                        file_name = Some(p.into());
+                        file_name = p.split("/lib/rustlib/src").last().map(|s| s.to_string());
                     }
                 }
                 files.push(file_name.unwrap_or_else(|| "unknown".into()));

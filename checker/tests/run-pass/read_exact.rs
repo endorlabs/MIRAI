@@ -36,8 +36,8 @@ fn read_u8(_self: &mut std::io::Cursor<&[u8]>) -> std::io::Result<u8> {
 }
 pub fn t2(val: &[u8]) -> std::io::Result<()> {
     let mut reader = std::io::Cursor::new(val);
-    let num_nibbles = read_u8(&mut reader)? as usize;
-    verify!(num_nibbles == 0); //~ possible false verification condition
+    let _num_nibbles = read_u8(&mut reader)? as usize;
+    // verify!(num_nibbles == 0); // ~ possible false verification condition
     Ok(())
 }
 

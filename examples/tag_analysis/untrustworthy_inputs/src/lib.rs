@@ -6,12 +6,12 @@
 // This is an example of using tag analysis to track untrustworthy inputs.
 // The code is extracted from a crate for public-key cryptography.
 
+#![allow(unexpected_cfgs)]
 #![cfg_attr(mirai, allow(incomplete_features), feature(generic_const_exprs))]
 
 #[macro_use]
 extern crate mirai_annotations;
 
-use core::convert::TryFrom;
 #[cfg(mirai)]
 use mirai_annotations::{TagPropagation, TagPropagationSet};
 
@@ -91,8 +91,6 @@ pub mod untrustworthy_public_keys {
 }
 
 pub mod verified_public_keys {
-    use core::convert::TryFrom;
-
     pub fn test_checked_public_key(bytes: &[u8]) {
         let key = match crate::PublicKey::try_from(bytes) {
             Err(..) => crate::A_VALID_PUBLIC_KEY,

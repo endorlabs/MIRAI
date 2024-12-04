@@ -17,7 +17,10 @@
 #![feature(array_chunks)]
 #![feature(box_patterns)]
 #![feature(core_intrinsics)]
+#![feature(f16)]
+//#![feature(f128)]
 #![allow(clippy::mutable_key_type)]
+#![allow(unexpected_cfgs)]
 
 #[macro_use]
 extern crate log;
@@ -34,6 +37,7 @@ extern crate rustc_middle;
 extern crate rustc_session;
 extern crate rustc_span;
 extern crate rustc_target;
+extern crate rustc_trait_selection;
 
 /// If the currently analyzed function has been marked as angelic because was discovered
 /// to do something that cannot be analyzed, or if the time taken to analyze the current

@@ -5,6 +5,7 @@
 //
 
 // A test that tracks slice lengths
+#![allow(dead_code)]
 
 pub struct NetworkStream {
     buffer: Vec<u8>,

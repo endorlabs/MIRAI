@@ -99,7 +99,6 @@ macro_rules! atomic_xchg {
         pub unsafe fn $n(dst: *mut $t, src: $t) -> $t {
             let bw = std::intrinsics::size_of::<$t>();
             precondition!((dst as usize) & (bw - 1) == 0);
-            precondition!((src as usize) & (bw - 1) == 0);
             let result = *dst;
             *dst = src;
             result
@@ -134,6 +133,17 @@ macro_rules! exact_signed_div {
             precondition!(x != $m || y != -1);
             precondition!(x % y == 0);
             x / y
+        }
+    };
+}
+
+macro_rules! mul_with_overflow {
+    ($t:ty, $tt:ty, $n:ident, $m:expr ) => {
+        pub fn $n(x: $t, y: $t) -> ($tt, bool) {
+            use ::std::num::Wrapping;
+            use std::ops::Mul;
+            let result = Wrapping(x as $tt).mul(Wrapping(y as $tt)).0;
+            (result % (($m as $tt) + 1), result > ($m as $tt))
         }
     };
 }

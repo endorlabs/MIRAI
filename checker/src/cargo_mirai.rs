@@ -9,11 +9,12 @@
 // 2) It calls mirai rather than rustc for all the targets of the current package.
 // 3) It runs cargo test --no-run for test targets.
 
-use cargo_metadata::{Package, Target, TargetKind};
 use std::ffi::OsString;
 use std::ops::Index;
 use std::path::Path;
 use std::process::Command;
+
+use cargo_metadata::{Package, Target, TargetKind};
 
 const CARGO_MIRAI_HELP: &str = r#"Static analysis tool for Rust programs
 
@@ -48,7 +49,7 @@ pub fn main() {
         }
         Some(arg) => {
             eprintln!(
-                "`cargo-mirai` called with invalid first argument: {arg}; please only invoke this binary through `cargo mirai`" 
+                "`cargo-mirai` called with invalid first argument: {arg}; please only invoke this binary through `cargo mirai`"
             );
         }
         _ => {
@@ -267,10 +268,7 @@ fn get_arg_flag_presence(name: &str) -> bool {
 fn get_arg_flag_value(name: &str) -> Option<String> {
     let mut args = std::env::args().take_while(|val| val != "--");
     loop {
-        let arg = match args.next() {
-            Some(arg) => arg,
-            None => return None,
-        };
+        let arg = args.next()?;
         if !arg.starts_with(name) {
             continue;
         }

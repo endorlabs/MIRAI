@@ -3,6 +3,22 @@
 // This source code is licensed under the MIT license found in the
 // LICENSE file in the root directory of this source tree.
 
+use std::cmp::Ordering;
+use std::collections::{HashMap, HashSet};
+use std::fmt::{Debug, Formatter, Result};
+use std::hash::{Hash, Hasher};
+use std::ops::Deref;
+use std::rc::Rc;
+
+use itertools::Itertools;
+use log_derive::{logfn, logfn_inputs};
+use serde::{Deserialize, Serialize};
+use sled::{Config, Db};
+
+use mirai_annotations::*;
+use rustc_hir::def_id::DefId;
+use rustc_middle::ty::{Ty, TyCtxt};
+
 use crate::abstract_value::AbstractValue;
 use crate::abstract_value::AbstractValueTrait;
 use crate::constant_domain::FunctionReference;
@@ -10,20 +26,6 @@ use crate::environment::Environment;
 use crate::expression::Expression;
 use crate::path::{Path, PathEnum, PathRoot, PathSelector};
 use crate::utils;
-
-use itertools::Itertools;
-use log_derive::{logfn, logfn_inputs};
-use mirai_annotations::*;
-use rustc_hir::def_id::DefId;
-use rustc_middle::ty::{Ty, TyCtxt};
-use serde::{Deserialize, Serialize};
-use sled::{Config, Db};
-use std::cmp::Ordering;
-use std::collections::{HashMap, HashSet};
-use std::fmt::{Debug, Formatter, Result};
-use std::hash::{Hash, Hasher};
-use std::ops::Deref;
-use std::rc::Rc;
 
 /// A summary is a declarative abstract specification of what a function does.
 /// This is calculated once per function and is used by callers of the function.
@@ -309,7 +311,7 @@ fn extract_side_effects(
         {
             path.record_heap_blocks_and_strings(&mut heap_roots);
             value.record_heap_blocks_and_strings(&mut heap_roots);
-            if let Expression::Variable { path: vpath, .. } | Expression::InitialParameterValue { path: vpath, ..} = &value.expression {
+            if let Expression::Variable { path: vpath, .. } | Expression::InitialParameterValue { path: vpath, .. } = &value.expression {
                 if ordinal > 0 && vpath.eq(path) {
                     // The value is not an update, but just what was there at function entry.
                     continue;
@@ -368,7 +370,7 @@ impl<'tcx> CallSiteKey<'tcx> {
     }
 }
 
-impl<'tcx> Hash for CallSiteKey<'tcx> {
+impl Hash for CallSiteKey<'_> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         if let Some(func_args) = &self.func_args {
             func_args.hash(state);
@@ -396,13 +398,13 @@ pub struct PersistentSummaryCache<'tcx> {
     type_context: TyCtxt<'tcx>,
 }
 
-impl<'tcx> Debug for PersistentSummaryCache<'tcx> {
+impl Debug for PersistentSummaryCache<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         "PersistentSummaryCache".fmt(f)
     }
 }
 
-impl<'a, 'tcx: 'a> PersistentSummaryCache<'tcx> {
+impl<'tcx> PersistentSummaryCache<'tcx> {
     /// Creates a new persistent summary cache, using (or creating) a Sled data base at the given
     /// directory path.
     #[logfn(TRACE)]

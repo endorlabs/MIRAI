@@ -38,18 +38,19 @@ log = "*"
 log-derive = "*"
 mirai-annotations = { path = "../annotations" }
 petgraph = "*"
+proc-macro2 = "*"
 rand = "*"
 rayon = "*"
 regex = "*"
 rpds = { version = "*", features = ["serde"] }
 rustc_tools_util = "*"
-serde = { version = "=1.0.203", features = ["derive", "alloc", "rc"] }
+serde = { version = "*", features = ["derive", "alloc", "rc"] }
 serde_json = "*"
 shellwords = "*"
 sled = "*"
 tar = "*"
 tempfile = "*"
-z3-sys = { version = "*", git = "https://github.com/prove-rs/z3.rs.git", optional = true }
+z3-sys = { version = "*", git = "https://github.com/prove-rs/z3.rs.git", rev = "cb10013a2a0a017048b1d218bc734afa390f34ff", optional = true }
 
 [dev-dependencies]
 walkdir = "*"

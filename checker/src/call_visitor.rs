@@ -3,15 +3,18 @@
 // This source code is licensed under the MIT license found in the
 // LICENSE file in the root directory of this source tree.
 
+// use std::{f16, f64, f128};
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter, Result};
 use std::rc::Rc;
+use std::{f16, f64};
 
 use log_derive::*;
 
 use mirai_annotations::*;
 use rustc_hir::def_id::DefId;
 use rustc_middle::mir;
+use rustc_middle::ty::ConstKind;
 use rustc_middle::ty::{GenericArg, GenericArgKind, GenericArgsRef, Ty, TyKind, UintTy};
 use rustc_target::abi::VariantIdx;
 
@@ -48,9 +51,7 @@ pub struct CallVisitor<'call, 'block, 'analysis, 'compilation, 'tcx> {
     pub initial_type_cache: Option<Rc<HashMap<Rc<Path>, Ty<'tcx>>>>,
 }
 
-impl<'call, 'block, 'analysis, 'compilation, 'tcx> Debug
-    for CallVisitor<'call, 'block, 'analysis, 'compilation, 'tcx>
-{
+impl Debug for CallVisitor<'_, '_, '_, '_, '_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         "CallVisitor".fmt(f)
     }
@@ -201,7 +202,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
         }
         if let Some(gen_args) = self.callee_generic_arguments {
             // The parameter environment of the caller provides a resolution context for the callee.
-            let param_env = rustc_middle::ty::ParamEnv::reveal_all();
+            let typing_env = rustc_middle::ty::TypingEnv::fully_monomorphized();
             trace!(
                 "devirtualize resolving def_id {:?}: {:?}",
                 self.callee_def_id,
@@ -223,9 +224,9 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 .fn_sig(tcx)
                 .abi();
             let resolved_instance = if abi == rustc_target::spec::abi::Abi::Rust {
-                Some(rustc_middle::ty::Instance::resolve(
+                Some(rustc_middle::ty::Instance::try_resolve(
                     tcx,
-                    param_env,
+                    typing_env,
                     self.callee_def_id,
                     gen_args,
                 ))
@@ -290,7 +291,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
             } else {
                 debug!(
                     "could not resolve function {:?}, {:?}, {:?}",
-                    self.callee_def_id, param_env, gen_args,
+                    self.callee_def_id, typing_env, gen_args,
                 )
             }
         }
@@ -377,7 +378,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
             if result.is_computed || func_ref.def_id.is_none() {
                 return Some(result);
             }
-            if call_depth < 3 {
+            if call_depth < 4 {
                 let mut summary =
                     self.create_and_cache_function_summary(&func_args, &initial_type_cache);
                 if call_depth >= 1 {
@@ -600,12 +601,20 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                     generator_call_visitor.get_function_summary();
                 return true;
             }
+            KnownNames::StdIntrinsicsConstEvalSelect => {
+                self.handle_const_eval_select();
+                return true;
+            }
             KnownNames::StdIntrinsicsCopy | KnownNames::StdIntrinsicsCopyNonOverlapping => {
                 self.handle_copy_non_overlapping();
                 return true;
             }
             KnownNames::StdIntrinsicsDiscriminantValue => {
                 self.handle_discriminant_value();
+                return true;
+            }
+            KnownNames::StdIntrinsicsThreeWayCompare => {
+                self.handle_three_way_compare();
                 return true;
             }
             KnownNames::StdIntrinsicsTransmute => {
@@ -718,11 +727,11 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                                     // caller (or on its callers) must ensure that is_zero will be true
                                     // at runtime when this call is issued.
                                     let precondition = Precondition {
-                                            condition: promotable_is_zero,
-                                            message: Rc::from("incomplete analysis of call because of failure to resolve std::Clone::clone method"),
-                                            provenance: None,
-                                            spans: vec![self.block_visitor.bv.current_span.source_callsite()],
-                                        };
+                                        condition: promotable_is_zero,
+                                        message: Rc::from("incomplete analysis of call because of failure to resolve std::Clone::clone method"),
+                                        provenance: None,
+                                        spans: vec![self.block_visitor.bv.current_span.source_callsite()],
+                                    };
                                     self.block_visitor.bv.preconditions.push(precondition);
                                     discr_0_val
                                 } else {
@@ -1109,68 +1118,117 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                     .1
                     .intrinsic_bit_vector_unary(bit_length, self.callee_known_name)
             }
-            KnownNames::StdIntrinsicsCeilf32
+            KnownNames::StdIntrinsicsCeilf16
+            | KnownNames::StdIntrinsicsCeilf32
             | KnownNames::StdIntrinsicsCeilf64
+            | KnownNames::StdIntrinsicsCeilf128
+            | KnownNames::StdIntrinsicsCosf16
             | KnownNames::StdIntrinsicsCosf32
             | KnownNames::StdIntrinsicsCosf64
+            | KnownNames::StdIntrinsicsCosf128
+            | KnownNames::StdIntrinsicsExp2f16
             | KnownNames::StdIntrinsicsExp2f32
             | KnownNames::StdIntrinsicsExp2f64
+            | KnownNames::StdIntrinsicsExp2f128
+            | KnownNames::StdIntrinsicsExpf16
             | KnownNames::StdIntrinsicsExpf32
             | KnownNames::StdIntrinsicsExpf64
+            | KnownNames::StdIntrinsicsExpf128
+            | KnownNames::StdIntrinsicsFabsf16
             | KnownNames::StdIntrinsicsFabsf32
             | KnownNames::StdIntrinsicsFabsf64
+            | KnownNames::StdIntrinsicsFabsf128
+            | KnownNames::StdIntrinsicsFloorf16
             | KnownNames::StdIntrinsicsFloorf32
             | KnownNames::StdIntrinsicsFloorf64
+            | KnownNames::StdIntrinsicsFloorf128
+            | KnownNames::StdIntrinsicsLog10f16
             | KnownNames::StdIntrinsicsLog10f32
             | KnownNames::StdIntrinsicsLog10f64
+            | KnownNames::StdIntrinsicsLog10f128
+            | KnownNames::StdIntrinsicsLog2f16
             | KnownNames::StdIntrinsicsLog2f32
             | KnownNames::StdIntrinsicsLog2f64
+            | KnownNames::StdIntrinsicsLog2f128
+            | KnownNames::StdIntrinsicsLogf16
             | KnownNames::StdIntrinsicsLogf32
             | KnownNames::StdIntrinsicsLogf64
+            | KnownNames::StdIntrinsicsLogf128
+            | KnownNames::StdIntrinsicsNearbyintf16
             | KnownNames::StdIntrinsicsNearbyintf32
             | KnownNames::StdIntrinsicsNearbyintf64
+            | KnownNames::StdIntrinsicsNearbyintf128
+            | KnownNames::StdIntrinsicsRintf16
             | KnownNames::StdIntrinsicsRintf32
             | KnownNames::StdIntrinsicsRintf64
+            | KnownNames::StdIntrinsicsRintf128
+            | KnownNames::StdIntrinsicsRoundf16
             | KnownNames::StdIntrinsicsRoundf32
             | KnownNames::StdIntrinsicsRoundf64
+            | KnownNames::StdIntrinsicsRoundf128
+            | KnownNames::StdIntrinsicsSinf16
             | KnownNames::StdIntrinsicsSinf32
             | KnownNames::StdIntrinsicsSinf64
+            | KnownNames::StdIntrinsicsSinf128
+            | KnownNames::StdIntrinsicsSqrtf16
             | KnownNames::StdIntrinsicsSqrtf32
             | KnownNames::StdIntrinsicsSqrtf64
+            | KnownNames::StdIntrinsicsSqrtf128
+            | KnownNames::StdIntrinsicsTruncf16
             | KnownNames::StdIntrinsicsTruncf32
-            | KnownNames::StdIntrinsicsTruncf64 => {
+            | KnownNames::StdIntrinsicsTruncf64
+            | KnownNames::StdIntrinsicsTruncf128 => {
                 checked_assume!(self.actual_args.len() == 1);
                 self.actual_args[0]
                     .1
                     .intrinsic_floating_point_unary(self.callee_known_name)
             }
-            KnownNames::StdIntrinsicsCopysignf32
+            KnownNames::StdIntrinsicsCopysignf16
+            | KnownNames::StdIntrinsicsCopysignf32
             | KnownNames::StdIntrinsicsCopysignf64
+            | KnownNames::StdIntrinsicsCopysignf128
+            | KnownNames::StdIntrinsicsFaddAlgebraic
             | KnownNames::StdIntrinsicsFaddFast
+            | KnownNames::StdIntrinsicsFdivAlgebraic
             | KnownNames::StdIntrinsicsFdivFast
+            | KnownNames::StdIntrinsicsFmulAlgebraic
             | KnownNames::StdIntrinsicsFmulFast
+            | KnownNames::StdIntrinsicsFremAlgebraic
             | KnownNames::StdIntrinsicsFremFast
+            | KnownNames::StdIntrinsicsFsubAlgebraic
             | KnownNames::StdIntrinsicsFsubFast
+            | KnownNames::StdIntrinsicsMaxnumf16
             | KnownNames::StdIntrinsicsMaxnumf32
             | KnownNames::StdIntrinsicsMaxnumf64
+            | KnownNames::StdIntrinsicsMaxnumf128
+            | KnownNames::StdIntrinsicsMinnumf16
             | KnownNames::StdIntrinsicsMinnumf32
             | KnownNames::StdIntrinsicsMinnumf64
+            | KnownNames::StdIntrinsicsMinnumf128
+            | KnownNames::StdIntrinsicsPowf16
             | KnownNames::StdIntrinsicsPowf32
             | KnownNames::StdIntrinsicsPowf64
+            | KnownNames::StdIntrinsicsPowf128
+            | KnownNames::StdIntrinsicsPowif16
             | KnownNames::StdIntrinsicsPowif32
-            | KnownNames::StdIntrinsicsPowif64 => {
+            | KnownNames::StdIntrinsicsPowif64
+            | KnownNames::StdIntrinsicsPowif128 => {
                 checked_assume!(self.actual_args.len() == 2);
                 self.actual_args[0]
                     .1
                     .intrinsic_binary(self.actual_args[1].1.clone(), self.callee_known_name)
             }
+            KnownNames::StdIntrinsicsFloatToIntUnchecked => self.handle_float_to_int_unchecked(),
+            KnownNames::StdIntrinsicsIsValStaticallyKnown => self.handle_is_val_statically_known(),
             KnownNames::StdIntrinsicsMinAlignOfVal => self.handle_min_align_of_val(),
             KnownNames::StdIntrinsicsMulWithOverflow => self.handle_checked_binary_operation(),
             KnownNames::StdIntrinsicsNeedsDrop => self.handle_needs_drop(),
             KnownNames::StdIntrinsicsOffset => self.handle_offset(),
+            KnownNames::StdIntrinsicsPrefAlignOfVal => self.handle_pref_align_of_val(),
             KnownNames::StdIntrinsicsRawEq => self.handle_raw_eq(),
             KnownNames::StdIntrinsicsSizeOf => self.handle_size_of(),
             KnownNames::StdIntrinsicsSizeOfVal => self.handle_size_of_val(),
+            KnownNames::StdIntrinsicsVariantCount => self.handle_variant_count(),
             KnownNames::StdSliceCmpMemcmp => self.handle_memcmp(),
             _ => abstract_value::BOTTOM.into(),
         }
@@ -1237,7 +1295,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
             // if the called function actually expects it.
             let tcx = self.block_visitor.bv.tcx;
             let callee_ty = self.actual_argument_types[0];
-            if !callee_ty.is_fn() || tcx.is_closure_or_coroutine(def_id) {
+            if !callee_ty.is_fn() || tcx.is_closure_like(def_id) {
                 actual_args.insert(0, self.actual_args[0].clone());
                 actual_argument_types.insert(0, callee_ty);
                 if self.callee_known_name == KnownNames::StdOpsFunctionFnOnceCallOnce
@@ -1426,7 +1484,9 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
             .get_dereferenced_type(source_pointer_rustc_type);
         let target_type = ExpressionType::from(source_rustc_type.kind());
         let source_thin_pointer_path = if source_rustc_type.is_box() {
-            source_rustc_type = source_rustc_type.boxed_ty();
+            source_rustc_type = source_rustc_type
+                .boxed_ty()
+                .expect("source_rustc_type.is_box() type");
             let box_path = Path::new_deref(source_pointer_path, target_type)
                 .canonicalize(&self.block_visitor.bv.current_environment);
             // Box.0 = Unique, Unique.0 = NonNullPtr, NonNullPtr.0 = source thin pointer
@@ -1974,6 +2034,15 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
         abstract_value::BOTTOM.into()
     }
 
+    /// Selects which function to call depending on the context.
+    ///
+    /// If this function is evaluated at compile-time, then a call to this
+    /// intrinsic will be replaced with a call to `called_in_const`. It gets
+    /// replaced with a call to `called_at_rt` otherwise.
+    fn handle_const_eval_select(&self) {
+        unreachable!("assuming this function has already been evaluated and replaced");
+    }
+
     /// Copies a slice of elements from the source to the destination.
     #[logfn_inputs(TRACE)]
     fn handle_copy_non_overlapping(&mut self) {
@@ -2042,6 +2111,57 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
             .bv
             .update_value_at(target_path, discriminant_value);
         self.use_entry_condition_as_exit_condition();
+    }
+
+    fn handle_float_to_int_unchecked(&mut self) -> Rc<AbstractValue> {
+        checked_assume!(self.actual_args.len() == 1);
+        let value = self.actual_args[0].1.clone();
+        match value.expression {
+            Expression::CompileTimeConstant(ConstantDomain::F16(v)) => {
+                let f = f16::from_bits(v);
+                let i = unsafe { f16::to_int_unchecked::<i16>(f) };
+                Rc::new(ConstantDomain::I128(i as i128).into())
+            }
+            Expression::CompileTimeConstant(ConstantDomain::F32(v)) => {
+                let f = f32::from_bits(v);
+                let i = unsafe { f32::to_int_unchecked::<i32>(f) };
+                Rc::new(ConstantDomain::I128(i as i128).into())
+            }
+            Expression::CompileTimeConstant(ConstantDomain::F64(v)) => {
+                let f = f64::from_bits(v);
+                let i = unsafe { f64::to_int_unchecked::<i64>(f) };
+                Rc::new(ConstantDomain::I128(i as i128).into())
+            }
+            // Expression::CompileTimeConstant(ConstantDomain::F128(v)) => {
+            //     let f = f128::from_bits(v);
+            //     let i = unsafe { f128::to_int_unchecked::<i128>(f) };
+            //     Rc::new(ConstantDomain::I128(i).into())
+            // }
+            _ => {
+                // todo: use a delayed operator that can get specialized away
+                let target_path = self.block_visitor.visit_rh_place(&self.destination);
+                value.uninterpreted_call(vec![value.clone()], ExpressionType::I128, target_path)
+            }
+        }
+    }
+
+    fn handle_is_val_statically_known(&self) -> Rc<AbstractValue> {
+        checked_assume!(self.actual_args.len() == 1);
+        let val = &self.actual_args[0].1;
+        Rc::new(val.is_compile_time_constant().into())
+    }
+
+    fn handle_pref_align_of_val(&mut self) -> Rc<AbstractValue> {
+        checked_assume!(self.actual_argument_types.len() == 1);
+        let t = self
+            .type_visitor()
+            .get_dereferenced_type(self.actual_argument_types[0]);
+        if let Ok(ty_and_layout) = self.type_visitor().layout_of(t) {
+            return Rc::new((ty_and_layout.layout.align().pref.bytes() as u128).into());
+        }
+        // todo: need an expression that resolves to the value pref alignment once the value is known (typically after call site refinement).
+        let path = self.block_visitor.visit_rh_place(&self.destination);
+        AbstractValue::make_typed_unknown(ExpressionType::U128, path)
     }
 
     /// Swaps a slice of elements from the source to the destination.
@@ -2213,8 +2333,8 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
             .get(&sym)
             .expect("std::intrinsics::needs_drop must have generic argument T")
             .expect_ty();
-        let param_env = self.block_visitor.bv.tcx.param_env(self.callee_def_id);
-        let result = t.needs_drop(self.block_visitor.bv.tcx, param_env);
+        let typing_env = self.type_visitor().get_typing_env_for(self.callee_def_id);
+        let result = t.needs_drop(self.block_visitor.bv.tcx, typing_env);
         Rc::new(result.into())
     }
 
@@ -2324,7 +2444,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
         if let Ok(ty_and_layout) = self.type_visitor().layout_of(t) {
             return Rc::new((ty_and_layout.layout.align().abi.bytes() as u128).into());
         }
-        // todo: need an expression that resolves to the value size once the value is known (typically after call site refinement).
+        // todo: need an expression that resolves to the value min alignment once the value is known (typically after call site refinement).
         let path = self.block_visitor.visit_rh_place(&self.destination);
         AbstractValue::make_typed_unknown(ExpressionType::U128, path)
     }
@@ -2380,6 +2500,10 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
         // todo: need an expression that resolves to the value size once the value is known (typically after call site refinement).
         let path = self.block_visitor.visit_rh_place(&self.destination);
         AbstractValue::make_typed_unknown(ExpressionType::U128, path)
+    }
+
+    fn handle_three_way_compare(&self) {
+        unreachable!("should not get here because the Ord trait methods have foreign contracts");
     }
 
     /// Reinterprets the bits of a value of one type as another type.
@@ -2503,6 +2627,20 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
             info!("count {:?}", self.actual_args[2]);
         }
         self.use_entry_condition_as_exit_condition();
+    }
+
+    fn handle_variant_count(&mut self) -> Rc<AbstractValue> {
+        let sym = rustc_span::Symbol::intern("T");
+        let t = (self.callee_generic_argument_map.as_ref())
+            .expect("std::intrinsics::variant_count must be called with generic arguments")
+            .get(&sym)
+            .expect("std::intrinsics::variant_count must have generic argument T")
+            .expect_ty();
+        let mut result = 0;
+        if let TyKind::Adt(def, _) = t.kind() {
+            result = def.variants().len();
+        }
+        Rc::new((result as u128).into())
     }
 
     /// Give diagnostic depending on self.bv.options.diag_level
@@ -3099,11 +3237,17 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                     }
                 };
 
+                let is_u128 = |kind: ConstKind| {
+                    if let ConstKind::Value(ty, _) = kind {
+                        *ty.kind() == TyKind::Uint(UintTy::U128)
+                    } else {
+                        false
+                    }
+                };
+
                 // Extract the tag type's first parameter.
                 let tag_propagation_set_rustc_const = match tag_substs_ref[0].unpack() {
-                    GenericArgKind::Const(rustc_const)
-                        if *rustc_const.ty().kind() == TyKind::Uint(UintTy::U128) =>
-                    {
+                    GenericArgKind::Const(rustc_const) if is_u128(rustc_const.kind()) => {
                         rustc_const
                     }
                     _ => {
@@ -3158,7 +3302,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 .options
                 .constant_time_tag_name
                 .as_ref()
-                .map_or(false, |expected_tag_name| {
+                .is_some_and(|expected_tag_name| {
                     expected_tag_name.eq(&self.block_visitor.bv.tcx.def_path_str(tag_def_id))
                 });
             if matched {

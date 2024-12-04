@@ -5,6 +5,8 @@
 
 // A set of macros and functions to use for annotating source files that are being checked with MIRAI
 
+#![allow(unexpected_cfgs)]
+
 /// Provides a way to specify a value that should be treated abstractly by the verifier.
 /// The concrete argument provides type information to the verifier and a meaning for
 /// the expression when compiled by the rust compiler.

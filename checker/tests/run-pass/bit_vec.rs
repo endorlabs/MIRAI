@@ -8,6 +8,8 @@
 
 // MIRAI_FLAGS --diag=default
 
+#![allow(dead_code)]
+
 pub struct BitVec {
     inner: Vec<u8>,
 }

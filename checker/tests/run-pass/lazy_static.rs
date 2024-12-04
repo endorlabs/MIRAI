@@ -58,12 +58,13 @@ impl Drop for WaiterQueue<'_> {
         unsafe {
             let mut queue = (state_and_queue & !STATE_MASK) as *const Waiter;
             while !queue.is_null() {
-                let next = (*queue).next;
-                let thread = (*queue).thread.replace(None).unwrap();
+                let next = (*queue).next; //~ possible misaligned pointer dereference
+                let thread = (*queue).thread.replace(None).unwrap(); // ~ called `Option::unwrap()` on a `None` value
                 (*queue).signaled.store(true, Ordering::Release);
                 queue = next;
                 thread.unpark();
             }
+            // ~ related location
         }
     }
 }
@@ -238,7 +239,6 @@ impl<T> OnceCell<T> {
         enum Void {}
         match self.get_or_try_init(|| Ok::<T, Void>(f())) {
             Ok(val) => val,
-            Err(void) => match void {},
         }
     }
 

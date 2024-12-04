@@ -6,6 +6,7 @@
 // A test that does unsafe casting and manipulation of pointers to transparent wrappers
 
 // MIRAI_FLAGS --diag=verify
+#![allow(dead_code)]
 
 use std::cell::Cell;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
@@ -37,8 +38,9 @@ impl Drop for WaiterQueue<'_> {
         unsafe {
             let mut queue = (state_and_queue & !STATE_MASK) as *const Waiter;
             while !queue.is_null() {
-                let next = (*queue).next;
-                let thread = (*queue).thread.replace(None).unwrap();
+                let next = (*queue).next; //~ possible misaligned pointer dereference
+                let thread = (*queue).thread.replace(None).unwrap(); //~ called `Option::unwrap()` on a `None` value
+                //~ related location
                 (*queue).signaled.store(true, Ordering::Release);
                 queue = next;
                 thread.unpark();

@@ -7,20 +7,22 @@
 // 'tcx is the lifetime of the type context created during the lifetime of the after_analysis call back.
 // 'analysis is the life time of the analyze_with_mirai call back that is invoked with the type context.
 
-use log::*;
-use log_derive::{logfn, logfn_inputs};
-use mirai_annotations::*;
-use rustc_errors::DiagnosticBuilder;
-use rustc_hir::def_id::{DefId, DefIndex};
-use rustc_middle::mir;
-use rustc_middle::ty::{GenericArgsRef, TyCtxt};
-use rustc_session::Session;
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter, Result};
 use std::rc::Rc;
 use std::time::Instant;
+
+use log::*;
+use log_derive::{logfn, logfn_inputs};
+
+use mirai_annotations::*;
+use rustc_errors::Diag;
+use rustc_hir::def_id::{DefId, DefIndex};
+use rustc_middle::mir;
+use rustc_middle::ty::{GenericArgsRef, TyCtxt};
+use rustc_session::Session;
 
 use crate::body_visitor::BodyVisitor;
 use crate::call_graph::CallGraph;
@@ -40,11 +42,11 @@ use crate::utils;
 // 'compilation is the lifetime of the call to MiraiCallbacks::after_analysis.
 // 'tcx is the lifetime of the closure call that calls analyze_with_mirai, which calls analyze_some_bodies.
 pub struct CrateVisitor<'compilation, 'tcx> {
-    pub buffered_diagnostics: Vec<DiagnosticBuilder<'compilation, ()>>,
+    pub buffered_diagnostics: Vec<Diag<'compilation, ()>>,
     pub constant_time_tag_cache: Option<Tag>,
     pub constant_time_tag_not_found: bool,
     pub constant_value_cache: ConstantValueCache<'tcx>,
-    pub diagnostics_for: HashMap<DefId, Vec<DiagnosticBuilder<'compilation, ()>>>,
+    pub diagnostics_for: HashMap<DefId, Vec<Diag<'compilation, ()>>>,
     pub file_name: &'compilation str,
     pub generic_args_cache: HashMap<DefId, GenericArgsRef<'tcx>>,
     pub known_names_cache: KnownNamesCache,
@@ -57,13 +59,13 @@ pub struct CrateVisitor<'compilation, 'tcx> {
     pub call_graph: CallGraph<'tcx>,
 }
 
-impl<'compilation, 'tcx> Debug for CrateVisitor<'compilation, 'tcx> {
+impl Debug for CrateVisitor<'_, '_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         "CrateVisitor".fmt(f)
     }
 }
 
-impl<'compilation, 'tcx> CrateVisitor<'compilation, 'tcx> {
+impl<'compilation> CrateVisitor<'compilation, '_> {
     /// Analyze some of the bodies in the crate that is being compiled.
     #[logfn(TRACE)]
     pub fn analyze_some_bodies(&mut self) {
@@ -105,7 +107,7 @@ impl<'compilation, 'tcx> CrateVisitor<'compilation, 'tcx> {
                 {
                     debug!("skipping function {} as it is generic", name);
                     continue;
-                } else if self.tcx.is_const_fn_raw(def_id) {
+                } else if self.tcx.is_const_fn(def_id) {
                     debug!("skipping function {} as it is a constant function", name);
                     continue;
                 } else if utils::is_higher_order_function(def_id, self.tcx) {
@@ -169,7 +171,7 @@ impl<'compilation, 'tcx> CrateVisitor<'compilation, 'tcx> {
     /// and collect any diagnostics into the buffer.
     #[logfn(TRACE)]
     fn analyze_body(&mut self, def_id: DefId) {
-        let mut diagnostics: Vec<DiagnosticBuilder<'compilation, ()>> = Vec::new();
+        let mut diagnostics: Vec<Diag<'compilation, ()>> = Vec::new();
         let mut active_calls_map: HashMap<DefId, u64> = HashMap::new();
         let mut body_visitor = BodyVisitor::new(
             self,
@@ -181,7 +183,7 @@ impl<'compilation, 'tcx> CrateVisitor<'compilation, 'tcx> {
         // Analysis local foreign contracts are not summarized and cached on demand, so we need to do it here.
         let summary = body_visitor.visit_body(&[]);
         let kind = self.tcx.def_kind(def_id);
-        if matches!(kind, rustc_hir::def::DefKind::Static(..))
+        if matches!(kind, rustc_hir::def::DefKind::Static { .. })
             || utils::is_foreign_contract(self.tcx, def_id)
         {
             self.summary_cache.set_summary_for(def_id, summary);
@@ -272,10 +274,7 @@ impl<'compilation, 'tcx> CrateVisitor<'compilation, 'tcx> {
                     diagnostics.push(db);
                 }
             }
-            fn compare_diagnostics<'a>(
-                x: &DiagnosticBuilder<'a, ()>,
-                y: &DiagnosticBuilder<'a, ()>,
-            ) -> Ordering {
+            fn compare_diagnostics<'a>(x: &Diag<'a, ()>, y: &Diag<'a, ()>) -> Ordering {
                 if x.span.primary_spans().lt(y.span.primary_spans()) {
                     Ordering::Less
                 } else if x.span.primary_spans().gt(y.span.primary_spans()) {

@@ -16,6 +16,7 @@ impl Tr for Bar {
     }
 }
 
+#[allow(dead_code)]
 struct BarTwo {}
 
 impl Tr for BarTwo {
@@ -69,11 +70,11 @@ commit;
     {
       "name": "/trait/main()->()",
       "file_index": 0,
-      "first_line": 27,
+      "first_line": 28,
       "local": true
     },
     {
-      "name": "/trait/<Bar as Tr>::bar(&ReBound(DebruijnIndex(0), BoundRegion { var: 0, kind: BrNamed(DefId(0:13 ~ trait[d81f]::{impl#0}::bar::'_), '_) }) Bar)->i32",
+      "name": "/trait/<Bar as Tr>::bar(&'^0.Named(DefId(0:13 ~ trait[ed3e]::{impl#0}::bar::'_), \"'_\") Bar)->i32",
       "file_index": 0,
       "first_line": 14,
       "local": true
@@ -82,7 +83,7 @@ commit;
   "calls": [
     [
       0,
-      29,
+      30,
       13,
       0,
       1
