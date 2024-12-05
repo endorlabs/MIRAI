@@ -63,8 +63,8 @@ pub struct Summary {
     /// there are no repeated attempts at recomputing the summary.
     pub is_computed: bool,
 
-    /// If true, the summary is incomplete, which means that the result and side-effects could be
-    /// over specific because widening did not happen and also that some side-effects may be missing.
+    /// If true, the summary is incomplete, which means that the result and side effects could be
+    /// over specific because widening did not happen and also that some side effects may be missing.
     /// The summary may also fail to mention necessary preconditions or useful post conditions.
     /// This happens if the computation of this summary failed for some reason, for example
     /// no MIR body or a time-out.
@@ -76,7 +76,7 @@ pub struct Summary {
     // Callers should substitute parameter values with argument values and simplify the results
     // under the current path condition. Any values that do not simplify to true will require the
     // caller to either generate an error message or to add a precondition to its own summary that
-    // will be sufficient to ensure that all of the preconditions in this summary are met.
+    // will be sufficient to ensure that all the preconditions in this summary are met.
     // The string value bundled with the condition is the message that details what would go
     // wrong at runtime if the precondition is not satisfied by the caller.
     pub preconditions: Vec<Precondition>,
@@ -86,10 +86,10 @@ pub struct Summary {
     // No two paths in this collection will lead to the same place in memory.
     // Callers should substitute parameter values with argument values and simplify the results
     // under the current path condition. They should then update their current state to reflect the
-    // side-effects of the call.
+    // side effects of the call.
     pub side_effects: Vec<(Rc<Path>, Rc<AbstractValue>)>,
 
-    // A condition that should hold subsequent to a call that completes normally.
+    // A condition that should hold after a call that completes normally.
     // Callers should substitute parameter values with argument values and simplify the results
     // under the current path condition.
     // The resulting value should be conjoined to the current path condition.
@@ -117,10 +117,10 @@ pub struct Precondition {
     pub provenance: Option<Rc<str>>,
     /// A stack of source locations that lead to the definition of the precondition (or the source
     /// expression/statement that would panic if the precondition is not met). It is a stack
-    /// because the precondition might have been promoted (when a non public function does not meet
+    /// because the precondition might have been promoted (when a non-public function does not meet
     /// a precondition of a function it calls, MIRAI infers a precondition that will allow it to
     /// meet the precondition of the call, so things stack up).
-    /// Because this situation arises for non public functions, it is possible to use source spans
+    /// Because this situation arises for non-public functions, it is possible to use source spans
     /// rather than strings to track the locations where the promotions happen.
     #[serde(skip)]
     pub spans: Vec<rustc_span::Span>,
@@ -388,8 +388,13 @@ impl Hash for CallSiteKey<'_> {
 /// Summary. The latter is cleared after every outer fixed point loop iteration.
 /// Also tracks which definitions depend on (use) any particular Summary.
 pub struct PersistentSummaryCache<'tcx> {
+    /// The sled database that stores the summaries. Can be persisted between runs.
     db: Db,
+    /// Functions that are not generic instances are uniquely identified by their def_id and their
+    /// summaries are cached here.
     def_id_cache: HashMap<DefId, Summary>,
+    /// Functions that are generic instances are identified by their function_id and their summaries
+    /// are cached here.
     typed_cache: HashMap<usize, Summary>,
     typed_cache_table: HashMap<CallSiteKey<'tcx>, HashMap<usize, Summary>>,
     reference_cache: HashMap<Rc<FunctionReference>, Summary>,
@@ -405,7 +410,7 @@ impl Debug for PersistentSummaryCache<'_> {
 }
 
 impl<'tcx> PersistentSummaryCache<'tcx> {
-    /// Creates a new persistent summary cache, using (or creating) a Sled data base at the given
+    /// Creates a new persistent summary cache, using (or creating) a Sled database at the given
     /// directory path.
     #[logfn(TRACE)]
     pub fn new(
@@ -556,9 +561,10 @@ impl<'tcx> PersistentSummaryCache<'tcx> {
                     })
                 }
             }
-            // Use the full function reference structs as keys. This is the slow path and it
-            // is only needed for function references that are obtained via deserialization of
-            // function summaries.
+            // Functions that are included in persisted summaries will not have a def_id (nor a
+            // function_id). They were, however, summarized when the summary that included them
+            // was created. We look them up in the database. If they are not found there, we use
+            // a default summary. Either way, we cache the summary in the appropriate reference cache.
             _ => {
                 if self.typed_reference_cache.contains_key(func_ref) {
                     let result = self.typed_reference_cache.get(func_ref);
@@ -614,7 +620,7 @@ impl<'tcx> PersistentSummaryCache<'tcx> {
         }
     }
 
-    /// Returns the summary corresponding to the persistent_key in the the summary database.
+    /// Returns the summary corresponding to the persistent_key in the summary database.
     /// The caller is expected to cache this.
     #[logfn_inputs(TRACE)]
     pub fn get_persistent_summary_for(&self, persistent_key: &str) -> Summary {

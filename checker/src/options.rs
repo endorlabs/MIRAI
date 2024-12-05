@@ -14,7 +14,7 @@ use rustc_session::EarlyDiagCtxt;
 /// Creates the clap::Command metadata for argument parsing.
 fn make_options_parser(running_test_harness: bool) -> Command {
     // We could put this into lazy_static! with a Mutex around, but we really do not expect
-    // to construct this more then once per regular program run.
+    // to construct this more than once per regular program run.
     let mut parser = Command::new("MIRAI")
         .no_binary_name(true)
         .version("v1.1.7")
@@ -60,7 +60,11 @@ fn make_options_parser(running_test_harness: bool) -> Command {
         .arg(Arg::new("print_function_names")
             .long("print_function_names")
             .num_args(0)
-            .help("Just print out the signatures of functions in the crate"));
+            .help("Just print out the signatures of functions in the crate"))
+        .arg(Arg::new("print_summaries")
+            .long("print_summaries")
+            .num_args(0)
+            .help("Print out function summaries (work in progress)"));
     if running_test_harness {
         parser = parser.arg(Arg::new("test_only")
             .long("test_only")
@@ -83,6 +87,7 @@ pub struct Options {
     pub statistics: bool,
     pub call_graph_config: Option<String>,
     pub print_function_names: bool,
+    pub print_summaries: bool,
 }
 
 /// Represents diag level.
@@ -155,7 +160,7 @@ impl Options {
                         return args.to_vec();
                     }
                     ErrorKind::UnknownArgument => {
-                        // Just send all of the arguments to rustc.
+                        // Just send all the arguments to rustc.
                         // Note that this means that MIRAI options and rustc options must always
                         // be separated by --. I.e. any  MIRAI options present in arguments list
                         // will stay unknown to MIRAI and will make rustc unhappy.
@@ -233,6 +238,12 @@ impl Options {
             Some(ValueSource::DefaultValue)
         ) {
             self.print_function_names = true;
+        }
+        if !matches!(
+            matches.value_source("print_summaries"),
+            Some(ValueSource::DefaultValue)
+        ) {
+            self.print_summaries = false;
         }
         args[rustc_args_start..].to_vec()
     }

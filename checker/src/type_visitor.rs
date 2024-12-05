@@ -180,10 +180,7 @@ impl<'tcx> TypeVisitor<'tcx> {
                 rustc_middle::ty::AliasTy { def_id, args, .. },
             ) => {
                 let map = self.get_generic_arguments_map(*def_id, args, &[]);
-                let path_ty = self.specialize_generic_argument_type(
-                    self.tcx.type_of(*def_id).skip_binder(),
-                    &map,
-                );
+                let path_ty = self.specialize_type(self.tcx.type_of(*def_id).skip_binder(), &map);
                 self.add_any_closure_fields_for(&path_ty, path, first_state);
             }
             TyKind::Dynamic(..) | TyKind::FnDef(..) | TyKind::FnPtr(..) => {}
@@ -431,7 +428,7 @@ impl<'tcx> TypeVisitor<'tcx> {
                     info!("result type wanted from function without result local");
                     self.tcx.types.never
                 } else {
-                    self.specialize_generic_argument_type(
+                    self.specialize_type(
                         self.mir.local_decls[mir::Local::from(0usize)].ty,
                         &self.generic_argument_map,
                     )
@@ -454,7 +451,7 @@ impl<'tcx> TypeVisitor<'tcx> {
                         return self.tcx.types.never;
                     }
                     TyKind::Alias(rustc_middle::ty::Projection, ..) => {
-                        t = self.specialize_generic_argument_type(t, &self.generic_argument_map);
+                        t = self.specialize_type(t, &self.generic_argument_map);
                     }
                     _ => {}
                 }
@@ -476,10 +473,7 @@ impl<'tcx> TypeVisitor<'tcx> {
                         ) = &t.kind()
                         {
                             let map = self.get_generic_arguments_map(*def_id, args, &[]);
-                            t = self.specialize_generic_argument_type(
-                                self.tcx.type_of(*def_id).skip_binder(),
-                                &map,
-                            );
+                            t = self.specialize_type(self.tcx.type_of(*def_id).skip_binder(), &map);
                             trace!("opaque type_of {:?}", t.kind());
                             trace!("opaque type_of {:?}", t);
                         }
@@ -829,10 +823,8 @@ impl<'tcx> TypeVisitor<'tcx> {
     #[logfn_inputs(TRACE)]
     pub fn get_loc_ty(&self, local: mir::Local) -> Ty<'tcx> {
         let i = local.as_usize();
-        let loc_ty = self.specialize_generic_argument_type(
-            self.mir.local_decls[local].ty,
-            &self.generic_argument_map,
-        );
+        let loc_ty =
+            self.specialize_type(self.mir.local_decls[local].ty, &self.generic_argument_map);
         if !utils::is_concrete(loc_ty.kind())
             && 0 < i
             && i <= self.mir.arg_count
@@ -920,7 +912,7 @@ impl<'tcx> TypeVisitor<'tcx> {
                     }
                 },
                 mir::ProjectionElem::Field(_, ty) => {
-                    self.specialize_generic_argument_type(*ty, &self.generic_argument_map)
+                    self.specialize_type(*ty, &self.generic_argument_map)
                 }
                 mir::ProjectionElem::Subslice { .. } => base_ty,
                 mir::ProjectionElem::Index(_) | mir::ProjectionElem::ConstantIndex { .. } => {
@@ -1054,21 +1046,21 @@ impl<'tcx> TypeVisitor<'tcx> {
         map: &Option<HashMap<rustc_span::Symbol, GenericArg<'tcx>>>,
     ) -> GenericArg<'tcx> {
         match gen_arg.unpack() {
-            GenericArgKind::Type(ty) => self.specialize_generic_argument_type(ty, map).into(),
+            GenericArgKind::Type(ty) => self.specialize_type(ty, map).into(),
             GenericArgKind::Const(c) => self.specialize_const(c, map).into(),
             _ => gen_arg,
         }
     }
 
     #[logfn_inputs(TRACE)]
-    pub fn specialize_generic_argument_type(
+    pub fn specialize_type(
         &self,
-        gen_arg_type: Ty<'tcx>,
+        ty: Ty<'tcx>,
         map: &Option<HashMap<rustc_span::Symbol, GenericArg<'tcx>>>,
     ) -> Ty<'tcx> {
         // The projection of an associated type. For example,
         // `<T as Trait<..>>::N`.
-        if let TyKind::Alias(rustc_middle::ty::Projection, projection) = gen_arg_type.kind() {
+        if let TyKind::Alias(rustc_middle::ty::Projection, projection) = ty.kind() {
             let specialized_substs = self.specialize_generic_args(projection.args, map);
             let item_def_id = projection.def_id;
             return if utils::are_concrete(specialized_substs) {
@@ -1088,11 +1080,11 @@ impl<'tcx> TypeVisitor<'tcx> {
                     let item_type = self.tcx.type_of(instance_item_def_id).skip_binder();
                     let map =
                         self.get_generic_arguments_map(instance_item_def_id, instance.args, &[]);
-                    if item_type == gen_arg_type && map.is_none() {
+                    if item_type == ty && map.is_none() {
                         // Can happen if the projection just adds a life time
                         item_type
                     } else {
-                        self.specialize_generic_argument_type(item_type, &map)
+                        self.specialize_type(item_type, &map)
                     }
                 } else {
                     let projection_trait = Some(self.tcx.parent(item_def_id));
@@ -1108,35 +1100,35 @@ impl<'tcx> TypeVisitor<'tcx> {
                         }
                     }
                     debug!("could not resolve an associated type with concrete type arguments");
-                    gen_arg_type
+                    ty
                 }
             } else {
                 Ty::new_projection(self.tcx, projection.def_id, specialized_substs)
             };
         }
         if map.is_none() {
-            return gen_arg_type;
+            return ty;
         }
-        match gen_arg_type.kind() {
+        match ty.kind() {
             TyKind::Adt(def, args) => {
                 Ty::new_adt(self.tcx, *def, self.specialize_generic_args(args, map))
             }
             TyKind::Array(elem_ty, len) => {
-                let specialized_elem_ty = self.specialize_generic_argument_type(*elem_ty, map);
+                let specialized_elem_ty = self.specialize_type(*elem_ty, map);
                 let specialized_len = self.specialize_const(*len, map);
                 self.tcx
                     .mk_ty_from_kind(TyKind::Array(specialized_elem_ty, specialized_len))
             }
             TyKind::Slice(elem_ty) => {
-                let specialized_elem_ty = self.specialize_generic_argument_type(*elem_ty, map);
+                let specialized_elem_ty = self.specialize_type(*elem_ty, map);
                 Ty::new_slice(self.tcx, specialized_elem_ty)
             }
             TyKind::RawPtr(ty, mutbl) => {
-                let specialized_ty = self.specialize_generic_argument_type(*ty, map);
+                let specialized_ty = self.specialize_type(*ty, map);
                 Ty::new_ptr(self.tcx, specialized_ty, *mutbl)
             }
             TyKind::Ref(region, ty, mutbl) => {
-                let specialized_ty = self.specialize_generic_argument_type(*ty, map);
+                let specialized_ty = self.specialize_type(*ty, map);
                 Ty::new_ref(self.tcx, *region, specialized_ty, *mutbl)
             }
             TyKind::FnDef(def_id, args) => {
@@ -1149,7 +1141,7 @@ impl<'tcx> TypeVisitor<'tcx> {
                         fn_sig
                             .inputs_and_output
                             .iter()
-                            .map(|ty| self.specialize_generic_argument_type(ty, map)),
+                            .map(|ty| self.specialize_type(ty, map)),
                     );
                     FnSig {
                         inputs_and_output: specialized_inputs_and_output,
@@ -1186,7 +1178,7 @@ impl<'tcx> TypeVisitor<'tcx> {
                                             self.tcx,
                                             def_id,
                                             self.specialize_generic_args(args, map),
-                                            self.specialize_generic_argument_type(ty, map).into(),
+                                            self.specialize_type(ty, map).into(),
                                         ),
                                     )
                                 } else {
@@ -1221,7 +1213,7 @@ impl<'tcx> TypeVisitor<'tcx> {
                     let closures_being_specialized =
                         borrowed_closures_being_specialized.deref_mut();
                     if !closures_being_specialized.insert(*def_id) {
-                        return gen_arg_type;
+                        return ty;
                     }
                 }
                 let specialized_closure =
@@ -1241,9 +1233,7 @@ impl<'tcx> TypeVisitor<'tcx> {
             }
             TyKind::Tuple(types) => Ty::new_tup_from_iter(
                 self.tcx,
-                types
-                    .iter()
-                    .map(|ty| self.specialize_generic_argument_type(ty, map)),
+                types.iter().map(|ty| self.specialize_type(ty, map)),
             ),
             TyKind::Alias(
                 rustc_middle::ty::Opaque,
@@ -1255,9 +1245,9 @@ impl<'tcx> TypeVisitor<'tcx> {
                         return gen_arg.expect_ty();
                     }
                 }
-                gen_arg_type
+                ty
             }
-            _ => gen_arg_type,
+            _ => ty,
         }
     }
 

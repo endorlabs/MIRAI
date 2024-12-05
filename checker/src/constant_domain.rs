@@ -1592,18 +1592,31 @@ impl<'tcx> ConstantValueCache<'tcx> {
             .or_insert_with(|| ConstantDomain::U128(value))
     }
 
-    /// Given the MIR DefId of a function return the unique (cached) ConstantDomain that corresponds
-    /// to the function identified by that DefId.
+    /// Given the MIR DefId and type, of a function, return the unique (cached) ConstantDomain that
+    /// corresponds to the function identified by that DefId.
     pub fn get_function_constant_for(
         &mut self,
+        // The identifier of the function definition.
         def_id: DefId,
+        // The type of the function instance
         ty: Ty<'tcx>,
+        // The generic arguments used to obtain the function instance
         generic_args: Option<GenericArgsRef<'tcx>>,
+        // The rustc type context that knows about def_id
         tcx: TyCtxt<'tcx>,
+        // A cache of known names to updated with this function if its name is known.
         known_names_cache: &mut KnownNamesCache,
+        // A cache of function summaries. It is not provided with a summary for def_id
+        // at this point, but it does provide a place to cache the key string that is used
+        // to cache the summary when it is created. We do this so that we can use DefIds
+        // for lookups while also making the summary cache persistable.
         summary_cache: &mut PersistentSummaryCache<'tcx>,
     ) -> &ConstantDomain {
         let function_id = self.function_cache.len();
+        // Distinct instances of def_id will have distinct ty values, but
+        // since ty is anonymous we combine it with the def_id to get a unique key.
+        // The combination is aliased function_id to provide a more efficient key for
+        // other caches.
         self.function_cache.entry((def_id, ty)).or_insert_with(|| {
             ConstantDomain::for_function(
                 function_id,
