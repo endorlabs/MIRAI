@@ -60,7 +60,11 @@ fn make_options_parser(running_test_harness: bool) -> Command {
         .arg(Arg::new("print_function_names")
             .long("print_function_names")
             .num_args(0)
-            .help("Just print out the signatures of functions in the crate"));
+            .help("Just print out the signatures of functions in the crate"))
+        .arg(Arg::new("print_summaries")
+            .long("print_summaries")
+            .num_args(0)
+            .help("Print out function summaries (work in progress)"));
     if running_test_harness {
         parser = parser.arg(Arg::new("test_only")
             .long("test_only")
@@ -239,7 +243,7 @@ impl Options {
             matches.value_source("print_summaries"),
             Some(ValueSource::DefaultValue)
         ) {
-            self.print_summaries = true;
+            self.print_summaries = false;
         }
         args[rustc_args_start..].to_vec()
     }

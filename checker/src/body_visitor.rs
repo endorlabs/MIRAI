@@ -265,7 +265,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                 let return_type = if matches!(self.cv.options.diag_level, DiagLevel::Paranoid) {
                     //todo: in the future either ensure that this is unnecessary for soundness
                     //or do this for DiagLevel::Verify as well.
-                    self.type_visitor().specialize_generic_argument_type(
+                    self.type_visitor().specialize_type(
                         self.mir.return_ty(),
                         &self.type_visitor().generic_argument_map,
                     )
@@ -758,10 +758,9 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
             let closure_path = Path::new_field(Path::new_field(qualifier, 0), i);
             // skip(1) above ensures this
             assume!(i < usize::MAX);
-            let specialized_type = self.type_visitor().specialize_generic_argument_type(
-                loc.ty,
-                &self.type_visitor().generic_argument_map,
-            );
+            let specialized_type = self
+                .type_visitor()
+                .specialize_type(loc.ty, &self.type_visitor().generic_argument_map);
             let type_index = self.type_visitor().get_index_for(specialized_type);
             let path = if i < self.mir.arg_count {
                 Path::new_parameter(i + 1)
@@ -1732,7 +1731,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                         .type_visitor
                         .specialize_generic_args(args, &self.type_visitor().generic_argument_map);
                     for (i, field) in def.all_fields().enumerate() {
-                        let target_type = self.type_visitor().specialize_generic_argument_type(
+                        let target_type = self.type_visitor().specialize_type(
                             field.ty(self.tcx, args),
                             &self.type_visitor().generic_argument_map,
                         );
@@ -1879,10 +1878,9 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
             }
             TyKind::Tuple(types) => {
                 for (i, ty) in types.iter().enumerate() {
-                    let field_ty = self.type_visitor.specialize_generic_argument_type(
-                        ty,
-                        &self.type_visitor.generic_argument_map,
-                    );
+                    let field_ty = self
+                        .type_visitor
+                        .specialize_type(ty, &self.type_visitor.generic_argument_map);
                     let field = Path::new_field(source_path.clone(), i);
                     source_fields.push((field, field_ty));
                 }
@@ -1955,10 +1953,9 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
             }
             TyKind::Tuple(types) => {
                 for (i, ty) in types.iter().enumerate() {
-                    let field_ty = self.type_visitor().specialize_generic_argument_type(
-                        ty,
-                        &self.type_visitor().generic_argument_map,
-                    );
+                    let field_ty = self
+                        .type_visitor()
+                        .specialize_type(ty, &self.type_visitor().generic_argument_map);
                     let field = Path::new_field(target_path.clone(), i);
                     target_fields.push((field, field_ty));
                 }
@@ -1998,10 +1995,9 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
         let mut source_field_index = 0;
         let mut copied_source_bits = 0;
         for (target_path, target_type) in target_fields.into_iter() {
-            let target_type = self.type_visitor().specialize_generic_argument_type(
-                target_type,
-                &self.type_visitor().generic_argument_map,
-            );
+            let target_type = self
+                .type_visitor()
+                .specialize_type(target_type, &self.type_visitor().generic_argument_map);
             if source_field_index >= source_len {
                 let warning = self.cv.session.dcx().struct_span_warn(
                     self.current_span,
@@ -2011,10 +2007,9 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                 break;
             }
             let (source_path, source_type) = &source_fields[source_field_index];
-            let source_type = self.type_visitor().specialize_generic_argument_type(
-                *source_type,
-                &self.type_visitor().generic_argument_map,
-            );
+            let source_type = self
+                .type_visitor()
+                .specialize_type(*source_type, &self.type_visitor().generic_argument_map);
             let source_path = source_path.canonicalize(&self.current_environment);
             if let PathEnum::QualifiedPath {
                 qualifier,
@@ -2682,12 +2677,12 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                             &self.type_visitor().generic_argument_map,
                         );
                         let source_field = def.all_fields().nth(*case_index).unwrap();
-                        let source_type = self.type_visitor().specialize_generic_argument_type(
+                        let source_type = self.type_visitor().specialize_type(
                             source_field.ty(self.tcx, generic_args),
                             &self.type_visitor().generic_argument_map,
                         );
                         for (i, field) in def.all_fields().enumerate() {
-                            let target_type = self.type_visitor().specialize_generic_argument_type(
+                            let target_type = self.type_visitor().specialize_type(
                                 field.ty(self.tcx, generic_args),
                                 &self.type_visitor().generic_argument_map,
                             );

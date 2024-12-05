@@ -248,7 +248,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 );
                 let specialized_resolved_ty = self
                     .type_visitor()
-                    .specialize_generic_argument_type(resolved_ty, &resolved_map);
+                    .specialize_type(resolved_ty, &resolved_map);
                 trace!(
                     "devirtualize resolved def_id {:?}: {:?}",
                     resolved_def_id,

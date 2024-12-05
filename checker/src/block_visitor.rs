@@ -662,10 +662,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 if utils::is_concrete(arg_ty.kind()) {
                     arg_ty
                 } else {
-                    let specialized_ty = self.type_visitor().specialize_generic_argument_type(
-                        arg_ty,
-                        &self.type_visitor().generic_argument_map,
-                    );
+                    let specialized_ty = self
+                        .type_visitor()
+                        .specialize_type(arg_ty, &self.type_visitor().generic_argument_map);
                     if utils::is_concrete(specialized_ty.kind()) {
                         specialized_ty
                     } else {
@@ -1013,11 +1012,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 let closure_ty = self
                     .type_visitor()
                     .get_path_rustc_type(path, self.bv.current_span);
-                let mut specialized_closure_ty =
-                    self.type_visitor().specialize_generic_argument_type(
-                        closure_ty,
-                        &self.type_visitor().generic_argument_map,
-                    );
+                let mut specialized_closure_ty = self
+                    .type_visitor()
+                    .specialize_type(closure_ty, &self.type_visitor().generic_argument_map);
                 if let TyKind::Alias(
                     rustc_middle::ty::Opaque,
                     rustc_middle::ty::AliasTy { def_id, args, .. },
@@ -1031,9 +1028,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     let map = self
                         .type_visitor()
                         .get_generic_arguments_map(*def_id, args, &[]);
-                    specialized_closure_ty = self
-                        .type_visitor()
-                        .specialize_generic_argument_type(closure_ty, &map);
+                    specialized_closure_ty = self.type_visitor().specialize_type(closure_ty, &map);
                 }
                 match specialized_closure_ty.kind() {
                     TyKind::Closure(def_id, args)
@@ -1046,11 +1041,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         ));
                     }
                     TyKind::Ref(_, ty, _) => {
-                        let specialized_closure_ty =
-                            self.type_visitor().specialize_generic_argument_type(
-                                *ty,
-                                &self.type_visitor().generic_argument_map,
-                            );
+                        let specialized_closure_ty = self
+                            .type_visitor()
+                            .specialize_type(*ty, &self.type_visitor().generic_argument_map);
                         if let TyKind::Closure(def_id, args) | TyKind::FnDef(def_id, args) =
                             specialized_closure_ty.kind()
                         {
@@ -1747,10 +1740,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 self.visit_len(path, place);
             }
             mir::Rvalue::Cast(cast_kind, operand, ty) => {
-                let specialized_ty = self.type_visitor().specialize_generic_argument_type(
-                    *ty,
-                    &self.type_visitor().generic_argument_map,
-                );
+                let specialized_ty = self
+                    .type_visitor()
+                    .specialize_type(*ty, &self.type_visitor().generic_argument_map);
                 self.visit_cast(path, *cast_kind, operand, specialized_ty);
             }
             mir::Rvalue::BinaryOp(bin_op, box (left_operand, right_operand)) => {
@@ -1761,10 +1753,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 };
             }
             mir::Rvalue::NullaryOp(null_op, ty) => {
-                let specialized_ty = self.type_visitor().specialize_generic_argument_type(
-                    *ty,
-                    &self.type_visitor().generic_argument_map,
-                );
+                let specialized_ty = self
+                    .type_visitor()
+                    .specialize_type(*ty, &self.type_visitor().generic_argument_map);
                 self.visit_nullary_op(path, null_op, specialized_ty);
             }
             mir::Rvalue::UnaryOp(unary_op, operand) => {
@@ -2724,7 +2715,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         let value_path = Path::new_field(Path::new_field(Path::new_field(path, 0), 0), 0);
         let ty = self
             .type_visitor()
-            .specialize_generic_argument_type(ty, &self.type_visitor().generic_argument_map);
+            .specialize_type(ty, &self.type_visitor().generic_argument_map);
         self.type_visitor_mut()
             .set_path_rustc_type(value_path.clone(), ty);
         // todo: set value_path to boxed type
@@ -3618,10 +3609,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 rustc_middle::ty::Opaque,
                 rustc_middle::ty::AliasTy { def_id, args, .. },
             ) => {
-                let specialized_ty = self.type_visitor().specialize_generic_argument_type(
-                    ty,
-                    &self.type_visitor().generic_argument_map,
-                );
+                let specialized_ty = self
+                    .type_visitor()
+                    .specialize_type(ty, &self.type_visitor().generic_argument_map);
                 let specialized_args = self
                     .type_visitor()
                     .specialize_generic_args(args, &self.type_visitor().generic_argument_map);
@@ -3914,10 +3904,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 TyKind::Uint(..) => self.bv.cv.constant_value_cache.get_u128_for(data),
                 TyKind::RawPtr(..) => self.bv.cv.constant_value_cache.get_u128_for(data),
                 TyKind::Closure(def_id, args) => {
-                    let specialized_ty = self.type_visitor().specialize_generic_argument_type(
-                        ty,
-                        &self.type_visitor().generic_argument_map,
-                    );
+                    let specialized_ty = self
+                        .type_visitor()
+                        .specialize_type(ty, &self.type_visitor().generic_argument_map);
                     let specialized_args = self
                         .type_visitor()
                         .specialize_generic_args(args, &self.type_visitor().generic_argument_map);
@@ -3943,10 +3932,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 TyKind::FnDef(def_id, args) => {
                     debug_assert!(size == 0 && data == 0);
                     // todo: this seems the right approach. Make other calls sites conform.
-                    let specialized_ty = self.type_visitor().specialize_generic_argument_type(
-                        ty,
-                        &self.type_visitor().generic_argument_map,
-                    );
+                    let specialized_ty = self
+                        .type_visitor()
+                        .specialize_type(ty, &self.type_visitor().generic_argument_map);
                     let specialized_args = self
                         .type_visitor()
                         .specialize_generic_args(args, &self.type_visitor().generic_argument_map);
@@ -4121,13 +4109,18 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     rustc_middle::ty::Opaque,
                     rustc_middle::ty::AliasTy { def_id, .. },
                 ) => {
+                    let ty = self.bv.tcx.type_of(*def_id).skip_binder();
+                    let specialized_ty = self
+                        .type_visitor()
+                        .specialize_type(ty, &self.type_visitor().generic_argument_map);
                     if let TyKind::Closure(def_id, generic_args)
-                    | TyKind::Coroutine(def_id, generic_args) =
-                        self.bv.tcx.type_of(*def_id).skip_binder().kind()
+                    | TyKind::Coroutine(def_id, generic_args) = specialized_ty.kind()
                     {
-                        // todo: specialize ty and/or use self.bv.tcx.type_of(*def_id)
-                        let func_const =
-                            self.visit_function_reference(*def_id, ty, Some(generic_args));
+                        let func_const = self.visit_function_reference(
+                            *def_id,
+                            specialized_ty,
+                            Some(generic_args),
+                        );
                         let func_val = Rc::new(func_const.clone().into());
                         self.bv
                             .update_value_at(Path::new_function(base_path.clone()), func_val);
@@ -4184,10 +4177,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     continue;
                 }
                 mir::ProjectionElem::Field(_, field_ty) => {
-                    ty = self.type_visitor().specialize_generic_argument_type(
-                        *field_ty,
-                        &self.type_visitor().generic_argument_map,
-                    );
+                    ty = self
+                        .type_visitor()
+                        .specialize_type(*field_ty, &self.type_visitor().generic_argument_map);
                     if let TyKind::Adt(def, ..) = ty.kind() {
                         let ty_name = self.bv.cv.known_names_cache.get(tcx, def.did());
                         if ty_name == KnownNames::StdMarkerPhantomData {
