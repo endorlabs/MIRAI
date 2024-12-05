@@ -63,8 +63,8 @@ pub struct Summary {
     /// there are no repeated attempts at recomputing the summary.
     pub is_computed: bool,
 
-    /// If true, the summary is incomplete, which means that the result and side-effects could be
-    /// over specific because widening did not happen and also that some side-effects may be missing.
+    /// If true, the summary is incomplete, which means that the result and side effects could be
+    /// over specific because widening did not happen and also that some side effects may be missing.
     /// The summary may also fail to mention necessary preconditions or useful post conditions.
     /// This happens if the computation of this summary failed for some reason, for example
     /// no MIR body or a time-out.
@@ -388,10 +388,13 @@ impl Hash for CallSiteKey<'_> {
 /// Summary. The latter is cleared after every outer fixed point loop iteration.
 /// Also tracks which definitions depend on (use) any particular Summary.
 pub struct PersistentSummaryCache<'tcx> {
-    // The sled database that stores the summaries. Can be persisted between runs.
+    /// The sled database that stores the summaries. Can be persisted between runs.
     db: Db,
-    // Functions that are not generic are uniquely identified by their def_id and are cached here.
+    /// Functions that are not generic instances are uniquely identified by their def_id and their
+    /// summaries are cached here.
     def_id_cache: HashMap<DefId, Summary>,
+    /// Functions that are generic instances are identified by their function_id and their summaries
+    /// are cached here.
     typed_cache: HashMap<usize, Summary>,
     typed_cache_table: HashMap<CallSiteKey<'tcx>, HashMap<usize, Summary>>,
     reference_cache: HashMap<Rc<FunctionReference>, Summary>,
@@ -407,7 +410,7 @@ impl Debug for PersistentSummaryCache<'_> {
 }
 
 impl<'tcx> PersistentSummaryCache<'tcx> {
-    /// Creates a new persistent summary cache, using (or creating) a Sled data base at the given
+    /// Creates a new persistent summary cache, using (or creating) a Sled database at the given
     /// directory path.
     #[logfn(TRACE)]
     pub fn new(
@@ -617,7 +620,7 @@ impl<'tcx> PersistentSummaryCache<'tcx> {
         }
     }
 
-    /// Returns the summary corresponding to the persistent_key in the the summary database.
+    /// Returns the summary corresponding to the persistent_key in the summary database.
     /// The caller is expected to cache this.
     #[logfn_inputs(TRACE)]
     pub fn get_persistent_summary_for(&self, persistent_key: &str) -> Summary {

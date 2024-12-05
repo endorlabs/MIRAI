@@ -514,7 +514,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     &actual_argument_types,
                 );
                 let fun_ty = tcx.type_of(destructor.did).skip_binder();
-                // todo: perhaps use the type of the struct (ty) instead of fun_ty
+                // since ty is specialized, fun_ty and args should be specialized as well.
                 let func_const = self
                     .visit_function_reference(destructor.did, fun_ty, Some(args))
                     .clone();
@@ -1047,9 +1047,11 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         if let TyKind::Closure(def_id, args) | TyKind::FnDef(def_id, args) =
                             specialized_closure_ty.kind()
                         {
+                            let fun_ty = self.bv.tcx.type_of(def_id).skip_binder();
+                            // since specialized_closure_ty is specialized, fun_ty and args should be specialized as well.
                             return extract_func_ref(self.visit_function_reference(
                                 *def_id,
-                                specialized_closure_ty,
+                                fun_ty,
                                 Some(args),
                             ));
                         }
@@ -2661,12 +2663,15 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             mir::AggregateKind::Closure(def_id, args)
             | mir::AggregateKind::Coroutine(def_id, args)
             | mir::AggregateKind::CoroutineClosure(def_id, args) => {
-                // todo: perhaps this should be
-                // let ty = self
-                //     .type_visitor()
-                //     .get_path_rustc_type(&path, self.bv.current_span);
                 let ty = self.bv.tcx.type_of(*def_id).skip_binder();
-                let func_const = self.visit_function_reference(*def_id, ty, Some(args));
+                let specialized_ty = self
+                    .type_visitor()
+                    .specialize_type(ty, &self.type_visitor().generic_argument_map);
+                let specialized_args = self
+                    .type_visitor()
+                    .specialize_generic_args(args, &self.type_visitor().generic_argument_map);
+                let func_const =
+                    self.visit_function_reference(*def_id, specialized_ty, Some(specialized_args));
                 let func_val = Rc::new(func_const.clone().into());
                 self.bv.update_value_at(path.clone(), func_val);
                 for (i, operand) in operands.iter().enumerate() {
@@ -3601,7 +3606,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 bytes_left_deserialize
             }
             // todo: bytes is the serialization of the captured state of a closure/generator
-            // deserialize that and return an heap block that represents the closure state + func ptr
+            // deserialize that and return a heap block that represents the closure state + func ptr
             TyKind::Closure(def_id, args)
             | TyKind::FnDef(def_id, args)
             | TyKind::Coroutine(def_id, args, ..)
@@ -3609,14 +3614,10 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 rustc_middle::ty::Opaque,
                 rustc_middle::ty::AliasTy { def_id, args, .. },
             ) => {
-                let specialized_ty = self
-                    .type_visitor()
-                    .specialize_type(ty, &self.type_visitor().generic_argument_map);
-                let specialized_args = self
-                    .type_visitor()
-                    .specialize_generic_args(args, &self.type_visitor().generic_argument_map);
+                let fun_ty = self.bv.tcx.type_of(def_id).skip_binder();
+                // since ty is specialized, fun_ty and args should be specialized as well.
                 let func_val = Rc::new(
-                    self.visit_function_reference(*def_id, specialized_ty, Some(specialized_args))
+                    self.visit_function_reference(*def_id, fun_ty, Some(args))
                         .clone()
                         .into(),
                 );
@@ -3931,7 +3932,8 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 }
                 TyKind::FnDef(def_id, args) => {
                     debug_assert!(size == 0 && data == 0);
-                    // todo: this seems the right approach. Make other calls sites conform.
+                    // guard against the possibility that ty is not specialized with respect the actual
+                    // type arguments of the current function.
                     let specialized_ty = self
                         .type_visitor()
                         .specialize_type(ty, &self.type_visitor().generic_argument_map);
@@ -4109,29 +4111,22 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     rustc_middle::ty::Opaque,
                     rustc_middle::ty::AliasTy { def_id, .. },
                 ) => {
-                    let ty = self.bv.tcx.type_of(*def_id).skip_binder();
-                    let specialized_ty = self
-                        .type_visitor()
-                        .specialize_type(ty, &self.type_visitor().generic_argument_map);
+                    let aliased_ty = self.bv.tcx.type_of(*def_id).skip_binder();
+                    // since ty is specialized, aliased_ty should be specialized as well.
                     if let TyKind::Closure(def_id, generic_args)
-                    | TyKind::Coroutine(def_id, generic_args) = specialized_ty.kind()
+                    | TyKind::Coroutine(def_id, generic_args) = aliased_ty.kind()
                     {
-                        let func_const = self.visit_function_reference(
-                            *def_id,
-                            specialized_ty,
-                            Some(generic_args),
-                        );
+                        let fun_ty = self.bv.tcx.type_of(*def_id).skip_binder();
+                        // since aliased_ty is specialized, fun_ty and generic_args should be specialized as well.
+                        let func_const =
+                            self.visit_function_reference(*def_id, fun_ty, Some(generic_args));
                         let func_val = Rc::new(func_const.clone().into());
                         self.bv
                             .update_value_at(Path::new_function(base_path.clone()), func_val);
                     }
                 }
                 TyKind::FnDef(def_id, generic_args) => {
-                    let func_const = self.visit_function_reference(
-                        *def_id,
-                        ty,
-                        Some(generic_args.as_closure().args),
-                    );
+                    let func_const = self.visit_function_reference(*def_id, ty, Some(generic_args));
                     let func_val = Rc::new(func_const.clone().into());
                     self.bv
                         .update_value_at(Path::new_function(base_path.clone()), func_val);

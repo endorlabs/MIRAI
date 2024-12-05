@@ -1055,12 +1055,12 @@ impl<'tcx> TypeVisitor<'tcx> {
     #[logfn_inputs(TRACE)]
     pub fn specialize_type(
         &self,
-        gen_arg_type: Ty<'tcx>,
+        ty: Ty<'tcx>,
         map: &Option<HashMap<rustc_span::Symbol, GenericArg<'tcx>>>,
     ) -> Ty<'tcx> {
         // The projection of an associated type. For example,
         // `<T as Trait<..>>::N`.
-        if let TyKind::Alias(rustc_middle::ty::Projection, projection) = gen_arg_type.kind() {
+        if let TyKind::Alias(rustc_middle::ty::Projection, projection) = ty.kind() {
             let specialized_substs = self.specialize_generic_args(projection.args, map);
             let item_def_id = projection.def_id;
             return if utils::are_concrete(specialized_substs) {
@@ -1080,7 +1080,7 @@ impl<'tcx> TypeVisitor<'tcx> {
                     let item_type = self.tcx.type_of(instance_item_def_id).skip_binder();
                     let map =
                         self.get_generic_arguments_map(instance_item_def_id, instance.args, &[]);
-                    if item_type == gen_arg_type && map.is_none() {
+                    if item_type == ty && map.is_none() {
                         // Can happen if the projection just adds a life time
                         item_type
                     } else {
@@ -1100,16 +1100,16 @@ impl<'tcx> TypeVisitor<'tcx> {
                         }
                     }
                     debug!("could not resolve an associated type with concrete type arguments");
-                    gen_arg_type
+                    ty
                 }
             } else {
                 Ty::new_projection(self.tcx, projection.def_id, specialized_substs)
             };
         }
         if map.is_none() {
-            return gen_arg_type;
+            return ty;
         }
-        match gen_arg_type.kind() {
+        match ty.kind() {
             TyKind::Adt(def, args) => {
                 Ty::new_adt(self.tcx, *def, self.specialize_generic_args(args, map))
             }
@@ -1213,7 +1213,7 @@ impl<'tcx> TypeVisitor<'tcx> {
                     let closures_being_specialized =
                         borrowed_closures_being_specialized.deref_mut();
                     if !closures_being_specialized.insert(*def_id) {
-                        return gen_arg_type;
+                        return ty;
                     }
                 }
                 let specialized_closure =
@@ -1245,9 +1245,9 @@ impl<'tcx> TypeVisitor<'tcx> {
                         return gen_arg.expect_ty();
                     }
                 }
-                gen_arg_type
+                ty
             }
-            _ => gen_arg_type,
+            _ => ty,
         }
     }
 
