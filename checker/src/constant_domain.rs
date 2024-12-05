@@ -1592,8 +1592,8 @@ impl<'tcx> ConstantValueCache<'tcx> {
             .or_insert_with(|| ConstantDomain::U128(value))
     }
 
-    /// Given the MIR DefId of a function return the unique (cached) ConstantDomain that corresponds
-    /// to the function identified by that DefId.
+    /// Given the MIR DefId and type, of a function, return the unique (cached) ConstantDomain that
+    /// corresponds to the function identified by that DefId.
     pub fn get_function_constant_for(
         &mut self,
         def_id: DefId,

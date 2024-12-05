@@ -514,6 +514,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     &actual_argument_types,
                 );
                 let fun_ty = tcx.type_of(destructor.did).skip_binder();
+                // todo: perhaps use the type of the struct (ty) instead of fun_ty
                 let func_const = self
                     .visit_function_reference(destructor.did, fun_ty, Some(args))
                     .clone();
@@ -2669,7 +2670,10 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             mir::AggregateKind::Closure(def_id, args)
             | mir::AggregateKind::Coroutine(def_id, args)
             | mir::AggregateKind::CoroutineClosure(def_id, args) => {
-                //| mir::AggregateKind::CoroutineClosure(def_id, args) => {
+                // todo: perhaps this should be
+                // let ty = self
+                //     .type_visitor()
+                //     .get_path_rustc_type(&path, self.bv.current_span);
                 let ty = self.bv.tcx.type_of(*def_id).skip_binder();
                 let func_const = self.visit_function_reference(*def_id, ty, Some(args));
                 let func_val = Rc::new(func_const.clone().into());
@@ -3938,6 +3942,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 }
                 TyKind::FnDef(def_id, args) => {
                     debug_assert!(size == 0 && data == 0);
+                    // todo: this seems the right approach. Make other calls sites conform.
                     let specialized_ty = self.type_visitor().specialize_generic_argument_type(
                         ty,
                         &self.type_visitor().generic_argument_map,
@@ -3973,7 +3978,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         )
     }
 
-    /// The anonymous type of a function declaration/definition. Each
+    /// The anonymous type, of a function declaration/definition. Each
     /// function has a unique type, which is output (for a function
     /// named `foo` returning an `i32`) as `fn() -> i32 {foo}`.
     ///
@@ -3990,8 +3995,8 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         ty: Ty<'tcx>,
         generic_args: Option<GenericArgsRef<'tcx>>,
     ) -> &ConstantDomain {
-        //todo: is def_id unique enough? Perhaps add ty?
         if let Some(generic_args) = generic_args {
+            //todo: is def_id unique enough? Perhaps add fn_ty?
             self.bv.cv.generic_args_cache.insert(def_id, generic_args);
         }
         self.bv.cv.constant_value_cache.get_function_constant_for(
@@ -4120,6 +4125,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     | TyKind::Coroutine(def_id, generic_args) =
                         self.bv.tcx.type_of(*def_id).skip_binder().kind()
                     {
+                        // todo: specialize ty and/or use self.bv.tcx.type_of(*def_id)
                         let func_const =
                             self.visit_function_reference(*def_id, ty, Some(generic_args));
                         let func_val = Rc::new(func_const.clone().into());
