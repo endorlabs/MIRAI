@@ -9,7 +9,7 @@ use crate::constant_domain::ConstantValueCache;
 use crate::crate_visitor::CrateVisitor;
 use crate::known_names::KnownNamesCache;
 use crate::options::Options;
-use crate::summaries::PersistentSummaryCache;
+use crate::summaries::SummaryCache;
 
 use crate::type_visitor::TypeCache;
 use crate::utils;
@@ -162,7 +162,7 @@ impl MiraiCallbacks {
             options: &std::mem::take(&mut self.options),
             session: &compiler.sess,
             generic_args_cache: HashMap::new(),
-            summary_cache: PersistentSummaryCache::new(tcx, summary_store_path),
+            summary_cache: SummaryCache::new(summary_store_path),
             tcx,
             test_run: self.test_run,
             type_cache: Rc::new(RefCell::new(TypeCache::new())),

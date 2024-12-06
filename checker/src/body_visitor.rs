@@ -106,7 +106,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
         let tcx = crate_visitor.tcx;
         let function_name = crate_visitor
             .summary_cache
-            .get_summary_key_for(def_id)
+            .get_summary_key_for(def_id, tcx)
             .clone();
         let mir = if tcx.is_const_fn(def_id) {
             tcx.mir_for_ctfe(def_id)

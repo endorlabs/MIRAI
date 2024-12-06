@@ -30,7 +30,7 @@ use crate::constant_domain::ConstantValueCache;
 use crate::expected_errors;
 use crate::known_names::KnownNamesCache;
 use crate::options::Options;
-use crate::summaries::PersistentSummaryCache;
+use crate::summaries::SummaryCache;
 use crate::tag_domain::Tag;
 use crate::type_visitor::TypeCache;
 use crate::utils;
@@ -52,7 +52,7 @@ pub struct CrateVisitor<'compilation, 'tcx> {
     pub known_names_cache: KnownNamesCache,
     pub options: &'compilation Options,
     pub session: &'compilation Session,
-    pub summary_cache: PersistentSummaryCache<'tcx>,
+    pub summary_cache: SummaryCache<'tcx>,
     pub tcx: TyCtxt<'tcx>,
     pub type_cache: Rc<RefCell<TypeCache<'tcx>>>,
     pub test_run: bool,
@@ -186,7 +186,8 @@ impl<'compilation> CrateVisitor<'compilation, '_> {
         if matches!(kind, rustc_hir::def::DefKind::Static { .. })
             || utils::is_foreign_contract(self.tcx, def_id)
         {
-            self.summary_cache.set_summary_for(def_id, summary);
+            self.summary_cache
+                .set_summary_for(def_id, self.tcx, summary);
         }
         let old_diags = self.diagnostics_for.insert(def_id, diagnostics);
         checked_assume!(old_diags.is_none());
