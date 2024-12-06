@@ -352,20 +352,26 @@ fn extract_reachable_heap_allocations(
     }
 }
 
+/// If a call site provides type arguments to a generic function, or if some of the arguments
+/// are constant functions, the function summary used at the call site needs to be specialized
+/// with respect to these arguments and when we store summaries in a cache we need the cache
+/// key to be based on these arguments.
 #[derive(PartialEq, Eq)]
 pub struct CallSiteKey<'tcx> {
+    /// If this is None, type_args must not be None.
     func_args: Option<Rc<Vec<Rc<FunctionReference>>>>,
-    type_cache: Option<Rc<HashMap<Rc<Path>, Ty<'tcx>>>>,
+    /// If this is None, func_args must not be None.
+    type_args: Option<Rc<HashMap<Rc<Path>, Ty<'tcx>>>>,
 }
 
 impl<'tcx> CallSiteKey<'tcx> {
     pub fn new(
         func_args: Option<Rc<Vec<Rc<FunctionReference>>>>,
-        type_cache: Option<Rc<HashMap<Rc<Path>, Ty<'tcx>>>>,
+        type_args: Option<Rc<HashMap<Rc<Path>, Ty<'tcx>>>>,
     ) -> CallSiteKey<'tcx> {
         CallSiteKey {
             func_args,
-            type_cache,
+            type_args,
         }
     }
 }
@@ -375,7 +381,7 @@ impl Hash for CallSiteKey<'_> {
         if let Some(func_args) = &self.func_args {
             func_args.hash(state);
         }
-        if let Some(cache) = &self.type_cache {
+        if let Some(cache) = &self.type_args {
             for (path, ty) in cache.iter() {
                 path.hash(state);
                 ty.kind().hash(state);
@@ -396,9 +402,14 @@ pub struct PersistentSummaryCache<'tcx> {
     /// Functions that are generic instances are identified by their function_id and their summaries
     /// are cached here.
     typed_cache: HashMap<usize, Summary>,
+    /// Maps call sites to specialized summary of the referenced function.
+    /// Call site specialization involves using the actual generic arguments supplied by the call
+    /// site, along with the values of any constant functions that are supplied as actual arguments.
     typed_cache_table: HashMap<CallSiteKey<'tcx>, HashMap<usize, Summary>>,
+    /// Functions that have no def_id (and hence no function_id) and no type signature are
+    /// cached here. Such functions are either entry points or dummy functions that provide
+    /// summaries for functions that have no MIR and are shadowed by definitions in a contracts crate.
     reference_cache: HashMap<Rc<FunctionReference>, Summary>,
-    typed_reference_cache: HashMap<Rc<FunctionReference>, Summary>,
     key_cache: HashMap<DefId, Rc<str>>,
     type_context: TyCtxt<'tcx>,
 }
@@ -445,7 +456,6 @@ impl<'tcx> PersistentSummaryCache<'tcx> {
             typed_cache: HashMap::new(),
             typed_cache_table: HashMap::new(),
             reference_cache: HashMap::new(),
-            typed_reference_cache: HashMap::new(),
             key_cache: HashMap::new(),
             type_context,
         }
@@ -505,14 +515,13 @@ impl<'tcx> PersistentSummaryCache<'tcx> {
         &mut self,
         func_ref: &Rc<FunctionReference>,
         func_args: &Option<Rc<Vec<Rc<FunctionReference>>>>,
-        initial_type_cache: &Option<Rc<HashMap<Rc<Path>, Ty<'tcx>>>>,
+        type_args: &Option<Rc<HashMap<Rc<Path>, Ty<'tcx>>>>,
     ) -> &Summary {
         match (func_ref.def_id, func_ref.function_id) {
             // Use the ids as keys if they are available, since they make much better keys.
             (Some(def_id), Some(function_id)) => {
-                if func_args.is_some() || initial_type_cache.is_some() {
-                    let typed_cache_key =
-                        CallSiteKey::new(func_args.clone(), initial_type_cache.clone());
+                if func_args.is_some() || type_args.is_some() {
+                    let typed_cache_key = CallSiteKey::new(func_args.clone(), type_args.clone());
                     // Need the double lookup in order to allow the recursive call to get_summary_for_function_constant.
                     let summary_is_cached =
                         if let Some(type_table) = self.typed_cache_table.get(&typed_cache_key) {
@@ -566,8 +575,8 @@ impl<'tcx> PersistentSummaryCache<'tcx> {
             // was created. We look them up in the database. If they are not found there, we use
             // a default summary. Either way, we cache the summary in the appropriate reference cache.
             _ => {
-                if self.typed_reference_cache.contains_key(func_ref) {
-                    let result = self.typed_reference_cache.get(func_ref);
+                if self.reference_cache.contains_key(func_ref) {
+                    let result = self.reference_cache.get(func_ref);
                     result.expect("value disappeared from typed_reference_cache")
                 } else {
                     if let Some(summary) = self.get_persistent_summary_using_arg_types_if_possible(
@@ -575,7 +584,7 @@ impl<'tcx> PersistentSummaryCache<'tcx> {
                         &func_ref.argument_type_key,
                     ) {
                         return self
-                            .typed_reference_cache
+                            .reference_cache
                             .entry(func_ref.clone())
                             .or_insert(summary);
                     }

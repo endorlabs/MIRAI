@@ -340,18 +340,18 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
         if let Some(func_ref) = &self.callee_func_ref.clone() {
             // If the actual arguments include any function constants, collect them together
             // and pass them to get_summary_for_function_constant so that their signatures
-            // can be included in the type specific key that is used to look up non generic
+            // can be included in the type specific key that is used to look up non-generic
             // predefined summaries.
 
             let func_args = self.get_function_constant_signature(self.function_constant_args);
             let tcx = self.block_visitor.bv.tcx;
-            let callee_defid = func_ref.def_id.unwrap_or(self.callee_def_id);
+            let callee_def_id = func_ref.def_id.unwrap_or(self.callee_def_id);
             self.block_visitor.bv.cv.call_graph.add_call_site(
                 self.block_visitor.bv.current_span,
                 self.block_visitor.bv.def_id,
-                callee_defid,
-                !tcx.is_mir_available(callee_defid)
-                    || (!callee_defid.is_local()
+                callee_def_id,
+                !tcx.is_mir_available(callee_def_id)
+                    || (!callee_def_id.is_local()
                         && (self.callee_generic_arguments.is_none()
                             || self
                                 .callee_generic_arguments
