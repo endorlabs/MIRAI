@@ -18,7 +18,7 @@ use std::{f16, f64};
 
 use crate::expression::{Expression, ExpressionType};
 use crate::known_names::{KnownNames, KnownNamesCache};
-use crate::summaries::PersistentSummaryCache;
+use crate::summaries::SummaryCache;
 use crate::utils;
 
 /// Abstracts over constant values referenced in MIR and adds information
@@ -135,9 +135,9 @@ impl ConstantDomain {
         generic_args: Option<GenericArgsRef<'tcx>>,
         tcx: TyCtxt<'tcx>,
         known_names_cache: &mut KnownNamesCache,
-        summary_cache: &mut PersistentSummaryCache<'tcx>,
+        summary_cache: &mut SummaryCache<'tcx>,
     ) -> ConstantDomain {
-        let summary_cache_key = summary_cache.get_summary_key_for(def_id).to_owned();
+        let summary_cache_key = summary_cache.get_summary_key_for(def_id, tcx).to_owned();
         let argument_type_key = utils::argument_types_key_str(tcx, generic_args);
         let generic_arguments = if let Some(generic_args) = generic_args {
             generic_args
@@ -1606,11 +1606,11 @@ impl<'tcx> ConstantValueCache<'tcx> {
         tcx: TyCtxt<'tcx>,
         // A cache of known names to updated with this function if its name is known.
         known_names_cache: &mut KnownNamesCache,
-        // A cache of function summaries. It is not provided with a summary for def_id
+        // A collection of caches for function summaries. It is not provided with a summary for def_id
         // at this point, but it does provide a place to cache the key string that is used
         // to cache the summary when it is created. We do this so that we can use DefIds
         // for lookups while also making the summary cache persistable.
-        summary_cache: &mut PersistentSummaryCache<'tcx>,
+        summary_cache: &mut SummaryCache<'tcx>,
     ) -> &ConstantDomain {
         let function_id = self.function_cache.len();
         // Distinct instances of def_id will have distinct ty values, but
