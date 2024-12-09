@@ -70,3 +70,8 @@ vcpkg = ["z3-sys/vcpkg", "z3"]
 bundled = ["z3-sys/bundled", "z3"]
 z3 = []
 
+[package.metadata.rust-analyzer]
+# This crate uses #[feature(rustc_private)]
+# https://rust-analyzer.github.io/manual.html#rust-analyzer.rustc.source
+rustc_private = true
+
