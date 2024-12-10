@@ -327,7 +327,7 @@ pub struct CallGraph<'tcx> {
     non_local_defs: HashSet<DefId>,
     /// (call_site, (caller, callee)). One entry per call that is reachable from
     /// an analysis root.
-    call_sites: HashMap<rustc_span::Span, (DefId, DefId)>,
+    call_sites: HashMap<rustc_span::Span, (DefId, DefId, usize)>,
     /// The graph structure capturing calls between nodes
     graph: Graph<CallGraphNode, CallGraphEdge>,
     /// A map from DefId to node information
@@ -435,13 +435,15 @@ impl<'tcx> CallGraph<'tcx> {
         loc: rustc_span::Span,
         caller: DefId,
         callee: DefId,
+        callee_func_id: usize,
         external_callee: bool,
     ) {
         if self.config.include_calls_in_summaries
             || (self.config.call_sites_output_path.is_some()
                 && !self.non_local_defs.contains(&caller))
         {
-            self.call_sites.insert(loc, (caller, callee));
+            self.call_sites
+                .insert(loc, (caller, callee, callee_func_id));
             if external_callee {
                 self.non_local_defs.insert(callee);
             }
@@ -1090,10 +1092,13 @@ impl<'tcx> CallGraph<'tcx> {
         }
     }
 
-    pub fn get_calls_for_def_ids(&self) -> HashMap<DefId, Vec<(Span, DefId)>> {
-        let mut calls = HashMap::<DefId, Vec<(Span, DefId)>>::new();
-        for (span, (caller, callee)) in self.call_sites.iter() {
-            calls.entry(*caller).or_default().push((*span, *callee));
+    pub fn get_calls_for_def_ids(&self) -> HashMap<DefId, Vec<(Span, DefId, usize)>> {
+        let mut calls = HashMap::<DefId, Vec<(Span, DefId, usize)>>::new();
+        for (span, (caller, callee, callee_func_id)) in self.call_sites.iter() {
+            calls
+                .entry(*caller)
+                .or_default()
+                .push((*span, *callee, *callee_func_id));
         }
         calls
     }
@@ -1376,10 +1381,10 @@ impl CallSiteOutput {
         let mut callables = vec![];
         let mut callable_index = HashMap::<DefId, usize>::new();
         let mut calls = vec![];
-        let mut sites: Vec<(&rustc_span::Span, &(DefId, DefId))> =
+        let mut sites: Vec<(&rustc_span::Span, &(DefId, DefId, usize))> =
             call_graph.call_sites.iter().collect();
         sites.sort_by(|a, b| a.0.cmp(b.0));
-        for (loc, (caller, callee)) in sites.iter() {
+        for (loc, (caller, callee, _callee_func_id)) in sites.iter() {
             let source_loc = loc.source_callsite();
             if let Ok(line_and_file) = source_map.span_to_lines(source_loc) {
                 let file_index =

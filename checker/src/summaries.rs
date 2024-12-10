@@ -405,13 +405,13 @@ pub struct SummaryCache<'tcx> {
     /// derived from function references.
     def_id_cache: HashMap<DefId, Summary>,
     /// Cache for functions that are summarized because they are called via function references.
-    /// These summaries will be specialized using the generic arguments (if any) supplied by the 
+    /// These summaries will be specialized using the generic arguments (if any) supplied by the
     /// function reference.
     function_id_cache: HashMap<usize, Summary>,
-    /// Maps call sites to specialized summaries of the referenced functions.
-    /// Call site specialization involves using the types of actual arguments supplied by the call
-    /// site, along with the values of any constant functions that are supplied as actual arguments.
-    /// This cache is only used if the call site supplies arguments (of ADT type) or constant functions.
+    /// Cache for functions that are called via function references and whose summaries are specialized
+    /// with call site information. Call site specialization involves using the types of actual
+    /// arguments supplied by the call site (if they are ADTs), along with the values of any constant
+    /// functions that are supplied as actual arguments.
     call_site_cache: HashMap<CallSiteKey<'tcx>, Summary>,
     /// Cache for functions that are called via function references, but have no function_id.
     /// Such functions have no MIR and/or are shadowed by definitions in a contracts crate.
@@ -420,6 +420,8 @@ pub struct SummaryCache<'tcx> {
     /// which is expensive to do and can be done more than once per def_id if there are more than
     /// one call site that references the def_id.
     key_cache: HashMap<DefId, Rc<str>>,
+    /// Maps function_ids to function references.
+    function_references: HashMap<usize, Rc<FunctionReference>>,
 }
 
 impl Debug for SummaryCache<'_> {
@@ -460,6 +462,7 @@ impl<'tcx> SummaryCache<'tcx> {
             call_site_cache: HashMap::new(),
             reference_cache: HashMap::new(),
             key_cache: HashMap::new(),
+            function_references: HashMap::new(),
         }
     }
 
@@ -497,19 +500,18 @@ impl<'tcx> SummaryCache<'tcx> {
     pub fn get_summaries_for_llm(
         &self,
         tcx: TyCtxt,
-        call_site_per_def_id: HashMap<DefId, Vec<(Span, DefId)>>,
+        call_site_per_def_id: HashMap<DefId, Vec<(Span, DefId, usize)>>,
     ) -> SummariesForLLM {
         let source_map = tcx.sess.source_map();
         let mut entries = Vec::new();
-        for (key, value) in self.def_id_cache.iter() {
-            let fully_qualified_name = self.key_cache.get(key).unwrap().to_string();
+        let mut add_summary = |def_id: DefId, fully_qualified_name: String, value: &Summary| {
             let file_name;
             let source;
-            if tcx.is_mir_available(*key) {
-                let mir = if tcx.is_const_fn(*key) {
-                    tcx.mir_for_ctfe(*key)
+            if tcx.is_mir_available(def_id) {
+                let mir = if tcx.is_const_fn(def_id) {
+                    tcx.mir_for_ctfe(def_id)
                 } else {
-                    let instance = rustc_middle::ty::InstanceKind::Item(*key);
+                    let instance = rustc_middle::ty::InstanceKind::Item(def_id);
                     tcx.instance_mir(instance)
                 };
                 file_name = source_map.span_to_filename(mir.span).into_local_path();
@@ -518,7 +520,7 @@ impl<'tcx> SummaryCache<'tcx> {
                     .ok()
                     .unwrap_or_default();
             } else {
-                let span = tcx.def_span(*key);
+                let span = tcx.def_span(def_id);
                 file_name = source_map.span_to_filename(span).into_local_path();
                 source = source_map.span_to_snippet(span).ok().unwrap_or_default();
             }
@@ -538,10 +540,15 @@ impl<'tcx> SummaryCache<'tcx> {
                 path = Some(p.to_string_lossy().to_string());
             }
             let mut calls = vec![];
-            if let Some(call_vec) = call_site_per_def_id.get(key) {
-                for (span, def_id) in call_vec.iter() {
+            if let Some(call_vec) = call_site_per_def_id.get(&def_id) {
+                for (span, def_id, function_id) in call_vec.iter() {
                     let call_snippet = source_map.span_to_snippet(*span).ok().unwrap_or_default();
-                    let callee_name = self.key_cache.get(def_id).unwrap().to_string();
+                    let mut callee_name = self.key_cache.get(def_id).unwrap().to_string();
+                    if let Some(function_reference) = self.function_references.get(function_id) {
+                        if function_reference.function_id == Some(*function_id) {
+                            callee_name.push_str(function_reference.argument_type_key.as_ref());
+                        }
+                    }
                     calls.push((call_snippet, callee_name));
                 }
             };
@@ -550,6 +557,50 @@ impl<'tcx> SummaryCache<'tcx> {
                 fully_qualified_name,
                 source,
                 LLMSummary::from_summary(value, calls),
+            ));
+        };
+        for (def_id, summary) in self.def_id_cache.iter() {
+            let fully_qualified_name = self.key_cache.get(def_id).unwrap().to_string();
+            add_summary(*def_id, fully_qualified_name, summary);
+        }
+        for (function_id, summary) in self.function_id_cache.iter() {
+            if let Some(function_reference) = self.function_references.get(function_id) {
+                if let Some(def_id) = &function_reference.def_id {
+                    let mut fully_qualified_name = function_reference.summary_cache_key.to_string();
+                    if !function_reference.argument_type_key.is_empty() {
+                        fully_qualified_name
+                            .push_str(function_reference.argument_type_key.as_ref());
+                    }
+                    add_summary(*def_id, fully_qualified_name, summary);
+                }
+            }
+        }
+        for (call_site_key, summary) in self.call_site_cache.iter() {
+            let function_id = call_site_key.function_id;
+            if let Some(function_reference) = self.function_references.get(&function_id) {
+                let mut fully_qualified_name = function_reference.summary_cache_key.to_string();
+                if !function_reference.argument_type_key.is_empty() {
+                    fully_qualified_name.push_str(function_reference.argument_type_key.as_ref());
+                }
+                add_summary(
+                    function_reference.def_id.unwrap(),
+                    fully_qualified_name,
+                    summary,
+                );
+            }
+        }
+        for (function_reference, summary) in self.reference_cache.iter() {
+            let mut fully_qualified_name = function_reference.summary_cache_key.to_string();
+            if !function_reference.argument_type_key.is_empty() {
+                fully_qualified_name.push_str(function_reference.argument_type_key.as_ref());
+            }
+            let path = "not available".to_string();
+            let source = "not available".to_string();
+            entries.push((
+                path,
+                fully_qualified_name,
+                source,
+                LLMSummary::from_summary(summary, vec![]),
             ));
         }
         SummariesForLLM { entries }
@@ -603,6 +654,8 @@ impl<'tcx> SummaryCache<'tcx> {
                         &func_ref.summary_cache_key,
                         &func_ref.argument_type_key,
                     ) {
+                        self.function_references
+                            .insert(function_id, func_ref.clone());
                         return self.function_id_cache.entry(function_id).or_insert(summary);
                     }
 
@@ -704,6 +757,7 @@ impl<'tcx> SummaryCache<'tcx> {
         summary: Summary,
     ) {
         if let Some(func_id) = func_ref.function_id {
+            self.function_references.insert(func_id, func_ref.clone());
             if func_args.is_some() || type_cache.is_some() {
                 let typed_cache_key =
                     CallSiteKey::new(func_args.clone(), type_cache.clone(), func_id);

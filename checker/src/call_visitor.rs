@@ -345,6 +345,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 self.block_visitor.bv.current_span,
                 self.block_visitor.bv.def_id,
                 callee_def_id,
+                func_ref.function_id.unwrap_or_default(),
                 !tcx.is_mir_available(callee_def_id)
                     || (!callee_def_id.is_local()
                         && (self.callee_generic_arguments.is_none()
