@@ -106,7 +106,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
     pub fn create_and_cache_function_summary(
         &mut self,
         func_args: &Option<Rc<Vec<Rc<FunctionReference>>>>,
-        type_args: &Option<Rc<HashMap<Rc<Path>, Ty<'tcx>>>>,
+        type_cache: &Option<Rc<HashMap<Rc<Path>, Ty<'tcx>>>>,
     ) -> Summary {
         let func_type = self
             .block_visitor
@@ -149,7 +149,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                     .bv
                     .cv
                     .summary_cache
-                    .get_summary_for_call_site(func_ref, func_args, type_args);
+                    .get_summary_for_call_site(func_ref, func_args, type_cache);
                 if previous_summary.is_computed {
                     summary.join_side_effects(previous_summary)
                 }
@@ -162,7 +162,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                     .bv
                     .cv
                     .summary_cache
-                    .set_summary_for_call_site(func_ref, func_args, type_args, summary.clone());
+                    .set_summary_for_call_site(func_ref, func_args, type_cache, summary.clone());
             }
             return summary;
         }
@@ -356,7 +356,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                                 .is_none())
                         && func_args.is_none()),
             );
-            let type_args = self.initial_type_cache.clone();
+            let type_cache = self.initial_type_cache.clone();
             let call_depth = *self
                 .block_visitor
                 .bv
@@ -368,13 +368,13 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 .bv
                 .cv
                 .summary_cache
-                .get_summary_for_call_site(func_ref, &func_args, &type_args)
+                .get_summary_for_call_site(func_ref, &func_args, &type_cache)
                 .clone();
             if result.is_computed || func_ref.def_id.is_none() {
                 return Some(result);
             }
             if call_depth < 4 {
-                let mut summary = self.create_and_cache_function_summary(&func_args, &type_args);
+                let mut summary = self.create_and_cache_function_summary(&func_args, &type_cache);
                 if call_depth >= 1 {
                     summary.post_condition = None;
 

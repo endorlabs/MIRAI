@@ -80,7 +80,6 @@ impl<'compilation> CrateVisitor<'compilation, '_> {
             DefId::local(DefIndex::from_u32(0))
         };
 
-        // Analyze all functions that are whitelisted or public
         let building_standard_summaries = std::env::var("MIRAI_START_FRESH").is_ok();
         for local_def_id in self.tcx.hir().body_owners() {
             let def_id = local_def_id.to_def_id();
@@ -180,7 +179,7 @@ impl<'compilation> CrateVisitor<'compilation, '_> {
             &mut active_calls_map,
             self.type_cache.clone(),
         );
-        // Analysis local foreign contracts are not summarized and cached on demand, so we need to do it here.
+        // Non-standard foreign contracts are not summarized and cached on demand, so we need to do it here.
         let summary = body_visitor.visit_body(&[]);
         let kind = self.tcx.def_kind(def_id);
         if matches!(kind, rustc_hir::def::DefKind::Static { .. })
@@ -188,7 +187,7 @@ impl<'compilation> CrateVisitor<'compilation, '_> {
             || self.options.print_summaries
         {
             self.summary_cache
-                .set_summary_for(def_id, self.tcx, summary);
+                .set_summary_for_def_id(def_id, self.tcx, summary);
         }
         let old_diags = self.diagnostics_for.insert(def_id, diagnostics);
         checked_assume!(old_diags.is_none());

@@ -361,10 +361,8 @@ fn extract_reachable_heap_allocations(
 /// key to be based on these arguments.
 #[derive(PartialEq, Eq)]
 pub struct CallSiteKey<'tcx> {
-    /// If this is None, type_args must not be None.
     func_args: Option<Rc<Vec<Rc<FunctionReference>>>>,
-    /// If this is None, func_args must not be None.
-    type_args: Option<Rc<HashMap<Rc<Path>, Ty<'tcx>>>>,
+    type_cache: Option<Rc<HashMap<Rc<Path>, Ty<'tcx>>>>,
     /// Uniquely identifies the function reference used at the call site.
     function_id: usize,
 }
@@ -372,12 +370,12 @@ pub struct CallSiteKey<'tcx> {
 impl<'tcx> CallSiteKey<'tcx> {
     pub fn new(
         func_args: Option<Rc<Vec<Rc<FunctionReference>>>>,
-        type_args: Option<Rc<HashMap<Rc<Path>, Ty<'tcx>>>>,
+        type_cache: Option<Rc<HashMap<Rc<Path>, Ty<'tcx>>>>,
         function_id: usize,
     ) -> CallSiteKey<'tcx> {
         CallSiteKey {
             func_args,
-            type_args,
+            type_cache,
             function_id,
         }
     }
@@ -388,7 +386,7 @@ impl Hash for CallSiteKey<'_> {
         if let Some(func_args) = &self.func_args {
             func_args.hash(state);
         }
-        if let Some(cache) = &self.type_args {
+        if let Some(cache) = &self.type_cache {
             for (path, ty) in cache.iter() {
                 path.hash(state);
                 ty.kind().hash(state);
@@ -403,21 +401,20 @@ pub struct SummaryCache<'tcx> {
     /// The sled database that stores the summaries when persisted between runs.
     /// Chiefly used to store summaries for rust standard library functions that have no MIR.
     db: Db,
-    /// Functions that are entry points have def_ids but no function_id, because they are not
-    /// derived from function references, have their summaries cached here.
+    /// Cache for functions that are entry points have def_ids but no function_id, because they are not
+    /// derived from function references.
     def_id_cache: HashMap<DefId, Summary>,
-    /// Functions that are summarized because they are called via function references, have their
-    /// summaries cached here. These summaries will be specialized using the generic arguments (if any)
-    /// supplied by the function reference.
+    /// Cache for functions that are summarized because they are called via function references.
+    /// These summaries will be specialized using the generic arguments (if any) supplied by the 
+    /// function reference.
     function_id_cache: HashMap<usize, Summary>,
     /// Maps call sites to specialized summaries of the referenced functions.
-    /// Call site specialization involves using the actual generic type arguments supplied by the call
+    /// Call site specialization involves using the types of actual arguments supplied by the call
     /// site, along with the values of any constant functions that are supplied as actual arguments.
-    /// This cache is only used if the call site supplies generic type arguments or constant functions.
+    /// This cache is only used if the call site supplies arguments (of ADT type) or constant functions.
     call_site_cache: HashMap<CallSiteKey<'tcx>, Summary>,
-    /// Functions that have no def_id (and hence no function_id) and no type signature are
-    /// cached here. Such functions are either entry points or dummy functions that provide
-    /// summaries for functions that have no MIR and are shadowed by definitions in a contracts crate.
+    /// Cache for functions that are called via function references, but have no function_id.
+    /// Such functions have no MIR and/or are shadowed by definitions in a contracts crate.
     reference_cache: HashMap<Rc<FunctionReference>, Summary>,
     /// A cache of summary keys for each def_id. This is used to avoid recomputing the summary key,
     /// which is expensive to do and can be done more than once per def_id if there are more than
@@ -577,26 +574,24 @@ impl<'tcx> SummaryCache<'tcx> {
         &mut self,
         func_ref: &Rc<FunctionReference>,
         func_args: &Option<Rc<Vec<Rc<FunctionReference>>>>,
-        type_args: &Option<Rc<HashMap<Rc<Path>, Ty<'tcx>>>>,
+        type_cache: &Option<Rc<HashMap<Rc<Path>, Ty<'tcx>>>>,
     ) -> &Summary {
         match (func_ref.def_id, func_ref.function_id) {
             // Use the ids as keys if they are available, since they make much better keys.
             (Some(def_id), Some(function_id)) => {
-                if func_args.is_some() || type_args.is_some() {
-                    let typed_cache_key =
-                        CallSiteKey::new(func_args.clone(), type_args.clone(), function_id);
+                if func_args.is_some() || type_cache.is_some() {
+                    let call_site_key =
+                        CallSiteKey::new(func_args.clone(), type_cache.clone(), function_id);
                     // Need the double lookup in order to allow the recursive call to get_summary_for_function_constant.
-                    let summary_is_cached = self.call_site_cache.contains_key(&typed_cache_key);
+                    let summary_is_cached = self.call_site_cache.contains_key(&call_site_key);
                     return if summary_is_cached {
-                        self.call_site_cache.get(&typed_cache_key).unwrap()
+                        self.call_site_cache.get(&call_site_key).unwrap()
                     } else {
                         // can't have self borrowed at this point.
                         let summary = self
                             .get_summary_for_call_site(func_ref, &None, &None)
                             .clone();
-                        self.call_site_cache
-                            .entry(typed_cache_key)
-                            .or_insert(summary)
+                        self.call_site_cache.entry(call_site_key).or_insert(summary)
                     };
                 }
 
@@ -705,19 +700,13 @@ impl<'tcx> SummaryCache<'tcx> {
         &mut self,
         func_ref: &Rc<FunctionReference>,
         func_args: &Option<Rc<Vec<Rc<FunctionReference>>>>,
-        type_args: &Option<Rc<HashMap<Rc<Path>, Ty<'tcx>>>>,
+        type_cache: &Option<Rc<HashMap<Rc<Path>, Ty<'tcx>>>>,
         summary: Summary,
     ) {
         if let Some(func_id) = func_ref.function_id {
-            // if let Some(def_id) = func_ref.def_id {
-            //     if func_args.is_none() && type_args.is_none() {
-            //         info!("caching summary for def_id {:?}", def_id);
-            //         self.def_id_cache.insert(def_id, summary.clone());
-            //     }
-            // }
-            if func_args.is_some() || type_args.is_some() {
+            if func_args.is_some() || type_cache.is_some() {
                 let typed_cache_key =
-                    CallSiteKey::new(func_args.clone(), type_args.clone(), func_id);
+                    CallSiteKey::new(func_args.clone(), type_cache.clone(), func_id);
                 self.call_site_cache.insert(typed_cache_key, summary);
             } else {
                 self.function_id_cache.insert(func_id, summary);
@@ -729,7 +718,7 @@ impl<'tcx> SummaryCache<'tcx> {
     }
 
     /// Sets or updates the DefId cache so that from now on def_id maps to the given summary.
-    pub fn set_summary_for(
+    pub fn set_summary_for_def_id(
         &mut self,
         def_id: DefId,
         tcx: TyCtxt<'tcx>,
