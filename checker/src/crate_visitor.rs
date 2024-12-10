@@ -80,7 +80,7 @@ impl<'compilation> CrateVisitor<'compilation, '_> {
             DefId::local(DefIndex::from_u32(0))
         };
 
-        // Analyze all functions that are white listed or public
+        // Analyze all functions that are whitelisted or public
         let building_standard_summaries = std::env::var("MIRAI_START_FRESH").is_ok();
         for local_def_id in self.tcx.hir().body_owners() {
             let def_id = local_def_id.to_def_id();
@@ -185,6 +185,7 @@ impl<'compilation> CrateVisitor<'compilation, '_> {
         let kind = self.tcx.def_kind(def_id);
         if matches!(kind, rustc_hir::def::DefKind::Static { .. })
             || utils::is_foreign_contract(self.tcx, def_id)
+            || self.options.print_summaries
         {
             self.summary_cache
                 .set_summary_for(def_id, self.tcx, summary);
@@ -289,5 +290,16 @@ impl<'compilation> CrateVisitor<'compilation, '_> {
                 d.emit()
             }
         }
+    }
+
+    pub fn print_summaries(&mut self) {
+        if !self.options.print_summaries {
+            return;
+        }
+        let calls_for_def_ids = self.call_graph.get_calls_for_def_ids();
+        let summaries_for_llm = self
+            .summary_cache
+            .get_summaries_for_llm(self.tcx, calls_for_def_ids);
+        print!("{}", summaries_for_llm.to_json());
     }
 }

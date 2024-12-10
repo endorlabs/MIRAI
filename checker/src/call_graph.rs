@@ -20,6 +20,7 @@ use serde::{Deserialize, Serialize};
 use mirai_annotations::*;
 use rustc_hir::def_id::DefId;
 use rustc_middle::ty::TyCtxt;
+use rustc_span::Span;
 
 // An unique identifier for a Rust type string.
 type TypeId = u32;
@@ -116,6 +117,8 @@ pub struct CallGraphConfig {
     included_crates: Vec<Box<str>>,
     /// Datalog output configuration
     datalog_config: Option<DatalogConfig>,
+    /// If true, collect all call sites.
+    pub include_calls_in_summaries: bool,
 }
 
 impl CallGraphConfig {
@@ -132,6 +135,7 @@ impl CallGraphConfig {
             reductions,
             included_crates,
             datalog_config,
+            include_calls_in_summaries: false,
         }
     }
 
@@ -314,7 +318,7 @@ impl CallGraphEdge {
 #[derive(Clone)]
 pub struct CallGraph<'tcx> {
     /// Configuration for the call graph
-    config: CallGraphConfig,
+    pub config: CallGraphConfig,
     /// A context to use for getting the information about DefIds that is needed
     /// to generate fully qualified names for them.
     tcx: TyCtxt<'tcx>,
@@ -368,7 +372,7 @@ impl<'tcx> CallGraph<'tcx> {
         self.config.dot_output_path.is_some() || self.config.datalog_config.is_some()
     }
 
-    /// Produce an updated call graph structure that preserves all of the
+    /// Produce an updated call graph structure that preserves all the
     /// fields except `graph`, which is replaced.
     fn update(&self, graph: Graph<CallGraphNode, CallGraphEdge>) -> CallGraph<'tcx> {
         CallGraph {
@@ -433,7 +437,10 @@ impl<'tcx> CallGraph<'tcx> {
         callee: DefId,
         external_callee: bool,
     ) {
-        if self.config.call_sites_output_path.is_some() && !self.non_local_defs.contains(&caller) {
+        if self.config.include_calls_in_summaries
+            || (self.config.call_sites_output_path.is_some()
+                && !self.non_local_defs.contains(&caller))
+        {
             self.call_sites.insert(loc, (caller, callee));
             if external_callee {
                 self.non_local_defs.insert(callee);
@@ -1081,6 +1088,14 @@ impl<'tcx> CallGraph<'tcx> {
         if let Some(call_path) = &self.config.call_sites_output_path {
             call_graph.to_call_sites(Path::new(call_path.as_ref()));
         }
+    }
+
+    pub fn get_calls_for_def_ids(&self) -> HashMap<DefId, Vec<(Span, DefId)>> {
+        let mut calls = HashMap::<DefId, Vec<(Span, DefId)>>::new();
+        for (span, (caller, callee)) in self.call_sites.iter() {
+            calls.entry(*caller).or_default().push((*span, *callee));
+        }
+        calls
     }
 }
 

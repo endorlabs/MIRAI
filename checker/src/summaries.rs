@@ -5,9 +5,11 @@
 
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
+use std::env::current_dir;
 use std::fmt::{Debug, Formatter, Result};
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
+use std::path::PathBuf;
 use std::rc::Rc;
 
 use itertools::Itertools;
@@ -18,6 +20,7 @@ use sled::{Config, Db};
 use mirai_annotations::*;
 use rustc_hir::def_id::DefId;
 use rustc_middle::ty::{Ty, TyCtxt};
+use rustc_span::Span;
 
 use crate::abstract_value::AbstractValue;
 use crate::abstract_value::AbstractValueTrait;
@@ -275,7 +278,7 @@ fn add_provenance(preconditions: &[Precondition], tcx: TyCtxt<'_>) -> Vec<Precon
 
 /// Returns a list of (path, value) pairs where each path is rooted by an argument(or the result)
 /// or where the path root is a heap block reachable from an argument (or the result).
-/// Since paths are created by writes, these are side-effects.
+/// Since paths are created by writes, these are side effects.
 /// Since these values are reachable from arguments or the result, they are visible to the caller
 /// and must be included in the summary.
 #[logfn_inputs(TRACE)]
@@ -494,6 +497,67 @@ impl<'tcx> SummaryCache<'tcx> {
         store_path
     }
 
+    pub fn get_summaries_for_llm(
+        &self,
+        tcx: TyCtxt,
+        call_site_per_def_id: HashMap<DefId, Vec<(Span, DefId)>>,
+    ) -> SummariesForLLM {
+        let source_map = tcx.sess.source_map();
+        let mut entries = Vec::new();
+        for (key, value) in self.def_id_cache.iter() {
+            let fully_qualified_name = self.key_cache.get(key).unwrap().to_string();
+            let file_name;
+            let source;
+            if tcx.is_mir_available(*key) {
+                let mir = if tcx.is_const_fn(*key) {
+                    tcx.mir_for_ctfe(*key)
+                } else {
+                    let instance = rustc_middle::ty::InstanceKind::Item(*key);
+                    tcx.instance_mir(instance)
+                };
+                file_name = source_map.span_to_filename(mir.span).into_local_path();
+                source = source_map
+                    .span_to_snippet(mir.span)
+                    .ok()
+                    .unwrap_or_default();
+            } else {
+                let span = tcx.def_span(*key);
+                file_name = source_map.span_to_filename(span).into_local_path();
+                source = source_map.span_to_snippet(span).ok().unwrap_or_default();
+            }
+            let mut path = None;
+            if let Some(mut p) = file_name {
+                if p.is_absolute() {
+                    p = p
+                        .strip_prefix(current_dir().unwrap_or_default())
+                        .unwrap_or(&p)
+                        .to_path_buf();
+                    if p.is_absolute() {
+                        let sysroot = utils::find_sysroot();
+                        let rel = p.strip_prefix(sysroot).unwrap_or(&p);
+                        p = PathBuf::from("/").join(rel).to_path_buf();
+                    }
+                }
+                path = Some(p.to_string_lossy().to_string());
+            }
+            let mut calls = vec![];
+            if let Some(call_vec) = call_site_per_def_id.get(key) {
+                for (span, def_id) in call_vec.iter() {
+                    let call_snippet = source_map.span_to_snippet(*span).ok().unwrap_or_default();
+                    let callee_name = self.key_cache.get(def_id).unwrap().to_string();
+                    calls.push((call_snippet, callee_name));
+                }
+            };
+            entries.push((
+                path.unwrap_or_default(),
+                fully_qualified_name,
+                source,
+                LLMSummary::from_summary(value, calls),
+            ));
+        }
+        SummariesForLLM { entries }
+    }
+
     /// Returns (and caches) a string that uniquely identifies a definition to serve as a key to
     /// the summary cache, which is a key value store. The string will always be the same as
     /// long as the definition does not change its name or location, so it can be used to
@@ -645,6 +709,12 @@ impl<'tcx> SummaryCache<'tcx> {
         summary: Summary,
     ) {
         if let Some(func_id) = func_ref.function_id {
+            // if let Some(def_id) = func_ref.def_id {
+            //     if func_args.is_none() && type_args.is_none() {
+            //         info!("caching summary for def_id {:?}", def_id);
+            //         self.def_id_cache.insert(def_id, summary.clone());
+            //     }
+            // }
             if func_args.is_some() || type_args.is_some() {
                 let typed_cache_key =
                     CallSiteKey::new(func_args.clone(), type_args.clone(), func_id);
@@ -674,5 +744,58 @@ impl<'tcx> SummaryCache<'tcx> {
             println!("unable to set key in summary database: {result:?}");
         }
         self.def_id_cache.insert(def_id, summary)
+    }
+}
+
+#[derive(Serialize)]
+pub struct SummariesForLLM {
+    // (source path, fully qualified function name, function source, summary)
+    entries: Vec<(String, String, String, LLMSummary)>,
+}
+
+impl SummariesForLLM {
+    pub fn to_json(&self) -> String {
+        serde_json::to_string_pretty(&self).unwrap()
+    }
+}
+
+#[derive(Serialize)]
+pub struct LLMSummary {
+    // Conditions that should hold prior to the call.
+    // Callers should substitute parameter values with argument values and simplify the results
+    // under the current path condition. Any values that do not simplify to true will require the
+    // caller to either generate an error message or to add a precondition to its own summary that
+    // will be sufficient to ensure that all the preconditions in this summary are met.
+    // The string value bundled with the condition is the message that details what would go
+    // wrong at runtime if the precondition is not satisfied by the caller.
+    //pub preconditions: Vec<Precondition>,
+
+    // Modifications the function makes to mutable state external to the function.
+    // Every path will be rooted in a static or in a mutable parameter.
+    // No two paths in this collection will lead to the same place in memory.
+    // Callers should substitute parameter values with argument values and simplify the results
+    // under the current path condition. They should then update their current state to reflect the
+    // side effects of the call.
+    //pub side_effects: Vec<(Rc<Path>, Rc<AbstractValue>)>,
+
+    // A condition that should hold after a call that completes normally.
+    // Callers should substitute parameter values with argument values and simplify the results
+    // under the current path condition.
+    // The resulting value should be conjoined to the current path condition.
+    //pub post_condition: Option<Rc<AbstractValue>>,
+
+    // The set of function calls made by this function. The first element is the source snippet of
+    // the call and the second is the fully qualified name of the function being called.
+    calls: Vec<(String, String)>,
+}
+
+impl LLMSummary {
+    pub fn from_summary(_summary: &Summary, calls: Vec<(String, String)>) -> LLMSummary {
+        LLMSummary {
+            // preconditions: vec![],
+            // side_effects: vec![],
+            // post_condition: vec![],
+            calls,
+        }
     }
 }

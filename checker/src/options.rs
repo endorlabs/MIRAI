@@ -243,7 +243,7 @@ impl Options {
             matches.value_source("print_summaries"),
             Some(ValueSource::DefaultValue)
         ) {
-            self.print_summaries = false;
+            self.print_summaries = true;
         }
         args[rustc_args_start..].to_vec()
     }
