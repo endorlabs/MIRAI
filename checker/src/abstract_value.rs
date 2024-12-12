@@ -1955,6 +1955,10 @@ impl AbstractValueTrait for Rc<AbstractValue> {
                             return left.cast(target_type);
                         }
                     }
+                    Expression::Reference(..) if target_type.is_integer() => {
+                        // [(&x) as t] -> &x if t is an integer
+                        return self.clone();
+                    }
                     // [(v : t1) as target_type] -> (v: t1) if t1.max_value() == target_type.max_value()
                     Expression::Variable { var_type: t1, .. }
                     | Expression::InitialParameterValue { var_type: t1, .. } => {
@@ -2084,15 +2088,15 @@ impl AbstractValueTrait for Rc<AbstractValue> {
             // [if !(x) { a } else { b }] -> if x { b } else { a }
             return operand.conditional_expression(alternate, consequent);
         }
-        // [if 0 == x { y } else { true }] -> x || y
-        // [if 0 == x { false } else { y }] -> x && y
+        // [if 0 == x { y } else { true }] -> x != 0 || y
+        // [if 0 == x { false } else { y }] -> x != 0 && y
         if let Expression::Equals { left: z, right: x } = &self.expression {
             if let Expression::CompileTimeConstant(ConstantDomain::U128(0)) = z.expression {
                 if alternate.as_bool_if_known().unwrap_or(false) {
-                    return x.or(consequent);
+                    return x.not_equals(z.clone()).or(consequent);
                 }
                 if !consequent.as_bool_if_known().unwrap_or(true) {
-                    return x.and(alternate);
+                    return x.not_equals(z.clone()).and(alternate);
                 }
             }
         }
@@ -4851,6 +4855,13 @@ impl AbstractValueTrait for Rc<AbstractValue> {
     /// Returns an element that is "self % other".
     #[logfn_inputs(TRACE)]
     fn remainder(&self, other: Rc<AbstractValue>) -> Rc<AbstractValue> {
+        // [(x % y) % y] -> x % y
+        if let Expression::Rem { left: x, right: y } = &self.expression {
+            if y.eq(&other) {
+                return x.clone();
+            }
+        }
+
         // [(x as t) % c] -> x % c if c.is_power_of_two() && c <= t.modulo_value()
         if let Expression::Cast { operand: x, .. } = &self.expression {
             let ct = x.expression.infer_type();
@@ -6842,9 +6853,26 @@ impl AbstractValueTrait for Rc<AbstractValue> {
     /// or zero filled as appropriate.
     #[logfn_inputs(TRACE)]
     fn transmute(&self, target_type: ExpressionType) -> Rc<AbstractValue> {
-        if target_type.is_integer() && self.expression.infer_type().is_integer() {
+        let expression_type = self.expression.infer_type();
+        if expression_type == target_type {
+            self.clone()
+        } else if target_type.is_integer()
+            || target_type == ExpressionType::ThinPointer && expression_type.is_integer()
+        {
             self.unsigned_modulo(target_type.bit_length())
-                .cast(target_type)
+                .try_to_constant_fold_and_distribute_typed_unary_op(
+                    target_type,
+                    ConstantDomain::transmute,
+                    Self::transmute,
+                    |o, t| {
+                        AbstractValue::make_typed_unary(o, t, |operand, target_type| {
+                            Expression::Transmute {
+                                operand,
+                                target_type,
+                            }
+                        })
+                    },
+                )
         } else if target_type == ExpressionType::Bool {
             self.unsigned_modulo(target_type.bit_length())
                 .not_equals(Rc::new(ConstantDomain::U128(0).into()))
@@ -6943,17 +6971,22 @@ impl AbstractValueTrait for Rc<AbstractValue> {
     }
 
     /// Returns an expression that discards (zero fills) bits that are not in the specified number
-    /// of least significant bits. The result is an unsigned integer.
-    #[logfn(TRACE)]
+    /// of least-significant bits. The result is an unsigned integer.
+    #[logfn_inputs(TRACE)]
     fn unsigned_modulo(&self, num_bits: u8) -> Rc<AbstractValue> {
         if let Expression::CompileTimeConstant(c) = &self.expression {
             Rc::new(c.unsigned_modulo(num_bits).into())
-        } else if num_bits == 128 {
-            self.try_to_retype_as(ExpressionType::U128)
         } else {
-            let power_of_two = Rc::new(ConstantDomain::U128(1 << num_bits).into());
-            let unsigned = self.try_to_retype_as(ExpressionType::U128);
-            unsigned.remainder(power_of_two)
+            let expression_type = self.expression.infer_type();
+            if expression_type.bit_length() == num_bits {
+                self.clone()
+            } else if num_bits == 128 {
+                self.try_to_retype_as(ExpressionType::U128)
+            } else {
+                let power_of_two = Rc::new(ConstantDomain::U128(1 << num_bits).into());
+                let unsigned = self.try_to_retype_as(ExpressionType::U128);
+                unsigned.remainder(power_of_two)
+            }
         }
     }
 

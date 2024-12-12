@@ -412,7 +412,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                     }
                 }
             }
-            _ => {}
+            _ => (),
         }
         let refined_val = {
             let top = abstract_value::TOP.into();
@@ -1784,6 +1784,60 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
         )
     }
 
+    fn add_leaf_fields_for(
+        &self,
+        path: Rc<Path>,
+        def: &'tcx AdtDef,
+        args: GenericArgsRef<'tcx>,
+        tcx: TyCtxt<'tcx>,
+        accumulator: &mut Vec<(Rc<Path>, Ty<'tcx>)>,
+    ) {
+        if let Some(int_ty) = def.repr().int {
+            let ty = match int_ty {
+                rustc_abi::IntegerType::Fixed(t, true) => match t {
+                    rustc_abi::Integer::I8 => tcx.types.i8,
+                    rustc_abi::Integer::I16 => tcx.types.i16,
+                    rustc_abi::Integer::I32 => tcx.types.i32,
+                    rustc_abi::Integer::I64 => tcx.types.i64,
+                    rustc_abi::Integer::I128 => tcx.types.i128,
+                },
+                rustc_abi::IntegerType::Fixed(t, false) => match t {
+                    rustc_abi::Integer::I8 => tcx.types.u8,
+                    rustc_abi::Integer::I16 => tcx.types.u16,
+                    rustc_abi::Integer::I32 => tcx.types.u32,
+                    rustc_abi::Integer::I64 => tcx.types.u64,
+                    rustc_abi::Integer::I128 => tcx.types.u128,
+                },
+                rustc_abi::IntegerType::Pointer(true) => tcx.types.isize,
+                rustc_abi::IntegerType::Pointer(false) => tcx.types.usize,
+            };
+            let discr_path = Path::new_discriminant(path);
+            accumulator.push((discr_path, ty));
+        } else if !def.variants().is_empty() {
+            let variant = def.variants().iter().next().expect("at least one variant");
+            for (i, field) in variant.fields.iter().enumerate() {
+                let field_path = Path::new_field(path.clone(), i);
+                let field_ty = field.ty(tcx, args);
+                debug!("field_path: {:?}, field_ty: {:?}", field_path, field_ty);
+                if let TyKind::Adt(def, args) = field_ty.kind() {
+                    self.add_leaf_fields_for(field_path, def, args, tcx, accumulator)
+                } else if self.type_visitor().is_slice_pointer(field_ty.kind()) {
+                    let ptr_path = Path::new_field(field_path.clone(), 0);
+                    let len_path = Path::new_length(field_path.clone());
+                    let pointer_type = Ty::new_ptr(
+                        self.tcx,
+                        self.type_visitor.get_element_type(field_ty),
+                        rustc_hir::Mutability::Not,
+                    );
+                    accumulator.push((ptr_path, pointer_type));
+                    accumulator.push((len_path, tcx.types.usize));
+                } else {
+                    accumulator.push((field_path, field_ty))
+                }
+            }
+        }
+    }
+
     /// Copy the heap model at source_path to a heap model at target_path.
     /// If the type of value at source_path is different from that at target_path, the value is transmuted.
     #[logfn_inputs(TRACE)]
@@ -1794,52 +1848,10 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
         target_path: Rc<Path>,
         target_rustc_type: Ty<'tcx>,
     ) {
-        fn add_leaf_fields_for<'a>(
-            path: Rc<Path>,
-            def: &'a AdtDef,
-            args: GenericArgsRef<'a>,
-            tcx: TyCtxt<'a>,
-            accumulator: &mut Vec<(Rc<Path>, Ty<'a>)>,
-        ) {
-            if let Some(int_ty) = def.repr().int {
-                let ty = match int_ty {
-                    rustc_abi::IntegerType::Fixed(t, true) => match t {
-                        rustc_abi::Integer::I8 => tcx.types.i8,
-                        rustc_abi::Integer::I16 => tcx.types.i16,
-                        rustc_abi::Integer::I32 => tcx.types.i32,
-                        rustc_abi::Integer::I64 => tcx.types.i64,
-                        rustc_abi::Integer::I128 => tcx.types.i128,
-                    },
-                    rustc_abi::IntegerType::Fixed(t, false) => match t {
-                        rustc_abi::Integer::I8 => tcx.types.u8,
-                        rustc_abi::Integer::I16 => tcx.types.u16,
-                        rustc_abi::Integer::I32 => tcx.types.u32,
-                        rustc_abi::Integer::I64 => tcx.types.u64,
-                        rustc_abi::Integer::I128 => tcx.types.u128,
-                    },
-                    rustc_abi::IntegerType::Pointer(true) => tcx.types.isize,
-                    rustc_abi::IntegerType::Pointer(false) => tcx.types.usize,
-                };
-                let discr_path = Path::new_discriminant(path);
-                accumulator.push((discr_path, ty));
-            } else if !def.variants().is_empty() {
-                let variant = def.variants().iter().next().expect("at least one variant");
-                for (i, field) in variant.fields.iter().enumerate() {
-                    let field_path = Path::new_field(path.clone(), i);
-                    let field_ty = field.ty(tcx, args);
-                    if let TyKind::Adt(def, args) = field_ty.kind() {
-                        add_leaf_fields_for(field_path, def, args, tcx, accumulator)
-                    } else {
-                        accumulator.push((field_path, field_ty))
-                    }
-                }
-            }
-        }
-
         let mut source_fields = Vec::new();
         match source_rustc_type.kind() {
             TyKind::Adt(source_def, source_substs) => {
-                add_leaf_fields_for(
+                self.add_leaf_fields_for(
                     source_path,
                     source_def,
                     source_substs,
@@ -1904,7 +1916,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
         let mut target_fields = Vec::new();
         match target_rustc_type.kind() {
             TyKind::Adt(target_def, target_substs) => {
-                add_leaf_fields_for(
+                self.add_leaf_fields_for(
                     target_path,
                     target_def,
                     target_substs,
@@ -2063,7 +2075,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
             } else if source_bits - copied_source_bits >= target_bits_to_write {
                 // target field can be completely assigned from bits of source field value
                 if source_bits - copied_source_bits > target_bits_to_write {
-                    // discard higher order bits since they wont fit into the target field
+                    // discard higher order bits since they won't fit into the target field
                     val = val.unsigned_modulo(target_bits_to_write);
                 }
                 if let Expression::Reference(p) = &val.expression {
