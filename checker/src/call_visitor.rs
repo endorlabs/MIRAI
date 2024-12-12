@@ -3002,7 +3002,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
     }
 
     /// Updates the current state to reflect the effects of a normal return from the function call.
-    /// The paths and expressions of the side-effects are refined in the context of the pre-state
+    /// The paths and expressions of the side effects are refined in the context of the pre-state
     /// (the environment before the call executed), while the refined effects are applied to the
     /// current state.
     #[logfn_inputs(TRACE)]

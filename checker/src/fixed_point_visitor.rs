@@ -88,7 +88,7 @@ impl<'fixed, 'analysis, 'compilation, 'tcx>
         }
     }
 
-    /// Visits a single basic block, starting with an in_state that is the join of all of
+    /// Visits a single basic block, starting with an in_state that is the join of all
     /// the out_state values of its predecessors and then updating out_state with the final
     /// current_environment of the block. Also adds the block to the already_visited set.
     #[logfn_inputs(TRACE)]

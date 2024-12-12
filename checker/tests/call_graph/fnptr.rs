@@ -69,7 +69,7 @@ commit;
   ],
   "callables": [
     {
-      "name": "/fnptr/fn1(u32,&'^0.Named(DefId(0:7 ~ fnptr[03cc]::fn1::'_), \"'_\") Binder { value: fn(u32) -> u32, bound_vars: [] })->u32",
+      "name": "/fnptr/fn1(u32,&'^0.Named(DefId(0:7 ~ fnptr[35c1]::fn1::'_), \"'_\") Binder { value: fn(u32) -> u32, bound_vars: [] })->u32",
       "file_index": 0,
       "first_line": 9,
       "local": true

@@ -2197,17 +2197,24 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             }
             mir::CastKind::Transmute => {
                 let source_type = self.get_operand_rustc_type(operand);
-                let source_value = self.visit_operand(operand);
-                let source_path = Path::get_as_path(source_value.clone());
-                let path = if source_value.is_function() {
-                    Path::new_function(path)
-                } else {
-                    path
+                let (source_path, target_path) = match operand {
+                    mir::Operand::Copy(place) |
+                    mir::Operand::Move(place) => (self.visit_lh_place(place), path),
+                    mir::Operand::Constant(..) => {
+                        let source_value = self.visit_operand(operand);
+                        let source_path = Path::get_as_path(source_value.clone());
+                        let target_path = if source_value.is_function() {
+                            Path::new_function(path)
+                        } else {
+                            path
+                        };
+                        (source_path, target_path)
+                    }
                 };
                 self.bv.copy_and_transmute(
                     source_path,
                     source_type,
-                    path,
+                    target_path,
                     ty,
                 );
             }
@@ -2241,7 +2248,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         .get_operand_path(operand)
                         .canonicalize(&self.bv.current_environment);
                     if !self.type_visitor().is_slice_pointer(ty.kind()) {
-                        source_path = Path::new_field(source_path, 0);
+                        source_path = Path::new_field(source_path, 0).canonicalize(&self.bv.current_environment);
                     }
                     if let mir::Operand::Move(..) = operand {
                         self.bv

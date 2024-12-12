@@ -1529,7 +1529,7 @@ impl ExpressionType {
     #[logfn_inputs(TRACE)]
     pub fn is_floating_point_number(&self) -> bool {
         use self::ExpressionType::*;
-        matches!(self, F32 | F64)
+        matches!(self, F16 | F32 | F64)
     }
 
     /// Returns true if this type is one of the integer types.
