@@ -305,11 +305,10 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
     fn report_timeout(&mut self, elapsed_time_in_seconds: u64) {
         // This body is beyond MIRAI for now
         if self.cv.options.diag_level != DiagLevel::Default {
-            let warning = self
-                .cv
-                .session
-                .dcx()
-                .struct_span_warn(self.current_span, "[MIRAI] The analysis of this function timed out");
+            let warning = self.cv.session.dcx().struct_span_warn(
+                self.current_span,
+                "[MIRAI] The analysis of this function timed out",
+            );
             self.emit_diagnostic(warning);
         }
         warn!(

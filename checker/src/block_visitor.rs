@@ -954,7 +954,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 {
                     let precondition = Precondition {
                         condition: promotable_entry_condition.logical_not(),
-                        message: Rc::from("[MIRAI] incomplete analysis of call because of a nested call to a function without a MIR body"),
+                        message: Rc::from("incomplete analysis of call because of a nested call to a function without a MIR body"),
                         provenance: None,
                         spans: vec![self.bv.current_span.source_callsite()],
                     };
@@ -1164,7 +1164,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             .cv
             .session
             .dcx()
-            .struct_span_warn(span, "[MIRAI] ".to_string()+&diagnostic.as_ref());
+            .struct_span_warn(span, "[MIRAI] ".to_string() + diagnostic.as_ref());
         for pc_span in precondition.spans.iter() {
             let snippet = self.bv.tcx.sess.source_map().span_to_snippet(*pc_span);
             if snippet.is_ok() {
@@ -1287,7 +1287,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     // promote the path as a precondition. I.e. the program is only correct,
                     // albeit badly written, if we never get here.
                     let condition = promotable_entry_cond.logical_not();
-                    let message = Rc::from(format!("[MIRAI] possible {message}"));
+                    let message = Rc::from(format!("possible {message}"));
                     let precondition = Precondition {
                         condition,
                         message,
@@ -1300,7 +1300,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             return None;
         }
 
-        let warning = format!("[MIRAI] possible {message}");
+        let warning = format!("possible {message}");
 
         // We might get here, or not, and the condition might be false, or not.
         // Give a warning if we don't know all of the callers, or if we run into a k-limit
@@ -1329,7 +1329,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     .cv
                     .session
                     .dcx()
-                    .struct_span_warn(span, warning.clone());
+                    .struct_span_warn(span, "[MIRAI] ".to_string() + warning.clone().as_ref());
                 self.bv.emit_diagnostic(warning);
             }
         }
@@ -1440,11 +1440,10 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     // The existence of the tag on the value is different from the expectation.
                     // In this case, report an error.
                     let span = self.bv.current_span.source_callsite();
-                    let warning =
-                        self.bv.cv.session.dcx().struct_span_warn(
-                            span,
-                            format!("[MIRAI] the {value_name} has a {tag_name} tag"),
-                        );
+                    let warning = self.bv.cv.session.dcx().struct_span_warn(
+                        span,
+                        format!("[MIRAI] the {value_name} has a {tag_name} tag"),
+                    );
                     self.bv.emit_diagnostic(warning);
                 }
 
@@ -1465,7 +1464,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     let precondition = Precondition {
                         condition,
                         message: Rc::from(format!(
-                            "[MIRAI] the {} {} have a {} tag",
+                            "the {} {} have a {} tag",
                             value_name,
                             if checking_presence { "may not" } else { "may" },
                             tag_name
@@ -1555,7 +1554,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                                 .cv
                                 .session
                                 .dcx()
-                                .struct_span_warn(span, "[MIRAI] ".to_string()+error);
+                                .struct_span_warn(span, "[MIRAI] ".to_string() + error);
                             self.bv.emit_diagnostic(warning);
                             // No need to push a precondition, the caller can never satisfy it.
                             return;
@@ -1587,7 +1586,8 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                             && self.bv.cv.options.diag_level >= DiagLevel::Library)
                     {
                         // Can't make this the caller's problem.
-                        let warning = format!("[MIRAI] possible {}", get_assert_msg_description(msg));
+                        let warning =
+                            format!("[MIRAI] possible {}", get_assert_msg_description(msg));
                         let span = self.bv.current_span;
                         let warning = self.bv.cv.session.dcx().struct_span_warn(span, warning);
                         self.bv.emit_diagnostic(warning);
@@ -1704,12 +1704,10 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
     #[logfn_inputs(TRACE)]
     fn visit_inline_asm(&mut self, targets: &[mir::BasicBlock]) {
         let span = self.bv.current_span;
-        let warning = self
-            .bv
-            .cv
-            .session
-            .dcx()
-            .struct_span_warn(span, "[MIRAI] Inline assembly code cannot be analyzed by MIRAI.");
+        let warning = self.bv.cv.session.dcx().struct_span_warn(
+            span,
+            "[MIRAI] Inline assembly code cannot be analyzed by MIRAI.",
+        );
         self.bv.emit_diagnostic(warning);
         // Don't stop the analysis if we are building a call graph.
         self.bv.analysis_is_incomplete = self.bv.cv.options.call_graph_config.is_none();

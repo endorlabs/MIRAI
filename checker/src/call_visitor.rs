@@ -948,7 +948,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                             .cv
                             .session
                             .dcx()
-                            .struct_span_warn(span, "[MIRAI] ".to_string()+&msg.to_string());
+                            .struct_span_warn(span, "[MIRAI] ".to_string() + msg.as_ref());
                         self.block_visitor.bv.emit_diagnostic(warning);
                     } else {
                         // If we see an unconditional panic inside a standard contract summary,
@@ -968,13 +968,11 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                         // Dealing with contracts crate
                         if self.block_visitor.bv.function_being_analyzed_is_root() {
                             let msg = msg.replace(" violated", " possibly violated");
-                            let warning = self
-                                .block_visitor
-                                .bv
-                                .cv
-                                .session
-                                .dcx()
-                                .struct_span_warn(span, "[MIRAI] ".to_string()+&msg.to_string());
+                            let warning =
+                                self.block_visitor.bv.cv.session.dcx().struct_span_warn(
+                                    span,
+                                    "[MIRAI] ".to_string() + &msg.to_string(),
+                                );
                             self.block_visitor.bv.emit_diagnostic(warning);
                         }
                         return;
@@ -1023,7 +1021,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                                 .cv
                                 .session
                                 .dcx()
-                                .struct_span_warn(span, "[MIRAI] ".to_string()+&msg.to_string());
+                                .struct_span_warn(span, "[MIRAI] ".to_string() + msg.as_ref());
                             self.block_visitor.bv.emit_diagnostic(warning);
                         } else {
                             // Since the assertion occurs in code that is being used rather than
@@ -1099,7 +1097,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                                 let warning =
                                     self.block_visitor.bv.cv.session.dcx().struct_span_warn(
                                         self.block_visitor.bv.current_span,
-                                        "[MIRAI] ".to_string()+&warning.to_string(),
+                                        "[MIRAI] ".to_string() + warning.as_ref(),
                                     );
                                 self.block_visitor.bv.emit_diagnostic(warning);
                             }
@@ -1908,13 +1906,10 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 .unwrap_or(false)
         {
             let span = self.block_visitor.bv.current_span;
-            let warning = self
-                .block_visitor
-                .bv
-                .cv
-                .session
-                .dcx()
-                .struct_span_warn(span, "[MIRAI] preconditions should be reached unconditionally");
+            let warning = self.block_visitor.bv.cv.session.dcx().struct_span_warn(
+                span,
+                "[MIRAI] preconditions should be reached unconditionally",
+            );
             self.block_visitor.bv.emit_diagnostic(warning);
             self.block_visitor.bv.check_for_unconditional_precondition = false;
         }
@@ -2653,7 +2648,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 {
                     let precondition = Precondition {
                         condition: promotable_entry_condition.logical_not(),
-                        message: Rc::from("[MIRAI] incomplete analysis of call because of failure to resolve a nested call"),
+                        message: Rc::from("incomplete analysis of call because of failure to resolve a nested call"),
                         provenance: None,
                         spans: vec![self.block_visitor.bv.current_span.source_callsite()],
                     };
@@ -3177,7 +3172,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
             );
             self.block_visitor.bv.emit_diagnostic(warning);
         }
-        Rc::from("[MIRAI] dummy argument")
+        Rc::from("dummy argument")
     }
 
     /// Extract the tag kind and the propagation set from the generic arg of the function call
