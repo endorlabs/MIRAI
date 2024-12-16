@@ -374,7 +374,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                             let warning = self.bv.cv.session.dcx().struct_span_warn(
                                 span,
                                 format!(
-                                    "unknown tag type for constant-time verification: {tag_name}",
+                                    "[MIRAI] unknown tag type for constant-time verification: {tag_name}",
                                 ),
                             );
                             self.bv.emit_diagnostic(warning);
@@ -973,7 +973,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     // Give a diagnostic about this call, and make it the programmer's problem.
                     let warning = self.bv.cv.session.dcx().struct_span_warn(
                         self.bv.current_span,
-                        "the called function did not resolve to an implementation with a MIR body",
+                        "[MIRAI] the called function did not resolve to an implementation with a MIR body",
                     );
                     self.bv.emit_diagnostic(warning);
                 }
@@ -1164,7 +1164,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             .cv
             .session
             .dcx()
-            .struct_span_warn(span, diagnostic.as_ref().to_string());
+            .struct_span_warn(span, "[MIRAI] ".to_string() + diagnostic.as_ref());
         for pc_span in precondition.spans.iter() {
             let snippet = self.bv.tcx.sess.source_map().span_to_snippet(*pc_span);
             if snippet.is_ok() {
@@ -1203,7 +1203,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         let span = self.bv.current_span;
                         let warning = self.bv.cv.session.dcx().struct_span_warn(
                             span,
-                            "multiple post conditions must be on the same execution path",
+                            "[MIRAI] multiple post conditions must be on the same execution path",
                         );
                         self.bv.emit_diagnostic(warning);
                     }
@@ -1239,7 +1239,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         if !entry_cond_as_bool.unwrap_or(true) {
             let span = self.bv.current_span.source_callsite();
             let message =
-                "this is unreachable, mark it as such by using the verify_unreachable! macro";
+                "[MIRAI] this is unreachable, mark it as such by using the verify_unreachable! macro";
             let warning = self.bv.cv.session.dcx().struct_span_warn(span, message);
             self.bv.emit_diagnostic(warning);
             return None;
@@ -1253,9 +1253,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         if function_name == KnownNames::MiraiPostcondition {
             let span = self.bv.current_span.source_callsite();
             let msg = if cond_as_bool.is_some() {
-                "provably false postcondition"
+                "[MIRAI] provably false postcondition"
             } else {
-                "possible unsatisfied postcondition"
+                "[MIRAI] possible unsatisfied postcondition"
             };
             let warning = self.bv.cv.session.dcx().struct_span_warn(span, msg);
             self.bv.emit_diagnostic(warning);
@@ -1278,7 +1278,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 .cv
                 .session
                 .dcx()
-                .struct_span_warn(span, "provably false verification condition");
+                .struct_span_warn(span, "[MIRAI] provably false verification condition");
             self.bv.emit_diagnostic(warning);
             if entry_cond_as_bool.is_none()
                 && self.bv.preconditions.len() < k_limits::MAX_INFERRED_PRECONDITIONS
@@ -1329,7 +1329,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     .cv
                     .session
                     .dcx()
-                    .struct_span_warn(span, warning.clone());
+                    .struct_span_warn(span, "[MIRAI] ".to_string() + warning.clone().as_ref());
                 self.bv.emit_diagnostic(warning);
             }
         }
@@ -1413,7 +1413,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         let warning = self.bv.cv.session.dcx().struct_span_warn(
                             span,
                             format!(
-                                "the {} {} have a {} tag",
+                                "[MIRAI] the {} {} have a {} tag",
                                 value_name,
                                 if checking_presence { "may not" } else { "may" },
                                 tag_name
@@ -1427,7 +1427,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         let warning = self.bv.cv.session.dcx().struct_span_warn(
                             span,
                             format!(
-                                "the {value_name} may have a {tag_name} tag, \
+                                "[MIRAI] the {value_name} may have a {tag_name} tag, \
                                 and the tag check cannot be promoted as a precondition, \
                                 because it contains local variables",
                             ),
@@ -1440,11 +1440,10 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     // The existence of the tag on the value is different from the expectation.
                     // In this case, report an error.
                     let span = self.bv.current_span.source_callsite();
-                    let warning =
-                        self.bv.cv.session.dcx().struct_span_warn(
-                            span,
-                            format!("the {value_name} has a {tag_name} tag"),
-                        );
+                    let warning = self.bv.cv.session.dcx().struct_span_warn(
+                        span,
+                        format!("[MIRAI] the {value_name} has a {tag_name} tag"),
+                    );
                     self.bv.emit_diagnostic(warning);
                 }
 
@@ -1555,7 +1554,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                                 .cv
                                 .session
                                 .dcx()
-                                .struct_span_warn(span, error.to_string());
+                                .struct_span_warn(span, "[MIRAI] ".to_string() + error);
                             self.bv.emit_diagnostic(warning);
                             // No need to push a precondition, the caller can never satisfy it.
                             return;
@@ -1587,7 +1586,8 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                             && self.bv.cv.options.diag_level >= DiagLevel::Library)
                     {
                         // Can't make this the caller's problem.
-                        let warning = format!("possible {}", get_assert_msg_description(msg));
+                        let warning =
+                            format!("[MIRAI] possible {}", get_assert_msg_description(msg));
                         let span = self.bv.current_span;
                         let warning = self.bv.cv.session.dcx().struct_span_warn(span, warning);
                         self.bv.emit_diagnostic(warning);
@@ -1704,12 +1704,10 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
     #[logfn_inputs(TRACE)]
     fn visit_inline_asm(&mut self, targets: &[mir::BasicBlock]) {
         let span = self.bv.current_span;
-        let warning = self
-            .bv
-            .cv
-            .session
-            .dcx()
-            .struct_span_warn(span, "Inline assembly code cannot be analyzed by MIRAI.");
+        let warning = self.bv.cv.session.dcx().struct_span_warn(
+            span,
+            "[MIRAI] Inline assembly code cannot be analyzed by MIRAI.",
+        );
         self.bv.emit_diagnostic(warning);
         // Don't stop the analysis if we are building a call graph.
         self.bv.analysis_is_incomplete = self.bv.cv.options.call_graph_config.is_none();

@@ -305,11 +305,10 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
     fn report_timeout(&mut self, elapsed_time_in_seconds: u64) {
         // This body is beyond MIRAI for now
         if self.cv.options.diag_level != DiagLevel::Default {
-            let warning = self
-                .cv
-                .session
-                .dcx()
-                .struct_span_warn(self.current_span, "The analysis of this function timed out");
+            let warning = self.cv.session.dcx().struct_span_warn(
+                self.current_span,
+                "[MIRAI] The analysis of this function timed out",
+            );
             self.emit_diagnostic(warning);
         }
         warn!(
@@ -1128,7 +1127,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
             //todo: eventually give a warning if in_range_as_bool is unknown. For now, that is too noisy.
             if entry_cond_as_bool.unwrap_or(true) && !in_range_as_bool.unwrap_or(true) {
                 let span = self.current_span;
-                let message = "effective offset is outside allocated range";
+                let message = "[MIRAI] effective offset is outside allocated range";
                 let warning = self.cv.session.dcx().struct_span_warn(span, message);
                 self.emit_diagnostic(warning);
             }
@@ -1564,7 +1563,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
             if *old_source == LayoutSource::DeAlloc {
                 let warning = self.cv.session.dcx().struct_span_warn(
                     self.current_span,
-                    "the pointer points to memory that has already been deallocated",
+                    "[MIRAI] the pointer points to memory that has already been deallocated",
                 );
                 self.emit_diagnostic(warning);
             }
@@ -1576,7 +1575,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
             if entry_cond_as_bool.unwrap_or(true) && !layouts_match_as_bool.unwrap_or(false) {
                 // The condition may be reachable and it may be false
                 let message = format!(
-                    "{}{} the pointer with layout information inconsistent with the allocation",
+                    "[MIRAI] {}{} the pointer with layout information inconsistent with the allocation",
                     if entry_cond_as_bool.is_none() || layouts_match_as_bool.is_none() {
                         "possibly "
                     } else {
@@ -2013,7 +2012,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
             if source_field_index >= source_len {
                 let warning = self.cv.session.dcx().struct_span_warn(
                     self.current_span,
-                    "The union is not fully initialized by this assignment",
+                    "[MIRAI] The union is not fully initialized by this assignment",
                 );
                 self.emit_diagnostic(warning);
                 break;
@@ -2113,7 +2112,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                     if source_field_index >= source_len {
                         let warning = self.cv.session.dcx().struct_span_warn(
                             self.current_span,
-                            "The union is not fully initialized by this assignment",
+                            "[MIRAI] The union is not fully initialized by this assignment",
                         );
                         self.emit_diagnostic(warning);
                         break;

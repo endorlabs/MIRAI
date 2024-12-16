@@ -164,7 +164,7 @@ impl<'fixed, 'analysis, 'compilation, 'tcx>
                     let warning = self.bv.cv.session.dcx().struct_span_warn(
                         span,
                         format!(
-                            "Fixed point loop iterations exceeded limit of {}",
+                            "[MIRAI] Fixed point loop iterations exceeded limit of {}",
                             k_limits::MAX_FIXPOINT_ITERATIONS
                         ),
                     );

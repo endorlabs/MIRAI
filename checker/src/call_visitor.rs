@@ -788,7 +788,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 if !entry_cond_as_bool.unwrap_or(true) {
                     let span = self.block_visitor.bv.current_span.source_callsite();
                     let message =
-                        "this is unreachable, mark it as such by using the verify_unreachable! macro";
+                        "[MIRAI] this is unreachable, mark it as such by using the verify_unreachable! macro";
                     let warning = self
                         .block_visitor
                         .bv
@@ -803,9 +803,9 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 // If the condition is always true, this assumption is redundant. If false, the
                 // assumption is ignored. Otherwise, no diagnostics are emitted.
                 let message = if cond_as_bool == Some(true) {
-                    "assumption is provably true and can be deleted"
+                    "[MIRAI] assumption is provably true and can be deleted"
                 } else if cond_as_bool == Some(false) {
-                    "assumption is provably false and it will be ignored"
+                    "[MIRAI] assumption is provably false and it will be ignored"
                 } else {
                     return;
                 };
@@ -948,7 +948,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                             .cv
                             .session
                             .dcx()
-                            .struct_span_warn(span, msg.to_string());
+                            .struct_span_warn(span, "[MIRAI] ".to_string() + msg.as_ref());
                         self.block_visitor.bv.emit_diagnostic(warning);
                     } else {
                         // If we see an unconditional panic inside a standard contract summary,
@@ -968,13 +968,11 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                         // Dealing with contracts crate
                         if self.block_visitor.bv.function_being_analyzed_is_root() {
                             let msg = msg.replace(" violated", " possibly violated");
-                            let warning = self
-                                .block_visitor
-                                .bv
-                                .cv
-                                .session
-                                .dcx()
-                                .struct_span_warn(span, msg.to_string());
+                            let warning =
+                                self.block_visitor.bv.cv.session.dcx().struct_span_warn(
+                                    span,
+                                    "[MIRAI] ".to_string() + &msg.to_string(),
+                                );
                             self.block_visitor.bv.emit_diagnostic(warning);
                         }
                         return;
@@ -1023,7 +1021,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                                 .cv
                                 .session
                                 .dcx()
-                                .struct_span_warn(span, msg.to_string());
+                                .struct_span_warn(span, "[MIRAI] ".to_string() + msg.as_ref());
                             self.block_visitor.bv.emit_diagnostic(warning);
                         } else {
                             // Since the assertion occurs in code that is being used rather than
@@ -1099,7 +1097,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                                 let warning =
                                     self.block_visitor.bv.cv.session.dcx().struct_span_warn(
                                         self.block_visitor.bv.current_span,
-                                        warning.to_string(),
+                                        "[MIRAI] ".to_string() + warning.as_ref(),
                                     );
                                 self.block_visitor.bv.emit_diagnostic(warning);
                             }
@@ -1448,7 +1446,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
             if self.block_visitor.bv.check_for_errors && source_rustc_type.is_any_ptr() {
                 let warning = self.block_visitor.bv.cv.session.dcx().struct_span_warn(
                     self.block_visitor.bv.current_span,
-                    "the macro add_tag! expects its argument to be a reference to a non-reference value",
+                    "[MIRAI] the macro add_tag! expects its argument to be a reference to a non-reference value",
                 );
                 self.block_visitor.bv.emit_diagnostic(warning);
             }
@@ -1567,7 +1565,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 let warning = self.block_visitor.bv.cv.session.dcx().struct_span_warn(
                     self.block_visitor.bv.current_span,
                     format!(
-                        "the macro {} expects its first argument to be a reference to a non-reference value",
+                        "[MIRAI] the macro {} expects its first argument to be a reference to a non-reference value",
                         if checking_presence { "has_tag! " } else { "does_not_have_tag!" },
                     ),
                 );
@@ -1908,13 +1906,10 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 .unwrap_or(false)
         {
             let span = self.block_visitor.bv.current_span;
-            let warning = self
-                .block_visitor
-                .bv
-                .cv
-                .session
-                .dcx()
-                .struct_span_warn(span, "preconditions should be reached unconditionally");
+            let warning = self.block_visitor.bv.cv.session.dcx().struct_span_warn(
+                span,
+                "[MIRAI] preconditions should be reached unconditionally",
+            );
             self.block_visitor.bv.emit_diagnostic(warning);
             self.block_visitor.bv.check_for_unconditional_precondition = false;
         }
@@ -2670,7 +2665,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
             {
                 let warning = self.block_visitor.bv.cv.session.dcx().struct_span_warn(
                     self.block_visitor.bv.current_span,
-                    "the called function could not be completely analyzed",
+                    "[MIRAI] the called function could not be completely analyzed",
                 );
                 self.block_visitor.bv.emit_diagnostic(warning);
             }
@@ -3173,7 +3168,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
         if self.block_visitor.bv.check_for_errors {
             let warning = self.block_visitor.bv.cv.session.dcx().struct_span_warn(
                 self.block_visitor.bv.current_span,
-                "this argument should be a string literal, do not call this function directly",
+                "[MIRAI] this argument should be a string literal, do not call this function directly",
             );
             self.block_visitor.bv.emit_diagnostic(warning);
         }
@@ -3223,7 +3218,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                         if self.block_visitor.bv.check_for_errors {
                             let warning = self.block_visitor.bv.cv.session.dcx().struct_span_warn(
                                 self.block_visitor.bv.current_span,
-                                "the tag type should be a generic type whose first parameter is a constant of type TagPropagationSet",
+                                "[MIRAI] the tag type should be a generic type whose first parameter is a constant of type TagPropagationSet",
                             );
                             self.block_visitor.bv.emit_diagnostic(warning);
                         }
@@ -3248,7 +3243,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                         if self.block_visitor.bv.check_for_errors {
                             let warning = self.block_visitor.bv.cv.session.dcx().struct_span_warn(
                                 self.block_visitor.bv.current_span,
-                                "the first parameter of the tag type should have type TagPropagationSet",
+                                "[MIRAI] the first parameter of the tag type should have type TagPropagationSet",
                             );
                             self.block_visitor.bv.emit_diagnostic(warning);
                         }
