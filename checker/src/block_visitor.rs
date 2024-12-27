@@ -1736,9 +1736,6 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             mir::Rvalue::ThreadLocalRef(def_id) => {
                 self.visit_thread_local_ref(path, *def_id);
             }
-            mir::Rvalue::Len(place) => {
-                self.visit_len(path, place);
-            }
             mir::Rvalue::Cast(cast_kind, operand, ty) => {
                 let specialized_ty = self
                     .type_visitor()
@@ -2042,54 +2039,6 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         };
         self.bv
             .update_value_at(path, AbstractValue::make_reference(static_var));
-    }
-
-    /// path = length of a [X] or [X;n] value.
-    #[logfn_inputs(TRACE)]
-    fn visit_len(&mut self, path: Rc<Path>, place: &mir::Place<'tcx>) {
-        let place_ty = self
-            .type_visitor()
-            .get_rustc_place_type(place, self.bv.current_span);
-        let len_value = if let TyKind::Array(_, len) = place_ty.kind() {
-            // We only get here if "-Z mir-opt-level=0" was specified.
-            // With more optimization the len instruction becomes a constant.
-            self.visit_const(len)
-        } else {
-            // In this case place type must be a slice.
-            let mut value_path = self.visit_lh_place(place);
-            if let PathEnum::QualifiedPath {
-                qualifier,
-                selector,
-                ..
-            } = &value_path.value
-            {
-                if let PathSelector::Deref = selector.as_ref() {
-                    // De-referencing a slice pointer is normally the same as de-referencing its
-                    // thin pointer, so self.visit_lh_place above assumed that much and will have
-                    // added in a field 0 selector before the deref.
-                    // In this context, however, we want the length of the slice pointer,
-                    // so we need to drop the thin pointer field selector.
-                    if let PathEnum::QualifiedPath {
-                        qualifier,
-                        selector,
-                        ..
-                    } = &qualifier.value
-                    {
-                        if matches!(selector.as_ref(), PathSelector::Field(0)) {
-                            value_path = qualifier.clone();
-                        }
-                    }
-                } else {
-                    // qualifier is an unsized struct type and selector selects the last field,
-                    // which is an unsized array
-                }
-            }
-            let length_path =
-                Path::new_length(value_path).canonicalize(&self.bv.current_environment);
-            self.bv
-                .lookup_path_and_refine_result(length_path, self.bv.tcx.types.usize)
-        };
-        self.bv.update_value_at(path, len_value);
     }
 
     /// path = operand as ty.
@@ -3762,6 +3711,12 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         let discr_ty_layout = self.type_visitor().layout_of(discr_ty).unwrap();
         trace!("discr_ty_layout {:?}", discr_ty_layout);
         match enum_ty_layout.variants {
+            Variants::Empty => {
+                discr_signed = false;
+                discr_bits = 0;
+                discr_index = VariantIdx::new(0);
+                discr_has_data = false;
+            }
             Variants::Single { index } => {
                 // The enum only contains one variant.
 
