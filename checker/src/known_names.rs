@@ -186,19 +186,15 @@ impl KnownNamesCache {
     /// subsequent calls will be cheap. If the def_id does not have an actual well
     /// known name, this returns KnownNames::None.
     pub fn get(&mut self, tcx: TyCtxt<'_>, def_id: DefId) -> KnownNames {
-        match self.name_cache.get(&def_id) {
-            Some(known_name) => *known_name,
-            None => {
-                let known_name = self.get_known_name_for(tcx, def_id);
-                self.name_cache.insert(def_id, known_name);
-                known_name
-            }
-        }
+        *self
+            .name_cache
+            .entry(def_id)
+            .or_insert_with(|| Self::get_known_name_for(tcx, def_id))
     }
 
     /// Uses information obtained from tcx to figure out which well known name (if any)
     /// this def id corresponds to.
-    pub fn get_known_name_for(&self, tcx: TyCtxt<'_>, def_id: DefId) -> KnownNames {
+    pub fn get_known_name_for(tcx: TyCtxt<'_>, def_id: DefId) -> KnownNames {
         // Ref: <https://doc.rust-lang.org/reference/names/namespaces.html>
         // Ref: <https://doc.rust-lang.org/beta/nightly-rustc/rustc_hir/definitions/enum.DefPathData.html>
         let def_path = &tcx.def_path(def_id);
