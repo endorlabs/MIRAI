@@ -279,7 +279,6 @@ fn known_name_for_std_lib(path_segments: &[DisambiguatedDefPathData]) -> Option<
             "marker" => known_name_for_terminal_from_ns!(
                 tail_segments,
                 DefPathData::TypeNs,
-                // TODO: (@davidsemakula) Remove in favor of lang item?
                 "PhantomData",
                 KnownNames::StdMarkerPhantomData
             ),
@@ -319,7 +318,6 @@ fn get_known_name_for_alloc_namespace(
     }
 }
 
-// TODO: (@davidsemakula) Remove in favor of lang item?
 fn get_known_name_for_clone_namespace(
     path_segments: &[DisambiguatedDefPathData],
 ) -> Option<KnownNames> {
@@ -472,7 +470,6 @@ fn known_name_for_intrinsics_namespace(
 }
 
 fn known_name_for_ops_namespace(path_segments: &[DisambiguatedDefPathData]) -> Option<KnownNames> {
-    // TODO: (@davidsemakula) Handle as assoc lang items?
     // TODO: (@davidsemakula) was `call_once_force` removed,
     // or did it actually resolve to a different (perhaps nested) path before?
     // See https://github.com/endorlabs/MIRAI/issues/26#issuecomment-2566638406 for details.
@@ -494,7 +491,6 @@ fn known_name_for_ops_namespace(path_segments: &[DisambiguatedDefPathData]) -> O
     }
 }
 
-// TODO: (@davidsemakula) Remove in favor of lang items (where possible)?
 fn known_name_for_panicking_namespace(
     path_segments: &[DisambiguatedDefPathData],
 ) -> Option<KnownNames> {
