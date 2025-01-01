@@ -49,7 +49,7 @@ pub struct CrateVisitor<'compilation, 'tcx> {
     pub diagnostics_for: HashMap<DefId, Vec<Diag<'compilation, ()>>>,
     pub file_name: &'compilation str,
     pub generic_args_cache: HashMap<DefId, GenericArgsRef<'tcx>>,
-    pub known_names_cache: KnownNamesCache,
+    pub known_names_cache: KnownNamesCache<'tcx>,
     pub options: &'compilation Options,
     pub session: &'compilation Session,
     pub summary_cache: SummaryCache<'tcx>,

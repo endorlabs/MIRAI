@@ -27,7 +27,7 @@ use rustc_span::source_map::Spanned;
 use rustc_target::abi::{FieldIdx, Primitive, TagEncoding, VariantIdx, Variants};
 use rustc_trait_selection::infer::TyCtxtInferExt;
 
-use crate::abstract_value::{AbstractValue, AbstractValueTrait, BOTTOM};
+use crate::abstract_value::{self, AbstractValue, AbstractValueTrait, BOTTOM};
 use crate::body_visitor::BodyVisitor;
 use crate::call_visitor::CallVisitor;
 use crate::constant_domain::{ConstantDomain, FunctionReference};
@@ -43,7 +43,6 @@ use crate::summaries::Precondition;
 use crate::tag_domain::Tag;
 use crate::type_visitor::TypeVisitor;
 use crate::utils;
-use crate::{abstract_value, known_names};
 
 /// Holds the state for the basic block visitor
 pub struct BlockVisitor<'block, 'analysis, 'compilation, 'tcx> {
@@ -722,7 +721,6 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             .block_to_call
             .insert(current_location, callee_def_id);
 
-        let tcx = self.bv.tcx;
         let mut call_visitor = CallVisitor::new(
             self,
             callee_def_id,
@@ -753,7 +751,6 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     .already_reported_errors_for_call_to
                     .insert(call_visitor.callee_fun_val.clone())
             {
-                let _kn = known_names::KnownNamesCache::get_known_name_for(tcx, callee_def_id);
                 call_visitor.block_visitor.report_missing_summary();
                 if known_name != KnownNames::StdCloneClone
                     && !call_visitor.block_visitor.bv.analysis_is_incomplete
