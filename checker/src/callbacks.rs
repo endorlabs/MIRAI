@@ -151,7 +151,6 @@ impl MiraiCallbacks {
             self.file_name, summary_store_path
         );
         let call_graph_config = self.options.call_graph_config.to_owned();
-        let lang_items = tcx.lang_items();
         let mut crate_visitor = CrateVisitor {
             buffered_diagnostics: Vec::new(),
             constant_time_tag_cache: None,
@@ -159,7 +158,7 @@ impl MiraiCallbacks {
             constant_value_cache: ConstantValueCache::default(),
             diagnostics_for: HashMap::new(),
             file_name: self.file_name.as_str(),
-            known_names_cache: KnownNamesCache::create_cache_from_language_items(lang_items),
+            known_names_cache: KnownNamesCache::create_cache(),
             options: &std::mem::take(&mut self.options),
             session: &compiler.sess,
             generic_args_cache: HashMap::new(),

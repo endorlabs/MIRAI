@@ -5,7 +5,6 @@
 
 use rustc_hir::def_id::DefId;
 use rustc_hir::definitions::{DefPathData, DisambiguatedDefPathData};
-use rustc_hir::LanguageItems;
 use rustc_middle::ty::TyCtxt;
 
 use std::collections::HashMap;
@@ -170,22 +169,16 @@ pub enum KnownNames {
 }
 
 /// An analysis lifetime cache that contains a map from def ids to known names.
-pub struct KnownNamesCache<'tcx> {
+pub struct KnownNamesCache {
     name_cache: HashMap<DefId, KnownNames>,
-    lang_items: &'tcx LanguageItems,
 }
 
-impl<'tcx> KnownNamesCache<'tcx> {
+impl KnownNamesCache {
     /// Create an empty known names cache.
     /// This cache is re-used by every successive MIR visitor instance.
-    pub fn create_cache_from_language_items(
-        lang_items: &'tcx LanguageItems,
-    ) -> KnownNamesCache<'tcx> {
+    pub fn create_cache() -> KnownNamesCache {
         let name_cache = HashMap::new();
-        KnownNamesCache {
-            name_cache,
-            lang_items,
-        }
+        KnownNamesCache { name_cache }
     }
 
     /// Get the well known name for the given def id and cache the association.
@@ -206,12 +199,6 @@ impl<'tcx> KnownNamesCache<'tcx> {
     /// Uses information obtained from tcx to figure out which well known name (if any)
     /// this def id corresponds to.
     pub fn get_known_name_for(&self, tcx: TyCtxt<'_>, def_id: DefId) -> KnownNames {
-        // Use `rustc` lang items (if available) for the most precise `DefId` matching.
-        if let Some(known_name) = known_name_for_lang_item(def_id, self.lang_items) {
-            return known_name;
-        }
-
-        // Fallback to def path comparisons for other items.
         // Ref: <https://doc.rust-lang.org/reference/names/namespaces.html>
         // Ref: <https://doc.rust-lang.org/beta/nightly-rustc/rustc_hir/definitions/enum.DefPathData.html>
         let def_path = &tcx.def_path(def_id);
@@ -236,18 +223,6 @@ macro_rules! match_names {
             _ => None,
         }
     };
-}
-
-fn known_name_for_lang_item(def_id: DefId, lang_items: &LanguageItems) -> Option<KnownNames> {
-    let lang_item = lang_items.from_def_id(def_id)?;
-    match_names!(
-        lang_item,
-        rustc_hir::LangItem::CloneFn => KnownNames::StdCloneClone,
-        rustc_hir::LangItem::PhantomData => KnownNames::StdMarkerPhantomData,
-        // TODO: (@davidsemakula) Can we safely add more panic lang items?
-        rustc_hir::LangItem::BeginPanic | rustc_hir::LangItem::Panic => KnownNames::StdPanickingBeginPanic,
-        rustc_hir::LangItem::ConstPanicFmt | rustc_hir::LangItem::PanicFmt => KnownNames::StdPanickingBeginPanicFmt,
-    )
 }
 
 fn known_name_for_mirai_annotations(
