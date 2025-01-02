@@ -6,6 +6,7 @@
 #![allow(clippy::declare_interior_mutable_const)]
 
 use std::cell::RefCell;
+use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fmt::{Debug, Formatter, Result};
 use std::hash::Hash;
@@ -39,7 +40,7 @@ use crate::tag_domain::{Tag, TagDomain};
 /// When we do know everything about a value, it is concrete rather than
 /// abstract, but is convenient to just use this structure for concrete values
 /// as well, since all operations can be uniform.
-#[derive(Serialize, Deserialize, Clone, Eq, Ord, PartialOrd)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct AbstractValue {
     // This is not a domain element, but a representation of how this value has been constructed.
     // It is used to refine the value with respect to path conditions and actual arguments.
@@ -87,7 +88,24 @@ impl PartialEq for AbstractValue {
     #[logfn_inputs(TRACE)]
     #[allow(clippy::unconditional_recursion)]
     fn eq(&self, other: &Self) -> bool {
-        self.expression.eq(&other.expression)
+        self.expression == other.expression
+    }
+}
+
+impl Eq for AbstractValue {}
+
+// `Ord` and `PartialOrd` implementations should be consistent with `PartialEq` and `Eq`,
+// so they shouldn't be derived due to manual implementation of `PartialEq` above.
+// Ref: <https://doc.rust-lang.org/nightly/std/cmp/trait.Ord.html#how-can-i-implement-ord>
+impl Ord for AbstractValue {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.expression.cmp(&other.expression)
+    }
+}
+
+impl PartialOrd for AbstractValue {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -7122,5 +7140,41 @@ impl AbstractValueTrait for Rc<AbstractValue> {
             ),
             _ => self.clone(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Checks consistency of `Ord`, `PartialOrd`, `PartialEq` and `Eq` implementations for `AbstractValue`.
+    #[test]
+    fn eq_and_ord_consistency_check() {
+        let var_non_null = AbstractValue {
+            expression: Expression::Variable {
+                path: Path::new_computed(TOP.into()),
+                var_type: ExpressionType::NonPrimitive,
+            },
+            expression_size: 1,
+            interval: RefCell::new(None),
+            is_non_null: RefCell::new(Some(true)),
+            tags: RefCell::new(None),
+        };
+        let var_nullable = AbstractValue {
+            expression: Expression::Variable {
+                path: Path::new_computed(TOP.into()),
+                var_type: ExpressionType::NonPrimitive,
+            },
+            expression_size: 1,
+            interval: RefCell::new(None),
+            is_non_null: RefCell::new(None),
+            tags: RefCell::new(None),
+        };
+        assert_eq!(var_non_null, var_nullable);
+        assert_eq!(var_non_null.cmp(&var_nullable), Ordering::Equal);
+        assert_eq!(
+            var_non_null.partial_cmp(&var_nullable),
+            Some(Ordering::Equal)
+        );
     }
 }

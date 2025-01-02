@@ -3,7 +3,10 @@ use std::cmp::Ordering;
 //
 // This source code is licensed under the MIT license found in the
 // LICENSE file in the root directory of this source tree.
-//
+
+use rustc_hir::def_id::DefId;
+use rustc_middle::ty::{Ty, TyCtxt};
+
 use std::collections::hash_map::DefaultHasher;
 use std::collections::HashSet;
 use std::fmt::{Debug, Formatter, Result};
@@ -11,11 +14,8 @@ use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
 use log_derive::*;
-use serde::{Deserialize, Serialize};
-
 use mirai_annotations::*;
-use rustc_hir::def_id::DefId;
-use rustc_middle::ty::{Ty, TyCtxt};
+use serde::{Deserialize, Serialize};
 
 use crate::abstract_value::{self, AbstractValue, AbstractValueTrait};
 use crate::constant_domain::ConstantDomain;
@@ -28,7 +28,7 @@ use crate::{k_limits, utils};
 /// to get rehashed. This turns out to be expensive, so for this case we cache the hash to avoid
 /// recomputing it. The caching has a cost, so only use this in cases where it is highly likely
 /// that the path will be hashed more than once.
-#[derive(Serialize, Deserialize, Clone, Eq, Ord, PartialOrd)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Path {
     pub value: PathEnum,
     hash: u64,
@@ -52,9 +52,33 @@ impl Hash for Path {
     }
 }
 
+// `Eq` (and `PartialEq`) and `Hash` implementations should be consistent.
+// Ref: <https://doc.rust-lang.org/nightly/std/hash/trait.Hash.html#hash-and-eq>
 impl PartialEq for Path {
     fn eq(&self, other: &Path) -> bool {
-        self.hash == other.hash && self.value == other.value
+        self.hash == other.hash
+    }
+}
+
+impl Eq for Path {}
+
+// `Ord` and `PartialOrd` implementations should be consistent with `PartialEq` and `Eq`,
+// so they shouldn't be derived due to manual implementation of `PartialEq` above.
+// Ref: <https://doc.rust-lang.org/nightly/std/cmp/trait.Ord.html#how-can-i-implement-ord>
+impl Ord for Path {
+    fn cmp(&self, other: &Self) -> Ordering {
+        if self == other {
+            // `Ord` (and `PartialOrd`) implementation should be consistent with `PartialEq` and `Eq`.
+            // Ref: <https://doc.rust-lang.org/nightly/std/cmp/trait.Ord.html#how-can-i-implement-ord>
+            return Ordering::Equal;
+        }
+        self.value.cmp(&other.value)
+    }
+}
+
+impl PartialOrd for Path {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -192,7 +216,12 @@ pub enum PathEnum {
 
 impl PartialOrd for PathEnum {
     #[allow(clippy::non_canonical_partial_ord_impl)]
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        if self == other {
+            // `Ord` (and `PartialOrd`) implementation should be consistent with `PartialEq` and `Eq`.
+            // Ref: <https://doc.rust-lang.org/nightly/std/cmp/trait.Ord.html#how-can-i-implement-ord>
+            return Some(Ordering::Equal);
+        }
         use PathEnum::*;
         match (self, other) {
             (Computed { value: lhs }, Computed { value: rhs }) => lhs.partial_cmp(rhs),
@@ -207,12 +236,12 @@ impl PartialOrd for PathEnum {
                     type_index: ri,
                 },
             ) => match l.partial_cmp(r) {
-                Some(std::cmp::Ordering::Equal) => li.partial_cmp(ri),
+                Some(Ordering::Equal) => li.partial_cmp(ri),
                 other => other,
             },
             (Offset { value: lhs }, Offset { value: rhs }) => lhs.partial_cmp(rhs),
             (Parameter { ordinal: l }, Parameter { ordinal: r }) => l.partial_cmp(r),
-            (Result, Result) => Some(std::cmp::Ordering::Equal),
+            (Result, Result) => Some(Ordering::Equal),
             (
                 StaticVariable {
                     summary_cache_key: lk,
@@ -225,10 +254,10 @@ impl PartialOrd for PathEnum {
                     ..
                 },
             ) => match lk.partial_cmp(rk) {
-                Some(std::cmp::Ordering::Equal) => lt.partial_cmp(rt),
+                Some(Ordering::Equal) => lt.partial_cmp(rt),
                 other => other,
             },
-            (PhantomData, PhantomData) => Some(std::cmp::Ordering::Equal),
+            (PhantomData, PhantomData) => Some(Ordering::Equal),
             (PromotedConstant { ordinal: l }, PromotedConstant { ordinal: r }) => l.partial_cmp(r),
             (
                 QualifiedPath {
@@ -242,7 +271,7 @@ impl PartialOrd for PathEnum {
                     ..
                 },
             ) => match lq.partial_cmp(rq) {
-                Some(std::cmp::Ordering::Equal) => ls.partial_cmp(rs),
+                Some(Ordering::Equal) => ls.partial_cmp(rs),
                 other => other,
             },
             (_, _) => None,
@@ -252,7 +281,36 @@ impl PartialOrd for PathEnum {
 
 impl Ord for PathEnum {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap()
+        self.partial_cmp(other).unwrap_or_else(|| {
+            // See [`path_order_rank`] for details.
+            Ord::cmp(&path_order_rank(self), &path_order_rank(other))
+        })
+    }
+}
+
+/// Assigns [`PathEnum`] variants a (somewhat) arbitrarily rank, based on perceived complexity
+/// (e.g. of refinement).
+///
+/// This function is currently only used to properly implement a strict weak order for [`PathEnum`]
+/// variants as is required by sort implementations in Rust >= 1.81
+/// Ref: <https://blog.rust-lang.org/2024/09/05/Rust-1.81.0.html#new-sort-implementations>
+/// Ref: <https://doc.rust-lang.org/nightly/std/cmp/trait.Ord.html>
+///
+/// **NOTE:** Manually sorting by discriminant would require an unsafe transmute,
+/// because [`std::mem::Discriminant`] doesn't implement `Ord`.
+/// Ref: <https://doc.rust-lang.org/std/mem/fn.discriminant.html#accessing-the-numeric-value-of-the-discriminant>
+fn path_order_rank(path: &PathEnum) -> u8 {
+    match path {
+        PathEnum::PhantomData => 0,
+        PathEnum::Result => 1,
+        PathEnum::PromotedConstant { .. } => 2,
+        PathEnum::Parameter { .. } => 3,
+        PathEnum::LocalVariable { .. } => 4,
+        PathEnum::StaticVariable { .. } => 5,
+        PathEnum::QualifiedPath { .. } => 6,
+        PathEnum::Computed { .. } => 7,
+        PathEnum::Offset { .. } => 8,
+        PathEnum::HeapBlock { .. } => 9,
     }
 }
 

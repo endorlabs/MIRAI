@@ -11,7 +11,7 @@ edition = "2021"
 build = "build.rs"
 
 [lib]
-test = false # we have no unit tests
+test = true # we have some unit tests
 doctest = false # and no doc tests
 
 [[bin]]
