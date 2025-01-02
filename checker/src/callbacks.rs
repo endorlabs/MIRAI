@@ -158,7 +158,7 @@ impl MiraiCallbacks {
             constant_value_cache: ConstantValueCache::default(),
             diagnostics_for: HashMap::new(),
             file_name: self.file_name.as_str(),
-            known_names_cache: KnownNamesCache::create_cache_from_language_items(),
+            known_names_cache: KnownNamesCache::create_cache(),
             options: &std::mem::take(&mut self.options),
             session: &compiler.sess,
             generic_args_cache: HashMap::new(),
