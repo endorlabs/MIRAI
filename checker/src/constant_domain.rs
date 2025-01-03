@@ -4,17 +4,20 @@
 // LICENSE file in the root directory of this source tree.
 #![allow(clippy::float_cmp)]
 
-use log_derive::{logfn, logfn_inputs};
-use mirai_annotations::*;
 use rustc_hir::def_id::DefId;
 use rustc_middle::ty::{GenericArgsRef, Ty, TyCtxt};
-use serde::{Deserialize, Serialize};
+
 // use std::{f128, f16, f64};
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::{Debug, Formatter, Result};
+use std::hash::Hash;
 use std::rc::Rc;
 use std::{f16, f64};
+
+use log_derive::{logfn, logfn_inputs};
+use mirai_annotations::*;
+use serde::{Deserialize, Serialize};
 
 use crate::expression::{Expression, ExpressionType};
 use crate::known_names::{KnownNames, KnownNamesCache};
@@ -113,15 +116,24 @@ pub struct FunctionReference {
     pub argument_type_key: Rc<str>,
 }
 
-impl PartialOrd for FunctionReference {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
+// `DefId` doesn't/can't implement `Ord` and `PartialOrd`, so they can't be derived.
+// Ref: <https://github.com/rust-lang/rust/blob/eeb90cda1969383f56a2637cbd3037bdf598841c/compiler/rustc_span/src/def_id.rs#L239-L243>
+impl Ord for FunctionReference {
+    fn cmp(&self, other: &Self) -> Ordering {
+        if self == other {
+            // `Ord` (and `PartialOrd`) implementation should be consistent with `PartialEq` and `Eq`.
+            // Ref: <https://doc.rust-lang.org/nightly/std/cmp/trait.Ord.html#how-can-i-implement-ord>
+            return Ordering::Equal;
+        }
+        self.summary_cache_key
+            .cmp(&other.summary_cache_key)
+            .then(self.argument_type_key.cmp(&other.argument_type_key))
     }
 }
 
-impl Ord for FunctionReference {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.partial_cmp(other).unwrap()
+impl PartialOrd for FunctionReference {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
