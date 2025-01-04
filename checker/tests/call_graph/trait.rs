@@ -74,7 +74,7 @@ commit;
       "local": true
     },
     {
-      "name": "/trait/<Bar as Tr>::bar(&'^0.Named(DefId(0:13 ~ trait[ad32]::{impl#0}::bar::'_), \"'_\") Bar)->i32",
+      "name": "/trait/<Bar as Tr>::bar(&'^0.Named(DefId(0:13 ~ trait[03a6]::{impl#0}::bar::'_), \"'_\") Bar)->i32",
       "file_index": 0,
       "first_line": 14,
       "local": true
