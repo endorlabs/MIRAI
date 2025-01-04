@@ -52,9 +52,9 @@ impl PublicKey {
         } else {
             let key = PublicKey(
                 u32::from(bytes[0])
-                    | u32::from(bytes[1]) << 8
-                    | u32::from(bytes[2]) << 16
-                    | u32::from(bytes[3]) << 24,
+                    | (u32::from(bytes[1]) << 8)
+                    | (u32::from(bytes[2]) << 16)
+                    | (u32::from(bytes[3]) << 24),
             );
             add_tag!(&key, Tainted);
             Ok(key)
