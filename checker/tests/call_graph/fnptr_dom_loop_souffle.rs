@@ -82,7 +82,7 @@ digraph {
   ],
   "callables": [
     {
-      "name": "/fnptr_dom_loop_souffle/fn1(u32,&'^0.Named(DefId(0:8 ~ fnptr_dom_loop_souffle[58a0]::fn1::'_), \"'_\") Binder { value: fn(u32) -> u32, bound_vars: [] },&'^1.Named(DefId(0:9 ~ fnptr_dom_loop_souffle[58a0]::fn1::'_#1), \"'_\") Binder { value: fn(u32) -> u32, bound_vars: [] })->u32",
+      "name": "/fnptr_dom_loop_souffle/fn1(u32,&'^0.Named(DefId(0:8 ~ fnptr_dom_loop_souffle[3113]::fn1::'_), \"'_\") Binder { value: fn(u32) -> u32, bound_vars: [] },&'^1.Named(DefId(0:9 ~ fnptr_dom_loop_souffle[3113]::fn1::'_#1), \"'_\") Binder { value: fn(u32) -> u32, bound_vars: [] })->u32",
       "file_index": 0,
       "first_line": 10,
       "local": true
