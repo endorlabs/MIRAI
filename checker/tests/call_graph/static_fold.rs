@@ -93,7 +93,7 @@ commit;
       "local": true
     },
     {
-      "name": "/std/std::io::_print(std::fmt::Arguments<'^0.Named(DefId(1:14073 ~ std[59c8]::io::stdio::_print::'_), \"'_\")>)->()",
+      "name": "/std/std::io::_print(std::fmt::Arguments<'^0.Named(DefId(1:14103 ~ std[8b2b]::io::stdio::_print::'_), \"'_\")>)->()",
       "file_index": 1,
       "first_line": 1232,
       "local": false
