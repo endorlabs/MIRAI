@@ -435,11 +435,11 @@ impl<'tcx> SummaryCache<'tcx> {
     /// Creates a new summary cache, using (or creating) a Sled database at the given directory path.
     #[logfn(TRACE)]
     pub fn new(summary_store_directory_str: String) -> SummaryCache<'tcx> {
-        use rand::{thread_rng, Rng};
+        use rand::{rng, Rng};
         use std::thread;
         use std::time::Duration;
 
-        let mut rng = thread_rng();
+        let mut rng = rng();
         let summary_store_path = Self::create_summary_store_if_needed(&summary_store_directory_str);
         let config = Config::default().path(summary_store_path);
         let mut result;
@@ -449,7 +449,7 @@ impl<'tcx> SummaryCache<'tcx> {
                 break;
             }
             debug!("opening db failed {:?}", result);
-            let num_millis = rng.gen_range(100..200);
+            let num_millis = rng.random_range(100..200);
             thread::sleep(Duration::from_millis(num_millis));
         }
         let db = result.unwrap_or_else(|err| {
