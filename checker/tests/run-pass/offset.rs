@@ -14,7 +14,7 @@ pub fn t1() -> u8 {
     unsafe {
         let a = std::alloc::alloc(std::alloc::Layout::from_size_align(4, 2).unwrap());
         let b = std::intrinsics::offset(a, -1isize); //~ effective offset is outside allocated range
-        *b
+        *b //~ possible null pointer dereference
     }
 }
 
@@ -32,7 +32,7 @@ pub fn t3() -> u8 {
         let a = std::alloc::alloc(std::alloc::Layout::from_size_align(4, 2).unwrap());
         let b = std::intrinsics::arith_offset(a, -2);
         let c = std::intrinsics::offset(b, 1isize); //~ effective offset is outside allocated range
-        *c
+        *c //~ possible null pointer dereference
     }
 }
 
@@ -40,7 +40,7 @@ pub fn t4() -> u8 {
     unsafe {
         let a = std::alloc::alloc(std::alloc::Layout::from_size_align(4, 2).unwrap());
         let b = std::intrinsics::offset(a, 6isize); //~ effective offset is outside allocated range
-        *b
+        *b //~ possible null pointer dereference
     }
 }
 

@@ -226,12 +226,7 @@ pub fn summarize(
     return_type_index: usize,
     tcx: TyCtxt<'_>,
 ) -> Summary {
-    trace!(
-        "summarize env {:?} pre {:?} post {:?}",
-        exit_environment,
-        preconditions,
-        post_condition,
-    );
+    trace!("summarize env {exit_environment:?} pre {preconditions:?} post {post_condition:?}");
     let mut preconditions: Vec<Precondition> = add_provenance(preconditions, tcx);
     let mut side_effects = if let Some(exit_environment) = exit_environment {
         extract_side_effects(exit_environment, argument_count)
@@ -448,12 +443,12 @@ impl<'tcx> SummaryCache<'tcx> {
             if result.is_ok() {
                 break;
             }
-            debug!("opening db failed {:?}", result);
+            debug!("opening db failed {result:?}");
             let num_millis = rng.random_range(100..200);
             thread::sleep(Duration::from_millis(num_millis));
         }
         let db = result.unwrap_or_else(|err| {
-            debug!("{} ", err);
+            debug!("{err} ");
             assume_unreachable!();
         });
         SummaryCache {

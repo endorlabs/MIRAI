@@ -47,7 +47,7 @@ pub fn t1() {
     let foo = Foo {
         bx: Box::new(bar) as Box<dyn Tr>,
     };
-    let bi = foo.bx.bar(); //~ the called function did not resolve to an implementation with a MIR body
+    let bi = foo.bx.bar();
     verify!(bi == 1);
 }
 
@@ -89,8 +89,7 @@ pub fn t4a() -> i32 {
 }
 
 fn t4c(foo: Foo) -> i32 {
-    // todo: fix this
-    foo.bx.bar() //~ the called function did not resolve to an implementation with a MIR body
+    foo.bx.bar()
 }
 
 impl Clone for Box<dyn Tr> {

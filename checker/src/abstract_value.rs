@@ -197,11 +197,11 @@ impl AbstractValue {
             // The overall expression is going to overflow, so pre-compute the simpler domains from
             // the larger expression and then replace its expression with TOP.
             if left.expression_size < right.expression_size {
-                debug!("binary expression right operand abstracted: {:?}", right);
+                debug!("binary expression right operand abstracted: {right:?}");
                 right = AbstractValue::make_from(right.expression.clone(), u64::MAX);
                 expression_size = left.expression_size + 1;
             } else {
-                debug!("binary expression left operand abstracted: {:?}", left);
+                debug!("binary expression left operand abstracted: {left:?}");
                 left = AbstractValue::make_from(left.expression.clone(), u64::MAX);
                 expression_size = right.expression_size + 1;
             }
@@ -228,11 +228,11 @@ impl AbstractValue {
             // The overall expression is going to overflow, so pre-compute the simpler domains from
             // the larger expression and then replace its expression with TOP.
             if left.expression_size < right.expression_size {
-                debug!("binary expression right operand abstracted: {:?}", right);
+                debug!("binary expression right operand abstracted: {right:?}");
                 right = AbstractValue::make_from(right.expression.clone(), u64::MAX);
                 expression_size = left.expression_size + 1;
             } else {
-                debug!("binary expression left operand abstracted: {:?}", left);
+                debug!("binary expression left operand abstracted: {left:?}");
                 left = AbstractValue::make_from(left.expression.clone(), u64::MAX);
                 expression_size = right.expression_size + 1;
             }
@@ -668,7 +668,7 @@ impl AbstractValue {
     pub fn make_from(expression: Expression, expression_size: u64) -> Rc<AbstractValue> {
         if expression_size > k_limits::MAX_EXPRESSION_SIZE {
             if expression_size < u64::MAX {
-                debug!("expression abstracted:  {:?}", expression);
+                debug!("expression abstracted:  {expression:?}");
             }
             // If the expression gets too large, refining it gets expensive and composing it
             // into other expressions leads to exponential growth. We therefore need to abstract
@@ -1737,7 +1737,7 @@ impl AbstractValueTrait for Rc<AbstractValue> {
                 if let Some(trimmed) = self
                     .trim_prefix_conjuncts(k_limits::MAX_EXPRESSION_SIZE - other.expression_size)
                 {
-                    debug!("and expression prefix trimmed, self: {:?}", self);
+                    debug!("and expression prefix trimmed, self: {self:?}");
                     trimmed_self = trimmed;
                 } else {
                     return other;
@@ -2024,7 +2024,6 @@ impl AbstractValueTrait for Rc<AbstractValue> {
 
     /// Returns an element that is "self.cmp(other)".
     #[logfn_inputs(TRACE)]
-    #[must_use]
     fn compare(&self, other: Self) -> Self {
         let zero = Rc::new(ConstantDomain::I128(0).into());
         let one = Rc::new(ConstantDomain::I128(1).into());
@@ -2456,8 +2455,7 @@ impl AbstractValueTrait for Rc<AbstractValue> {
             && !(consequent.is_top() || alternate.is_top())
         {
             debug!(
-                "conditional with mismatched types  {:?}: {:?}     {:?}: {:?}",
-                consequent_type, consequent, alternate_type, alternate
+                "conditional with mismatched types  {consequent_type:?}: {consequent:?}     {alternate_type:?}: {alternate:?}"
             );
             return Rc::new(TOP);
         }
@@ -2467,7 +2465,7 @@ impl AbstractValueTrait for Rc<AbstractValue> {
                 .expression_size
                 .saturating_add(consequent.expression_size);
             if condition_plus_consequent < k_limits::MAX_EXPRESSION_SIZE - 1 {
-                debug!("alternate abstracted: {:?}", alternate);
+                debug!("alternate abstracted: {alternate:?}");
                 alternate = AbstractValue::make_from(alternate.expression.clone(), u64::MAX);
                 expression_size = condition_plus_consequent + 1;
             } else {
@@ -2475,7 +2473,7 @@ impl AbstractValueTrait for Rc<AbstractValue> {
                     .expression_size
                     .saturating_add(alternate.expression_size);
                 if condition_plus_alternate < k_limits::MAX_EXPRESSION_SIZE - 1 {
-                    debug!("consequent abstracted: {:?}", consequent);
+                    debug!("consequent abstracted: {consequent:?}");
                     consequent = AbstractValue::make_from(consequent.expression.clone(), u64::MAX);
                     expression_size = condition_plus_alternate + 1;
                 } else {
@@ -2483,7 +2481,7 @@ impl AbstractValueTrait for Rc<AbstractValue> {
                         .expression_size
                         .saturating_add(alternate.expression_size);
                     if consequent_plus_alternate < k_limits::MAX_EXPRESSION_SIZE - 1 {
-                        debug!("condition abstracted: {:?}", condition);
+                        debug!("condition abstracted: {condition:?}");
                         condition =
                             AbstractValue::make_from(condition.expression.clone(), u64::MAX);
                         expression_size = consequent_plus_alternate + 1;
@@ -2827,10 +2825,33 @@ impl AbstractValueTrait for Rc<AbstractValue> {
                     operand,
                     target_type,
                 },
-            ) => {
-                if *val == 0 && *target_type == ExpressionType::ThinPointer {
-                    return self.equals(operand.clone());
-                }
+            ) if *val == 0 && *target_type == ExpressionType::ThinPointer => {
+                return self.equals(operand.clone());
+            }
+
+            // [0 == cast(x, integer)] -> 0 == x
+            (
+                Expression::CompileTimeConstant(ConstantDomain::U128(val)),
+                Expression::Cast {
+                    operand,
+                    target_type,
+                },
+            ) if *val == 0 && target_type.is_integer() => {
+                return self.equals(operand.clone());
+            }
+
+            // [0 == transmute(x, integer)] -> 0 == x
+            (
+                Expression::CompileTimeConstant(ConstantDomain::U128(val)),
+                Expression::Transmute {
+                    operand,
+                    target_type,
+                },
+            ) if *val == 0
+                && target_type.is_integer()
+                && target_type.bit_length() == operand.expression.infer_type().bit_length() =>
+            {
+                return self.equals(operand.clone());
             }
 
             // [0 == !x] -> x when x is Boolean. Canonicalize it to the latter.
@@ -6858,8 +6879,7 @@ impl AbstractValueTrait for Rc<AbstractValue> {
                     return self.clone();
                 }
                 info!(
-                    "replacing embedded path root of {:?}, old_root {:?}, new_root {:?}",
-                    self, old_root, new_root
+                    "replacing embedded path root of {self:?}, old_root {old_root:?}, new_root {new_root:?}"
                 );
                 self.clone()
             }

@@ -52,7 +52,7 @@ fn main() {
         &early_error_handler,
         false,
     );
-    info!("MIRAI options from environment: {:?}", options);
+    info!("MIRAI options from environment: {options:?}");
 
     // Let arguments supplied on the command line override the environment variable.
     let mut args = env::args_os()
@@ -73,7 +73,7 @@ fn main() {
     }
 
     let mut rustc_command_line_arguments = options.parse(&args[1..], &early_error_handler, false);
-    info!("MIRAI options modified by command line: {:?}", options);
+    info!("MIRAI options modified by command line: {options:?}");
 
     rustc_driver::install_ice_hook(rustc_driver::DEFAULT_BUG_REPORT_URL, |_| ());
     let result = rustc_driver::catch_fatal_errors(|| {
@@ -130,13 +130,8 @@ fn main() {
         }
 
         let mut callbacks = callbacks::MiraiCallbacks::new(options);
-        debug!(
-            "rustc_command_line_arguments {:?}",
-            rustc_command_line_arguments
-        );
-        let compiler =
-            rustc_driver::RunCompiler::new(&rustc_command_line_arguments, &mut callbacks);
-        compiler.run()
+        debug!("rustc_command_line_arguments {rustc_command_line_arguments:?}");
+        rustc_driver::run_compiler(&rustc_command_line_arguments, &mut callbacks)
     });
     let exit_code = match result {
         Ok(_) => rustc_driver::EXIT_SUCCESS,

@@ -65,7 +65,7 @@ commit;
   "files": [
     "tests/call_graph/static_fold.rs",
     "/rust/library/std/src/io/stdio.rs",
-    "/rust/library/core/src/fmt/mod.rs"
+    "/rust/library/core/src/fmt/rt.rs"
   ],
   "callables": [
     {
@@ -93,15 +93,15 @@ commit;
       "local": true
     },
     {
-      "name": "/std/std::io::_print(std::fmt::Arguments<'^0.Named(DefId(1:14103 ~ std[8b2b]::io::stdio::_print::'_), \"'_\")>)->()",
+      "name": "/std/std::io::_print(std::fmt::Arguments<'^0.Named(DefId(1:14320 ~ std[8161]::io::stdio::_print::'_), \"'_\")>)->()",
       "file_index": 1,
-      "first_line": 1232,
+      "first_line": 1274,
       "local": false
     },
     {
-      "name": "/core/std::fmt::Arguments::<'a>::new_const(&'a/#0 [&'static str; N/#1])->std::fmt::Arguments<'a/#0>",
+      "name": "/core/core::fmt::rt::<impl std::fmt::Arguments<'a>>::new_const(&'a/#0 [&'static str; N/#1])->std::fmt::Arguments<'a/#0>",
       "file_index": 2,
-      "first_line": 591,
+      "first_line": 234,
       "local": false
     }
   ],

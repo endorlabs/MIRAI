@@ -622,7 +622,7 @@ impl Environment {
         for (path, val1) in value_map1.iter().filter(|(_, v)| !v.is_bottom()) {
             if let Some(val2) = value_map2.get(path) {
                 if !(val1.subset(val2)) {
-                    trace!("self at {:?} is {:?} other is {:?}", path, val1, val2);
+                    trace!("self at {path:?} is {val1:?} other is {val2:?}");
                     return false;
                 }
             }

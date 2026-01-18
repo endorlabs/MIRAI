@@ -130,7 +130,7 @@ impl MiraiCallbacks {
     #[logfn(TRACE)]
     fn analyze_with_mirai<'tcx>(&mut self, compiler: &interface::Compiler, tcx: TyCtxt<'tcx>) {
         if self.options.print_function_names {
-            for local_def_id in tcx.hir().body_owners() {
+            for local_def_id in tcx.hir_body_owners() {
                 let def_id = local_def_id.to_def_id();
                 let span = tcx.def_span(def_id);
                 eprint!("{span:?}: ");
@@ -144,7 +144,7 @@ impl MiraiCallbacks {
             output_dir
         } else {
             let temp_dir = TempDir::new().expect("failed to create a temp dir");
-            String::from(temp_dir.into_path().to_str().expect("valid string"))
+            String::from(temp_dir.keep().to_str().expect("valid string"))
         };
         info!(
             "storing summaries for {} at {}/.summary_store.sled",

@@ -92,7 +92,7 @@ pub fn contains_function<'tcx>(ty: Ty<'tcx>, tcx: TyCtxt<'tcx>) -> bool {
 pub fn is_public(def_id: DefId, tcx: TyCtxt<'_>) -> bool {
     use rustc_hir::def_id::LocalDefId;
 
-    if tcx.hir().get_if_local(def_id).is_some() {
+    if tcx.hir_get_if_local(def_id).is_some() {
         let def_id = def_id.expect_local();
         match tcx
             .resolutions(())
@@ -117,7 +117,7 @@ pub fn is_public(def_id: DefId, tcx: TyCtxt<'_>) -> bool {
                             .is_public()
                     }
                     Node::ImplItem(..) => {
-                        let parent_def_id: LocalDefId = tcx.hir().get_parent_item(hir_id).def_id;
+                        let parent_def_id: LocalDefId = tcx.hir_get_parent_item(hir_id).def_id;
                         match tcx.hir_node_by_def_id(parent_def_id) {
                             Node::Item(rustc_hir::Item {
                                 kind:
@@ -344,7 +344,7 @@ fn append_mangled_type<'tcx>(str: &mut String, ty: Ty<'tcx>, tcx: TyCtxt<'tcx>) 
         }
         _ => {
             //todo: add cases as the need arises, meanwhile make the need obvious.
-            debug!("{:?}", ty);
+            debug!("{ty:?}");
             debug!("{:?}", ty.kind());
             write!(str, "default formatted {ty:?}").expect("enough space");
         }
@@ -401,7 +401,7 @@ pub fn summary_key_str(tcx: TyCtxt<'_>, def_id: DefId) -> Rc<str> {
                     | DefKind::Union
                     | DefKind::Enum
                     | DefKind::Variant
-                    | DefKind::TyAlias { .. }
+                    | DefKind::TyAlias
                     | DefKind::Impl { .. },
             ) {
                 name.push('_');
@@ -432,6 +432,14 @@ fn push_component_name(component_data: DefPathData, target: &mut String) {
         TypeNs(name) | ValueNs(name) | MacroNs(name) | LifetimeNs(name) => {
             target.push_str(name.as_str());
         }
+        AnonAssocTy(name) => {
+            target.push_str("anon_assoc_");
+            target.push_str(name.as_str());
+        }
+        OpaqueLifetime(name) => {
+            target.push_str("opaque_");
+            target.push_str(name.as_str());
+        }
         _ => target.push_str(match component_data {
             CrateRoot => "crate_root",
             Impl => "implement",
@@ -442,6 +450,8 @@ fn push_component_name(component_data: DefPathData, target: &mut String) {
             Ctor => "ctor",
             AnonConst => "constant",
             OpaqueTy => "opaque",
+            SyntheticCoroutineBody => "coroutine",
+            NestedStatic => "static",
             _ => assume_unreachable!(),
         }),
     };

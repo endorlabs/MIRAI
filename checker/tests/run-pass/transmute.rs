@@ -12,14 +12,14 @@
 use mirai_annotations::*;
 
 pub unsafe fn t1(ptr: *mut i32) {
-    *ptr = 123;
+    *ptr = 123; //~possible null pointer dereference
     let non_null_ptr = std::ptr::NonNull::new_unchecked(ptr);
     let ptr2 = std::mem::transmute::<std::ptr::NonNull<i32>, *const i32>(non_null_ptr);
     verify!(*ptr2 == 123);
 }
 
 pub unsafe fn t2(ptr: *mut i32) {
-    *ptr = 123;
+    *ptr = 123; //~possible null pointer dereference
     let non_null_ptr = std::mem::transmute::<*const i32, std::ptr::NonNull<i32>>(ptr);
     verify!(*non_null_ptr.as_ptr() == 123);
 }

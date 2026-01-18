@@ -12,11 +12,11 @@ use std::{f16, f64};
 use log_derive::*;
 
 use mirai_annotations::*;
+use rustc_abi::VariantIdx;
 use rustc_hir::def_id::DefId;
 use rustc_middle::mir;
 use rustc_middle::ty::ConstKind;
 use rustc_middle::ty::{GenericArg, GenericArgKind, GenericArgsRef, Ty, TyKind, UintTy};
-use rustc_target::abi::VariantIdx;
 
 use crate::abstract_value::{AbstractValue, AbstractValueTrait};
 use crate::block_visitor::BlockVisitor;
@@ -204,7 +204,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 tcx.type_of(self.callee_def_id).skip_binder()
             );
             trace!("devirtualize resolving func_ref {:?}", self.callee_func_ref,);
-            trace!("gen_args {:?}", gen_args);
+            trace!("gen_args {gen_args:?}");
             if let Some(arg0_ty) = gen_args.types().next() {
                 if matches!(arg0_ty.kind(), TyKind::Dynamic(..)) {
                     // Instance::resolve panics if it can't find a vtable entry for the given def_id
@@ -218,7 +218,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 .skip_binder()
                 .fn_sig(tcx)
                 .abi();
-            let resolved_instance = if abi == rustc_target::spec::abi::Abi::Rust {
+            let resolved_instance = if abi == rustc_abi::ExternAbi::Rust {
                 Some(rustc_middle::ty::Instance::try_resolve(
                     tcx,
                     typing_env,
@@ -245,9 +245,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                     .type_visitor()
                     .specialize_type(resolved_ty, &resolved_map);
                 trace!(
-                    "devirtualize resolved def_id {:?}: {:?}",
-                    resolved_def_id,
-                    specialized_resolved_ty
+                    "devirtualize resolved def_id {resolved_def_id:?}: {specialized_resolved_ty:?}"
                 );
                 let func_const = self
                     .block_visitor
@@ -1146,14 +1144,10 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
             | KnownNames::StdIntrinsicsLogf32
             | KnownNames::StdIntrinsicsLogf64
             | KnownNames::StdIntrinsicsLogf128
-            | KnownNames::StdIntrinsicsNearbyintf16
-            | KnownNames::StdIntrinsicsNearbyintf32
-            | KnownNames::StdIntrinsicsNearbyintf64
-            | KnownNames::StdIntrinsicsNearbyintf128
-            | KnownNames::StdIntrinsicsRintf16
-            | KnownNames::StdIntrinsicsRintf32
-            | KnownNames::StdIntrinsicsRintf64
-            | KnownNames::StdIntrinsicsRintf128
+            | KnownNames::StdIntrinsicsRoundTiesEvenf16
+            | KnownNames::StdIntrinsicsRoundTiesEvenf32
+            | KnownNames::StdIntrinsicsRoundTiesEvenf64
+            | KnownNames::StdIntrinsicsRoundTiesEvenf128
             | KnownNames::StdIntrinsicsRoundf16
             | KnownNames::StdIntrinsicsRoundf32
             | KnownNames::StdIntrinsicsRoundf64
@@ -1399,7 +1393,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
             .already_reported_errors_for_call_to
             .insert(callee.clone())
         {
-            debug!("unknown callee {:?}", callee);
+            debug!("unknown callee {callee:?}");
             self.block_visitor.report_missing_summary();
         }
     }
@@ -1439,7 +1433,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
 
         if let Some(tag) = self.extract_tag_kind_and_propagation_set() {
             let (source_path, source_rustc_type) = self.deref_tag_source();
-            trace!("MiraiAddTag: tagging {:?} with {:?}", source_path, tag);
+            trace!("MiraiAddTag: tagging {source_path:?} with {tag:?}");
 
             // Check if the tagged value has a pointer type (e.g., a reference).
             // Emit an warning message if so.
@@ -1592,7 +1586,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
             if tag.is_propagated_by(TagPropagation::SubComponent) {
                 let mut path_prefix = &tag_field_path;
                 while let PathEnum::QualifiedPath { qualifier, .. } = &path_prefix.value {
-                    debug!("qualifier {:?}", qualifier);
+                    debug!("qualifier {qualifier:?}");
                     path_prefix = qualifier;
 
                     let path_prefix_rustc_type = self
@@ -2609,9 +2603,9 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 "unhandled call to write_bytes at {:?}",
                 self.block_visitor.bv.current_span
             );
-            info!("elem_type {:?}", elem_type);
+            info!("elem_type {elem_type:?}");
             info!("dest {:?}", self.actual_args[0]);
-            info!("dest_type {:?}", dest_type);
+            info!("dest_type {dest_type:?}");
             info!("val {:?}", self.actual_args[1]);
             info!("count {:?}", self.actual_args[2]);
         }
@@ -2703,7 +2697,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
     #[logfn_inputs(TRACE)]
     pub fn transfer_and_refine_into_current_environment(&mut self, function_summary: &Summary) {
         debug!("def_id {:?}", self.callee_def_id);
-        debug!("summary {:?}", function_summary);
+        debug!("summary {function_summary:?}");
         debug!("pre env {:?}", self.block_visitor.bv.current_environment);
         debug!(
             "target {:?} arguments {:?}",
@@ -2797,7 +2791,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
 
             if refined_condition.is_bottom() {
                 // The precondition has no value, assume it is unreachable after all.
-                debug!("precondition refines to BOTTOM {:?}", precondition);
+                debug!("precondition refines to BOTTOM {precondition:?}");
                 continue;
             }
 
@@ -3122,9 +3116,9 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                         &self.block_visitor.bv.current_environment,
                         self.block_visitor.bv.fresh_variable_offset,
                     );
-                    trace!("refined post condition {:?}", refined_post_condition);
+                    trace!("refined post condition {refined_post_condition:?}");
                     exit_condition = exit_condition.and(refined_post_condition);
-                    trace!("post exit conditions {:?}", exit_condition);
+                    trace!("post exit conditions {exit_condition:?}");
                 }
             }
 
@@ -3210,7 +3204,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 // The tag type should be a generic ADT whose first parameter is a constant.
                 let tag_adt_def;
                 let tag_substs_ref = match tag_rustc_type.kind() {
-                    TyKind::Adt(adt_def, substs_ref) if substs_ref.len() > 0 => {
+                    TyKind::Adt(adt_def, substs_ref) if !substs_ref.is_empty() => {
                         tag_adt_def = adt_def;
                         substs_ref
                     }
@@ -3227,7 +3221,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 };
 
                 let is_u128 = |kind: ConstKind| {
-                    if let ConstKind::Value(ty, _) = kind {
+                    if let ConstKind::Value(rustc_middle::ty::Value { ty, .. }) = kind {
                         *ty.kind() == TyKind::Uint(UintTy::U128)
                     } else {
                         false

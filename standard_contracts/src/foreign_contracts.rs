@@ -1235,7 +1235,7 @@ pub mod core {
         pub mod implement {
             pub mod to_bits {
                 pub fn ct_f64_to_u64(ct: f64) -> u64 {
-                    unsafe { std::mem::transmute::<f64, u64>(ct) }
+                    f64::to_bits(ct)
                 }
             }
         }

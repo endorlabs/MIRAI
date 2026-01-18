@@ -139,7 +139,7 @@ fn run_directory(directory_path: PathBuf) -> Vec<(String, String)> {
             continue;
         }
         let temp_dir = TempDir::new().expect("failed to create a temp dir");
-        let temp_dir_path_buf = temp_dir.into_path();
+        let temp_dir_path_buf = temp_dir.keep();
         let output_dir_path_buf = temp_dir_path_buf.join(file_name.into_string().unwrap());
         fs::create_dir(output_dir_path_buf.as_path()).expect("failed to create test output dir");
         files_and_temp_dirs.push((
@@ -303,8 +303,7 @@ fn invoke_driver(
 
     let mut call_backs = callbacks::MiraiCallbacks::test_runner(options);
     let result = std::panic::catch_unwind(move || {
-        let compiler = rustc_driver::RunCompiler::new(&command_line_arguments, &mut call_backs);
-        compiler.run()
+        rustc_driver::run_compiler(&command_line_arguments, &mut call_backs)
     });
     match result {
         Ok(_) => 0,

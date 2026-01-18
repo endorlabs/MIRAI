@@ -360,7 +360,7 @@ impl Z3Solver {
             }
             Expression::Join { left, right, .. } => self.general_join(left, right),
             _ => unsafe {
-                debug!("uninterpreted expression: {:?}", expression);
+                debug!("uninterpreted expression: {expression:?}");
                 let sym = self.get_symbol_for(expression);
                 let sort = self.get_sort_for(expression.infer_type());
                 z3_sys::Z3_mk_const(self.z3_context, sym, sort)
@@ -382,7 +382,7 @@ impl Z3Solver {
         let left_ast = self.get_as_bool_z3_ast(&left.expression);
         let right_ast = self.get_as_bool_z3_ast(&right.expression);
         unsafe {
-            let tmp = vec![left_ast, right_ast];
+            let tmp = [left_ast, right_ast];
             operation(self.z3_context, 2, tmp.as_ptr())
         }
     }
@@ -480,7 +480,7 @@ impl Z3Solver {
             let (lf, left_ast) = self.get_as_numeric_z3_ast(&left.expression);
             let (rf, right_ast) = self.get_as_numeric_z3_ast(&right.expression);
             if lf != rf {
-                warn!("can't encode {:?} relational op {:?}", left, right);
+                warn!("can't encode {left:?} relational op {right:?}");
                 return self
                     .general_variable(&Path::get_as_path(left.clone()), ExpressionType::Bool);
             }
@@ -524,7 +524,7 @@ impl Z3Solver {
             let (lf, left_ast) = self.get_as_numeric_z3_ast(&left.expression);
             let (rf, right_ast) = self.get_as_numeric_z3_ast(&right.expression);
             if lf != rf {
-                warn!("can't encode {:?} != {:?}", left, right);
+                warn!("can't encode {left:?} != {right:?}");
                 return self
                     .general_variable(&Path::get_as_path(left.clone()), ExpressionType::Bool);
             }
@@ -534,7 +534,7 @@ impl Z3Solver {
                     let r = z3_sys::Z3_mk_fpa_is_nan(self.z3_context, right_ast);
                     let eq = z3_sys::Z3_mk_fpa_eq(self.z3_context, left_ast, right_ast);
                     let ne = z3_sys::Z3_mk_not(self.z3_context, eq);
-                    let tmp = vec![l, r, ne];
+                    let tmp = [l, r, ne];
                     z3_sys::Z3_mk_or(self.z3_context, 3, tmp.as_ptr())
                 } else {
                     z3_sys::Z3_mk_not(
@@ -613,10 +613,7 @@ impl Z3Solver {
         F: FnOnce(&Expression) -> z3_sys::Z3_ast + Copy,
     {
         trace!(
-            "general_switch(discriminator {:?}, cases: {:?}, default {:?})",
-            discriminator,
-            cases,
-            default
+            "general_switch(discriminator {discriminator:?}, cases: {cases:?}, default {default:?})"
         );
         if discriminator.expression.is_bit_vector() {
             return self.switch_with_bv_discriminator(
@@ -1020,7 +1017,7 @@ impl Z3Solver {
         unsafe {
             let min_is_le = z3_sys::Z3_mk_le(self.z3_context, min_ast, operand_ast);
             let max_is_ge = z3_sys::Z3_mk_ge(self.z3_context, max_ast, operand_ast);
-            let tmp = vec![min_is_le, max_is_ge];
+            let tmp = [min_is_le, max_is_ge];
             z3_sys::Z3_mk_and(self.z3_context, 2, tmp.as_ptr())
         }
     }
@@ -1176,7 +1173,7 @@ impl Z3Solver {
             },
             Expression::WidenedJoin { path, operand } => self.numeric_widen(path, operand),
             _ => unsafe {
-                debug!("uninterpreted expression: {:?}", expression);
+                debug!("uninterpreted expression: {expression:?}");
                 let sym = self.get_symbol_for(expression);
                 (
                     false,
@@ -1206,7 +1203,7 @@ impl Z3Solver {
         let (lf, left_ast) = self.get_as_numeric_z3_ast(&left.expression);
         let (rf, right_ast) = self.get_as_numeric_z3_ast(&right.expression);
         if lf != rf {
-            warn!("can't encode {:?} numeric var arg op {:?}", left, right);
+            warn!("can't encode {left:?} numeric var arg op {right:?}");
             let vt = left.expression.infer_type();
             return (
                 vt.is_floating_point_number(),
@@ -1220,7 +1217,7 @@ impl Z3Solver {
                     float_op(self.z3_context, self.nearest_even, left_ast, right_ast),
                 )
             } else {
-                let tmp = vec![left_ast, right_ast];
+                let tmp = [left_ast, right_ast];
                 (false, int_op(self.z3_context, 2, tmp.as_ptr()))
             }
         }
@@ -1242,17 +1239,17 @@ impl Z3Solver {
         let (rf, right_ast) = self.get_as_numeric_z3_ast(&right.expression);
         checked_assume!(!(lf || rf));
         unsafe {
-            let tmp = vec![left_ast, right_ast];
+            let tmp = [left_ast, right_ast];
             let result = int_op(self.z3_context, 2, tmp.as_ptr());
             let min_ast = self.get_constant_as_ast(&result_type.min_value());
             let min_is_gt = z3_sys::Z3_mk_gt(self.z3_context, min_ast, result);
             let max_ast = self.get_constant_as_ast(&result_type.max_value());
             let max_is_lt = z3_sys::Z3_mk_lt(self.z3_context, max_ast, result);
-            let tmp = vec![min_is_gt, max_is_lt];
+            let tmp = [min_is_gt, max_is_lt];
             let result_overflows = z3_sys::Z3_mk_or(self.z3_context, 2, tmp.as_ptr());
             let left_in_range = self.get_range_check(left_ast, min_ast, max_ast);
             let right_in_range = self.get_range_check(right_ast, min_ast, max_ast);
-            let tmp = vec![left_in_range, right_in_range, result_overflows];
+            let tmp = [left_in_range, right_in_range, result_overflows];
             (false, z3_sys::Z3_mk_and(self.z3_context, 3, tmp.as_ptr()))
         }
     }
@@ -1266,7 +1263,7 @@ impl Z3Solver {
         let (lf, left_ast) = self.get_as_numeric_z3_ast(&left.expression);
         let (rf, right_ast) = self.get_as_numeric_z3_ast(&right.expression);
         if lf != rf {
-            warn!("can't encode {:?} rem {:?}", left, right);
+            warn!("can't encode {left:?} rem {right:?}");
             let vt = left.expression.infer_type();
             return (
                 vt.is_floating_point_number(),
@@ -1290,7 +1287,7 @@ impl Z3Solver {
                     (false, {
                         let cond = z3_sys::Z3_mk_lt(self.z3_context, left_ast, self.zero);
                         let rem = z3_sys::Z3_mk_rem(self.z3_context, left_ast, right_ast);
-                        let tmp = vec![self.zero, rem];
+                        let tmp = [self.zero, rem];
                         let neg_rem = z3_sys::Z3_mk_sub(self.z3_context, 2, tmp.as_ptr());
                         z3_sys::Z3_mk_ite(self.z3_context, cond, neg_rem, rem)
                     })
@@ -1319,7 +1316,7 @@ impl Z3Solver {
         let (lf, left_ast) = self.get_as_numeric_z3_ast(&left.expression);
         let (rf, right_ast) = self.get_as_numeric_z3_ast(&right.expression);
         if lf != rf {
-            warn!("can't encode {:?} numeric op {:?}", left, right);
+            warn!("can't encode {left:?} numeric op {right:?}");
             let vt = left.expression.infer_type();
             return (
                 vt.is_floating_point_number(),
@@ -1348,7 +1345,7 @@ impl Z3Solver {
             let (lf, left_ast) = self.get_as_numeric_z3_ast(&left.expression);
             let (rf, right_ast) = self.get_as_numeric_z3_ast(&right.expression);
             if lf != rf {
-                warn!("can't encode {:?} join {:?}", left, right);
+                warn!("can't encode {left:?} join {right:?}");
                 let vt = left.expression.infer_type();
                 return (
                     vt.is_floating_point_number(),
@@ -1391,13 +1388,13 @@ impl Z3Solver {
             if result_type.is_signed_integer() {
                 let (fp, neg) = self.numeric_neg(operand);
                 checked_assume!(!fp); // The Rust type system should prevent this
-                let tmp = vec![neg, self.one];
+                let tmp = [neg, self.one];
                 (false, z3_sys::Z3_mk_sub(self.z3_context, 2, tmp.as_ptr()))
             } else {
                 let (fp, ast) = self.get_as_numeric_z3_ast(&operand.expression);
                 checked_assume!(!fp); // The Rust type system should prevent this
                 let max_ast = self.get_constant_as_ast(&result_type.max_value());
-                let tmp = vec![max_ast, ast];
+                let tmp = [max_ast, ast];
                 (false, z3_sys::Z3_mk_sub(self.z3_context, 2, tmp.as_ptr()))
             }
         }
@@ -1441,7 +1438,7 @@ impl Z3Solver {
                             } else {
                                 self.get_constant_as_ast(&modulo_constant)
                             };
-                            let args = vec![expr_ast, modulo_ast];
+                            let args = [expr_ast, modulo_ast];
                             let complement = z3_sys::Z3_mk_add(self.z3_context, 2, args.as_ptr());
                             let is_negative =
                                 z3_sys::Z3_mk_lt(self.z3_context, expr_ast, self.zero);
@@ -1502,8 +1499,7 @@ impl Z3Solver {
                             // target type is not numeric and not a pointer, but the result of the
                             // cast is expected to be numeric. This probably a mistake.
                             info!(
-                                "non numeric cast to {:?} found in numeric context {:?}",
-                                target_type, expression
+                                "non numeric cast to {target_type:?} found in numeric context {expression:?}"
                             );
                         }
                         self.get_as_numeric_z3_ast(expression)
@@ -1558,10 +1554,7 @@ impl Z3Solver {
                 (false, z3_sys::Z3_mk_int(self.z3_context, 1, self.int_sort))
             },
             _ => unsafe {
-                debug!(
-                    "non numeric constant in numeric context: {:?}",
-                    const_domain
-                );
+                debug!("non numeric constant in numeric context: {const_domain:?}");
                 let sym = self.get_symbol_for(const_domain);
                 (
                     false,
@@ -1632,7 +1625,7 @@ impl Z3Solver {
         checked_assume!(!(lf || rf));
         unsafe {
             let right_power = z3_sys::Z3_mk_power(self.z3_context, self.two, right_ast);
-            let tmp = vec![left_ast, right_power];
+            let tmp = [left_ast, right_power];
             (false, z3_sys::Z3_mk_mul(self.z3_context, 2, tmp.as_ptr()))
         }
     }
@@ -1767,7 +1760,7 @@ impl Z3Solver {
             | Expression::InitialParameterValue { path, var_type }
             | Expression::Variable { path, var_type } => {
                 if *var_type != ExpressionType::Bool {
-                    debug!("path {:?}, type {:?}", path, var_type);
+                    debug!("path {path:?}, type {var_type:?}");
                 }
                 unsafe {
                     let path_symbol = self.get_symbol_for(path);
@@ -1977,7 +1970,7 @@ impl Z3Solver {
             let does_not_overflow = no_overflow(self.z3_context, left_bv, right_bv, is_signed);
             let overflows = if is_signed {
                 let does_not_underflow = no_underflow(self.z3_context, left_bv, right_bv);
-                let tmp = vec![does_not_overflow, does_not_underflow];
+                let tmp = [does_not_overflow, does_not_underflow];
                 let stays_in_range = z3_sys::Z3_mk_and(self.z3_context, 2, tmp.as_ptr());
                 z3_sys::Z3_mk_not(self.z3_context, stays_in_range)
             } else {
@@ -2139,10 +2132,7 @@ impl Z3Solver {
         F: FnOnce(&Expression) -> z3_sys::Z3_ast + Copy,
     {
         trace!(
-            "switch_with_bv_discriminator(discriminator {:?}, cases: {:?}, default {:?})",
-            discriminator,
-            cases,
-            default
+            "switch_with_bv_discriminator(discriminator {discriminator:?}, cases: {cases:?}, default {default:?})"
         );
         let ty = discriminator.expression.infer_type();
         let num_bits = u32::from(ty.bit_length());

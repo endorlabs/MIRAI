@@ -11,6 +11,7 @@ use std::rc::Rc;
 use log_derive::*;
 
 use mirai_annotations::*;
+use rustc_abi::{FieldIdx, Primitive, TagEncoding, VariantIdx, Variants};
 use rustc_hir::def_id::DefId;
 use rustc_index::{Idx, IndexVec};
 use rustc_middle::mir;
@@ -20,11 +21,10 @@ use rustc_middle::ty::adjustment::PointerCoercion;
 use rustc_middle::ty::TypingMode;
 use rustc_middle::ty::{
     Const, CoroutineArgsExt, FloatTy, IntTy, ParamConst, ScalarInt, Ty, TyKind, UintTy, ValTree,
-    VariantDef,
+    ValTreeKind, VariantDef,
 };
 use rustc_middle::ty::{GenericArg, GenericArgsRef};
 use rustc_span::source_map::Spanned;
-use rustc_target::abi::{FieldIdx, Primitive, TagEncoding, VariantIdx, Variants};
 use rustc_trait_selection::infer::TyCtxtInferExt;
 
 use crate::abstract_value::{self, AbstractValue, AbstractValueTrait, BOTTOM};
@@ -208,7 +208,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
     fn visit_set_discriminant(
         &mut self,
         place: &mir::Place<'tcx>,
-        variant_index: rustc_target::abi::VariantIdx,
+        variant_index: rustc_abi::VariantIdx,
     ) {
         let target_path = Path::new_discriminant(self.visit_rh_place(place));
         let ty = self
@@ -300,6 +300,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 target,
                 unwind,
                 replace,
+                ..
             } => self.visit_drop(place, *target, *unwind, *replace),
             mir::TerminatorKind::Call {
                 func,
@@ -496,7 +497,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             ty = self
                 .type_visitor()
                 .get_rustc_place_type(place, self.bv.current_span);
-            debug!("ty {:?}", ty);
+            debug!("ty {ty:?}");
         }
         self.type_visitor_mut()
             .set_path_rustc_type(path.clone(), ty);
@@ -606,9 +607,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         // a million local variables.
         self.bv.fresh_variable_offset += 1_000_000;
 
-        trace!("source location {:?}", fn_span);
+        trace!("source location {fn_span:?}");
         trace!("call stack {:?}", self.bv.active_calls_map);
-        trace!("visit_call {:?} {:?}", func, args);
+        trace!("visit_call {func:?} {args:?}");
         trace!(
             "self.generic_argument_map {:?}",
             self.type_visitor().generic_argument_map
@@ -1659,6 +1660,17 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 ResumedAfterPanic(CoroutineKind::Desugared(CoroutineDesugaring::Gen, _)) => {
                     "`gen fn` should just keep returning `None` after panicking"
                 }
+                ResumedAfterDrop(CoroutineKind::Coroutine(_)) => "coroutine resumed after drop",
+                ResumedAfterDrop(CoroutineKind::Desugared(CoroutineDesugaring::Async, _)) => {
+                    "`async fn` resumed after drop"
+                }
+                ResumedAfterDrop(CoroutineKind::Desugared(CoroutineDesugaring::AsyncGen, _)) => {
+                    "`async gen fn` resumed after drop"
+                }
+                ResumedAfterDrop(CoroutineKind::Desugared(CoroutineDesugaring::Gen, _)) => {
+                    "`gen fn` should just keep returning `None` after drop"
+                }
+                NullPointerDereference => "null pointer dereference",
             }
         }
     }
@@ -1733,6 +1745,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             mir::Rvalue::ThreadLocalRef(def_id) => {
                 self.visit_thread_local_ref(path, *def_id);
             }
+            mir::Rvalue::Len(place) => {
+                self.visit_len(path, place);
+            }
             mir::Rvalue::Cast(cast_kind, operand, ty) => {
                 let specialized_ty = self
                     .type_visitor()
@@ -1766,6 +1781,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             }
             mir::Rvalue::CopyForDeref(place) => {
                 self.visit_used_copy(path, place);
+            }
+            mir::Rvalue::WrapUnsafeBinder(operand, ty) => {
+                self.visit_wrap_unsafe_binder(path, operand, *ty);
             }
         }
     }
@@ -1827,10 +1845,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 .type_visitor()
                 .get_path_rustc_type(&rpath, self.bv.current_span);
             if utils::is_concrete(source_type.kind()) {
-                debug!(
-                    "changing {:?} from {:?} to {:?}",
-                    target_path, target_type, source_type
-                );
+                debug!("changing {target_path:?} from {target_type:?} to {source_type:?}");
                 self.type_visitor_mut()
                     .set_path_rustc_type(target_path.clone(), source_type);
             }
@@ -1856,10 +1871,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 .type_visitor()
                 .get_path_rustc_type(&rpath, self.bv.current_span);
             if utils::is_concrete(source_type.kind()) {
-                debug!(
-                    "changing {:?} from {:?} to {:?}",
-                    target_path, target_type, source_type
-                );
+                debug!("changing {target_path:?} from {target_type:?} to {source_type:?}");
                 self.type_visitor_mut()
                     .set_path_rustc_type(target_path.clone(), source_type);
             }
@@ -2025,6 +2037,36 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         self.bv.update_value_at(path, value);
     }
 
+    /// path = array or slice (i.e. `[T]`, not `&[T]`) length as `usize`.
+    #[logfn_inputs(TRACE)]
+    fn visit_len(&mut self, path: Rc<Path>, place: &mir::Place<'tcx>) {
+        let source_type = self
+            .type_visitor()
+            .get_rustc_place_type(place, self.bv.current_span);
+        let value = match source_type.kind() {
+            TyKind::Array(_, len) => {
+                let len = self.bv.get_array_length(len);
+                self.get_u128_const_val(len as u128)
+            }
+            TyKind::Slice(_) => {
+                // For slices, the length is stored as the metadata for the place.
+                let slice_path = self.visit_rh_place(place);
+                self.bv.lookup_path_and_refine_result(
+                    Path::new_length(slice_path),
+                    self.bv.tcx.types.usize,
+                )
+            }
+            _ => {
+                // This operation is "ill-formed for places of other types".
+                assume_unreachable!(
+                    "length operation on non array or slice type {:?}",
+                    source_type
+                );
+            }
+        };
+        self.bv.update_value_at(path, value);
+    }
+
     /// Accessing a thread local static. This is inherently a runtime operation, even if llvm
     /// treats it as an access to a static. This `Rvalue` yields a reference to the thread local
     /// static.
@@ -2096,7 +2138,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                             .type_visitor()
                             .get_path_rustc_type(&source_path, self.bv.current_span);
                         if utils::is_concrete(source_type.kind()) {
-                            debug!("changing {:?} from {:?} to {:?}", path, ty, source_type);
+                            debug!("changing {path:?} from {ty:?} to {source_type:?}");
                             self.type_visitor_mut()
                                 .set_path_rustc_type(path.clone(), source_type);
                         }
@@ -2287,6 +2329,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         };
         if let Expression::BitAnd { left, right } = &result.expression {
             if right.expression.is_memory_reference() {
+                // Handles misaligned pointer checks.
                 let alignment = match &left.expression {
                     Expression::CompileTimeConstant(ConstantDomain::U128(1)) => 2u128,
                     Expression::CompileTimeConstant(ConstantDomain::U128(3)) => 4u128,
@@ -2297,6 +2340,12 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 if alignment <= 16u128 && self.is_aligned(right, alignment) {
                     result = Rc::new(0u128.into());
                 }
+            }
+        }
+        if let Expression::Equals { left, right } = &result.expression {
+            // Handles null pointer checks.
+            if left.is_zero() && self.is_memory_safe_reference(right) {
+                result = Rc::new(false.into());
             }
         }
         self.bv.update_value_at(path, result);
@@ -2331,7 +2380,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         {
                             return *alignment >= desired_alignment;
                         }
-                        debug!("{:?}", alignment);
+                        debug!("{alignment:?}");
                     }
                 }
                 false
@@ -2346,7 +2395,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         .bv
                         .type_visitor()
                         .get_path_rustc_type(path, self.bv.current_span);
-                    debug!("{:?}", ty);
+                    debug!("{ty:?}");
                     let (_, type_alignment) =
                         self.bv.type_visitor().get_type_size_and_alignment(ty);
                     type_alignment >= desired_alignment
@@ -2359,6 +2408,123 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             Expression::WidenedJoin { operand, .. } => self.is_aligned(operand, desired_alignment),
             _ => false,
         }
+    }
+
+    // Checks if abstract value is a memory safe reference
+    // (i.e. a reference, non-null pointer or smart pointer that wraps a non-null pointer).
+    #[logfn_inputs(TRACE)]
+    fn is_memory_safe_reference(&mut self, value: &Rc<AbstractValue>) -> bool {
+        match &value.expression {
+            Expression::Reference(_) => true,
+            Expression::Cast {
+                operand,
+                target_type,
+            }
+            | Expression::Transmute {
+                operand,
+                target_type,
+            } if *target_type == ExpressionType::Usize => self.is_memory_safe_reference(operand),
+            Expression::ConditionalExpression {
+                consequent,
+                alternate,
+                ..
+            } => {
+                self.is_memory_safe_reference(consequent)
+                    && self.is_memory_safe_reference(alternate)
+            }
+            Expression::Join { left, right } => {
+                self.is_memory_safe_reference(left) && self.is_memory_safe_reference(right)
+            }
+            Expression::WidenedJoin { operand, .. } => self.is_memory_safe_reference(operand),
+            Expression::InitialParameterValue { path, var_type }
+            | Expression::Variable { path, var_type }
+                if *var_type == ExpressionType::ThinPointer =>
+            {
+                // Expression types don't currently differentiate between references and raw pointers,
+                // so this checks the path rustc type instead.
+                if self.is_memory_safe_reference_path(path) {
+                    return true;
+                }
+
+                // Checks if the presumably raw pointer is derived from a memory safe reference.
+                let inner_value = self.bv.current_environment.value_at(path);
+                if inner_value.is_some() && inner_value != Some(value) {
+                    let inner_value = inner_value.unwrap().clone();
+                    return self.is_memory_safe_reference(&inner_value);
+                }
+                false
+            }
+            Expression::Offset { .. } => self.bv.try_check_offset(value).unwrap_or(false),
+            _ => false,
+        }
+    }
+
+    // Checks if path is a memory safe reference
+    // (i.e. either a reference, non-null pointer or smart pointer that wraps a non-null pointer).
+    #[logfn_inputs(TRACE)]
+    fn is_memory_safe_reference_path(&mut self, path: &Rc<Path>) -> bool {
+        let ty = self
+            .bv
+            .type_visitor()
+            .get_path_rustc_type(path, self.bv.current_span);
+        if ty.is_ref() {
+            return true;
+        }
+
+        if let Some(ty_def_id) = ty.ty_adt_def().map(|adt_def| adt_def.did()) {
+            let tcx = self.bv.tcx;
+            let get_field_type = |def_id: DefId, field_name: &str| {
+                let ty = tcx.type_of(def_id).skip_binder();
+                match ty.kind() {
+                    TyKind::Adt(adt_def, args) => {
+                        let field = adt_def
+                            .all_fields()
+                            .find(|field| field.name.as_str() == field_name);
+                        field.and_then(|field| {
+                            field
+                                .ty(tcx, args)
+                                .ty_adt_def()
+                                .map(|adt_def| adt_def.did())
+                        })
+                    }
+                    _ => None,
+                }
+            };
+
+            // Handles `core::ptr::Unique`.
+            let ptr_unique_def_id = tcx.lang_items().ptr_unique().or_else(|| {
+                // Fallback to extracting from Box.
+                self.bv
+                    .tcx
+                    .lang_items()
+                    .owned_box()
+                    .and_then(|def_id| get_field_type(def_id, "0"))
+            });
+            if ptr_unique_def_id == Some(ty_def_id) {
+                return true;
+            }
+
+            // Handles `core::ptr::NonNull`.
+            let ptr_non_null_def_id =
+                ptr_unique_def_id.and_then(|def_id| get_field_type(def_id, "pointer"));
+            if ptr_non_null_def_id == Some(ty_def_id) {
+                return true;
+            }
+        }
+
+        // Handles smart pointers that wrap non-null pointers (e.g. `Box`, `Vec` and `String`).
+        if let PathEnum::QualifiedPath {
+            qualifier,
+            selector,
+            ..
+        } = &path.value
+        {
+            if *selector.as_ref() == PathSelector::Field(0) {
+                return self.is_memory_safe_reference_path(qualifier);
+            }
+        }
+
+        false
     }
 
     /// Apply the given binary operator to the two operands, with overflow checking where appropriate
@@ -2472,6 +2638,17 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             }
             mir::NullOp::UbChecks => {
                 let val = self.bv.tcx.sess.opts.debug_assertions;
+                Rc::new(val.into())
+            }
+            mir::NullOp::ContractChecks => {
+                let val = self
+                    .bv
+                    .tcx
+                    .sess
+                    .opts
+                    .unstable_opts
+                    .contract_checks
+                    .unwrap_or(false);
                 Rc::new(val.into())
             }
         };
@@ -2589,7 +2766,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     let field_ty = field.ty(self.bv.tcx, args);
                     self.type_visitor_mut()
                         .set_path_rustc_type(field_path.clone(), field_ty);
-                    self.visit_use(field_path, &operands[0usize.into()]);
+                    self.visit_use(field_path, &operands[FieldIdx::ZERO]);
                     return;
                 }
                 if variant_def.fields.is_empty() {
@@ -2601,13 +2778,10 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     let field_ty = field.ty(self.bv.tcx, args);
                     self.type_visitor_mut()
                         .set_path_rustc_type(field_path.clone(), field_ty);
-                    if let Some(operand) = operands.get(i.into()) {
+                    if let Some(operand) = operands.get::<FieldIdx>(i.into()) {
                         self.visit_use(field_path, operand);
                     } else {
-                        debug!(
-                            "variant has more fields than was serialized {:?}",
-                            variant_def
-                        );
+                        debug!("variant has more fields than was serialized {variant_def:?}");
                     }
                 }
             }
@@ -2649,9 +2823,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 let pointer_type = Ty::new_ptr(self.bv.tcx, *ty, *mutbl);
                 self.type_visitor_mut()
                     .set_path_rustc_type(thin_pointer_path.clone(), pointer_type);
-                self.visit_use(thin_pointer_path, &operands[0usize.into()]);
+                self.visit_use(thin_pointer_path, &operands[FieldIdx::ZERO]);
                 let metadata_path = Path::new_field(path, 1);
-                self.visit_use(metadata_path, &operands[1usize.into()]);
+                self.visit_use(metadata_path, &operands[FieldIdx::from_usize(1)]);
             }
         }
     }
@@ -2776,8 +2950,8 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             None => {
                 if !args.is_empty() {
                     let typing_env = rustc_middle::ty::TypingEnv::fully_monomorphized();
-                    trace!("devirtualize resolving def_id {:?}: {:?}", def_id, def_ty);
-                    trace!("args {:?}", args);
+                    trace!("devirtualize resolving def_id {def_id:?}: {def_ty:?}");
+                    trace!("args {args:?}");
                     if let Ok(Some(instance)) = rustc_middle::ty::Instance::try_resolve(
                         self.bv.tcx,
                         typing_env,
@@ -2786,8 +2960,8 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     ) {
                         def_id = instance.def.def_id();
                         args = instance.args;
-                        trace!("resolved it to {:?}", def_id);
-                        trace!("resolved args {:?}", args);
+                        trace!("resolved it to {def_id:?}");
+                        trace!("resolved args {args:?}");
                         self.bv.cv.generic_args_cache.insert(def_id, args);
                     }
                 }
@@ -2867,24 +3041,28 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     self.bv.current_span
                 );
             }
-            // ZSTs, integers, `bool`, `char` and small structs are represented as scalars.
-            // See the `ScalarInt` documentation for how `ScalarInt` guarantees that equal values
-            // of these types have the same representation.
-            rustc_middle::ty::ConstKind::Value(lty, ValTree::Leaf(scalar_int)) => {
-                let (data, size) = Self::get_scalar_int_data(scalar_int);
-                self.get_constant_value_from_scalar(*lty, data, size)
-            }
-            // The fields of any kind of aggregate. Structs, tuples and arrays are represented by
-            // listing their fields' values in order.
-            // Enums are represented by storing their discriminant as a field, followed by all
-            // the fields of the variant.
-            rustc_middle::ty::ConstKind::Value(lty, val_tree) => {
-                let (heap_block, heap_path) = self.get_heap_block_and_path(*lty, val_tree);
-                self.deserialize_val_tree(val_tree, heap_path, *lty);
-                heap_block
+            rustc_middle::ty::ConstKind::Value(rustc_middle::ty::Value { ty, valtree }) => {
+                match **valtree {
+                    // ZSTs, integers, `bool`, `char` and small structs are represented as scalars.
+                    // See the `ScalarInt` documentation for how `ScalarInt` guarantees that equal values
+                    // of these types have the same representation.
+                    ValTreeKind::Leaf(scalar_int) => {
+                        let (data, size) = Self::get_scalar_int_data(scalar_int);
+                        self.get_constant_value_from_scalar(*ty, data, size)
+                    }
+                    // The fields of any kind of aggregate. Structs, tuples and arrays are represented by
+                    // listing their fields' values in order.
+                    // Enums are represented by storing their discriminant as a field, followed by all
+                    // the fields of the variant.
+                    ValTreeKind::Branch(_) => {
+                        let (heap_block, heap_path) = self.get_heap_block_and_path(*ty, valtree);
+                        self.deserialize_val_tree(valtree, heap_path, *ty);
+                        heap_block
+                    }
+                }
             }
             _ => {
-                debug!("kind {:?}", kind);
+                debug!("kind {kind:?}");
                 Rc::new(ConstantDomain::Unimplemented.into())
             }
         }
@@ -2918,7 +3096,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             if let Some(val_tree) = val_tree_iter.next() {
                 self.deserialize_val_tree(val_tree, field_path, field_ty);
             } else {
-                debug!("variant has more fields than was serialized {:?}", variant);
+                debug!("variant has more fields than was serialized {variant:?}");
             }
         }
     }
@@ -2929,29 +3107,30 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         target_path: Rc<Path>,
         ty: Ty<'tcx>,
     ) {
-        match val_tree {
-            ValTree::Leaf(scalar_int) => {
+        match **val_tree {
+            ValTreeKind::Leaf(scalar_int) => {
                 let (data, size) = Self::get_scalar_int_data(scalar_int);
                 let const_value = self.get_constant_value_from_scalar(ty, data, size);
                 self.bv.update_value_at(target_path, const_value);
             }
-            ValTree::Branch(val_trees) => match ty.kind() {
+            ValTreeKind::Branch(val_trees) => match ty.kind() {
                 TyKind::Adt(def, args) if def.is_enum() => {
                     let mut val_tree_iter = val_trees.iter();
-                    let variant_index =
-                        if let Some(ValTree::Leaf(scalar_int)) = val_tree_iter.next() {
-                            self.get_enum_variant_index(scalar_int, ty, &target_path)
-                        } else {
-                            unreachable!(
-                                "serialized enum value without a discriminant value {:?} {:?}",
-                                def, val_trees
-                            );
-                        };
+                    let variant_index = if let Some(ValTreeKind::Leaf(scalar_int)) =
+                        val_tree_iter.next().map(|val_tree| **val_tree)
+                    {
+                        self.get_enum_variant_index(scalar_int, ty, &target_path)
+                    } else {
+                        unreachable!(
+                            "serialized enum value without a discriminant value {:?} {:?}",
+                            def, val_trees
+                        );
+                    };
                     let variant = &def.variants()[variant_index];
                     self.deserialize_fields(args, val_tree_iter, target_path, variant);
                 }
                 TyKind::Adt(def, _) if def.is_union() => {
-                    debug!("Did not expect to a serialized union value {:?}", def);
+                    debug!("Did not expect to a serialized union value {def:?}");
                 }
                 TyKind::Adt(def, args) => {
                     let val_tree_iter = val_trees.iter();
@@ -2965,7 +3144,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         if let Some(val_tree) = val_tree_iter.next() {
                             self.deserialize_val_tree(val_tree, field_path, field_ty);
                         } else {
-                            debug!("tuple has more fields than was serialized {:?}", ty);
+                            debug!("tuple has more fields than was serialized {ty:?}");
                         }
                     }
                 }
@@ -2983,12 +3162,12 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         if let Some(val_tree) = val_tree_iter.next() {
                             self.deserialize_val_tree(val_tree, elem_path, *elem_type);
                         } else {
-                            debug!("array has more elements than was serialized {:?}", ty);
+                            debug!("array has more elements than was serialized {ty:?}");
                         }
                     }
                 }
                 _ => {
-                    debug!("did not expect a value tree branch for this type {:?}", ty);
+                    debug!("did not expect a value tree branch for this type {ty:?}");
                 }
             },
         }
@@ -3028,10 +3207,8 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         // The Rust compiler should ensure this.
                         assume!(alloc_len > offset_bytes);
                         let size = alloc_len - offset_bytes;
-                        let range = alloc_range(
-                            ptr.into_parts().1,
-                            rustc_target::abi::Size::from_bytes(size),
-                        );
+                        let range =
+                            alloc_range(ptr.into_parts().1, rustc_abi::Size::from_bytes(size));
                         let bytes = if size > 0
                             && alloc.inner().provenance().range_empty(range, &self.bv.tcx)
                         {
@@ -3046,8 +3223,8 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                                     Some(GlobalAlloc::Memory(alloc)) => {
                                         let size = alloc.inner().len() as u64;
                                         let range = alloc_range(
-                                            rustc_target::abi::Size::from_bytes(0),
-                                            rustc_target::abi::Size::from_bytes(size),
+                                            rustc_abi::Size::from_bytes(0),
+                                            rustc_abi::Size::from_bytes(size),
                                         );
                                         bytes = alloc
                                             .inner()
@@ -3098,8 +3275,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                                         debug!("span: {:?}", self.bv.current_span);
                                         debug!("type kind {:?}", lty.kind());
                                         debug!(
-                                            "constant value did not serialize correctly {:?}",
-                                            val
+                                            "constant value did not serialize correctly {val:?}"
                                         );
                                     }
                                     AbstractValue::make_reference(heap_path)
@@ -3127,7 +3303,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                                 if !bytes_left_to_deserialize.is_empty() {
                                     debug!("span: {:?}", self.bv.current_span);
                                     debug!("type kind {:?}", lty.kind());
-                                    debug!("constant value did not serialize correctly {:?}", val);
+                                    debug!("constant value did not serialize correctly {val:?}");
                                 }
                                 heap_val
                             }
@@ -3193,12 +3369,12 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
 
             // Used only for `&[u8]` and `&str`
             ConstValue::Slice { data, meta } => {
-                let size = rustc_target::abi::Size::from_bytes(meta);
+                let size = rustc_abi::Size::from_bytes(meta);
                 let bytes = data
                     .inner()
                     .get_bytes_strip_provenance(
                         &self.bv.tcx,
-                        alloc_range(rustc_target::abi::Size::ZERO, size),
+                        alloc_range(rustc_abi::Size::ZERO, size),
                     )
                     .unwrap();
                 let slice = &bytes[0..];
@@ -3273,7 +3449,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 if !bytes_left_to_deserialize.is_empty() {
                     debug!("span: {:?}", self.bv.current_span);
                     debug!("type kind {:?}", lty.kind());
-                    debug!("constant value did not serialize correctly {:?}", val);
+                    debug!("constant value did not serialize correctly {val:?}");
                 }
                 heap_val
             }
@@ -3294,11 +3470,11 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             .set_path_rustc_type(target_path.clone(), ty);
         match ty.kind() {
             TyKind::Adt(def, args) if def.is_enum() => {
-                trace!("deserializing {:?} {:?}", def, args);
+                trace!("deserializing {def:?} {args:?}");
                 trace!("def.repr() {:?}", def.repr());
                 let mut bytes_left_to_deserialize = bytes;
                 if let Ok(enum_ty_layout) = self.type_visitor().layout_of(ty) {
-                    trace!("enum_ty_layout {:?}", enum_ty_layout);
+                    trace!("enum_ty_layout {enum_ty_layout:?}");
                     let len = enum_ty_layout.size.bytes_usize();
                     let tag_length;
                     let data = if len == 0 {
@@ -3334,10 +3510,10 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     self.bv.update_value_at(discr_path, discr_data);
                     if discr_has_data {
                         let variant = &def.variants()[discr_index];
-                        trace!("deserializing variant {:?}", variant);
+                        trace!("deserializing variant {variant:?}");
                         for (i, field) in variant.fields.iter().enumerate() {
-                            trace!("deserializing field({}) {:?}", i, field);
-                            trace!("bytes_left_deserialize {:?}", bytes_left_to_deserialize);
+                            trace!("deserializing field({i}) {field:?}");
+                            trace!("bytes_left_deserialize {bytes_left_to_deserialize:?}");
                             let field_path = Path::new_field(target_path.clone(), i);
                             let field_ty = field.ty(self.bv.tcx, args);
                             trace!(
@@ -3355,14 +3531,14 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 bytes_left_to_deserialize
             }
             TyKind::Adt(def, args) => {
-                trace!("deserializing {:?} {:?}", def, args);
+                trace!("deserializing {def:?} {args:?}");
                 let mut bytes_left_to_deserialize = bytes;
                 for variant in def.variants().iter() {
-                    trace!("deserializing variant {:?}", variant);
+                    trace!("deserializing variant {variant:?}");
                     bytes_left_to_deserialize = bytes;
                     for (i, field) in variant.fields.iter().enumerate() {
-                        trace!("deserializing field({}) {:?}", i, field);
-                        trace!("bytes_left_deserialize {:?}", bytes_left_to_deserialize);
+                        trace!("deserializing field({i}) {field:?}");
+                        trace!("bytes_left_deserialize {bytes_left_to_deserialize:?}");
                         let field_path = Path::new_field(target_path.clone(), i);
                         let field_ty = field.ty(self.bv.tcx, args);
                         trace!(
@@ -3641,12 +3817,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             // Get the structure of the discriminant tag
             let (discr_signed, discr_bits, discr_index, discr_has_data) =
                 self.get_discriminator_info(data, &ty_and_layout);
-            trace!(
-                "discr tag {:?} index {:?} dataful {:?}",
-                discr_bits,
-                discr_index,
-                discr_has_data
-            );
+            trace!("discr tag {discr_bits:?} index {discr_index:?} dataful {discr_has_data:?}");
             let discr_path = Path::new_discriminant(target_path.clone());
             let discr_data = if discr_signed {
                 self.get_i128_const_val(discr_bits as i128)
@@ -3663,7 +3834,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     variant_def.ident(self.bv.tcx)
                 };
                 let name_str = name.as_str();
-                trace!("discr name {:?}", name_str);
+                trace!("discr name {name_str:?}");
 
                 // Obtains the path to store the data. For example, for Option<char>,
                 // the path should be `(x as Some).0`.
@@ -3704,9 +3875,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
 
         trace!("enum_ty_layout.ty {:?}", enum_ty_layout.ty);
         let discr_ty = enum_ty_layout.ty.discriminant_ty(self.bv.tcx);
-        trace!("discr_ty {:?}", discr_ty);
+        trace!("discr_ty {discr_ty:?}");
         let discr_ty_layout = self.type_visitor().layout_of(discr_ty).unwrap();
-        trace!("discr_ty_layout {:?}", discr_ty_layout);
+        trace!("discr_ty_layout {discr_ty_layout:?}");
         match enum_ty_layout.variants {
             Variants::Empty => {
                 discr_signed = false;
@@ -3788,21 +3959,21 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         // For example, `Option<(usize, &T)>`  is represented such that
                         // `None` has a null pointer for the second tuple field, and
                         // `Some` is the identity function (with a non-null reference).
-                        trace!("untagged_variant {:?}", untagged_variant);
-                        trace!("niche_start {:?}", niche_start);
+                        trace!("untagged_variant {untagged_variant:?}");
+                        trace!("niche_start {niche_start:?}");
                         let variants_start = niche_variants.start().as_u32();
                         let variants_end = niche_variants.end().as_u32();
                         let variant = if data >= niche_start
                             && variants_end >= variants_start
                             && (data - niche_start) <= (variants_end - variants_start).into()
                         {
-                            trace!("data {:?}", data);
+                            trace!("data {data:?}");
                             discr_has_data = false;
                             let variant_index_relative = (data - niche_start) as u32;
                             let variant_index = variants_start + variant_index_relative;
                             VariantIdx::from_u32(variant_index)
                         } else {
-                            trace!("data {:?}", data);
+                            trace!("data {data:?}");
                             discr_has_data = true;
                             let fields = &variants[untagged_variant].fields;
                             checked_assume!(
@@ -3912,10 +4083,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     if !bytes_left_to_deserialize.is_empty() {
                         debug!("span: {:?}", self.bv.current_span);
                         debug!("type kind {:?}", ty.kind());
-                        debug!(
-                            "constant value did not serialize correctly {:?} {:?}",
-                            data, size
-                        );
+                        debug!("constant value did not serialize correctly {data:?} {size:?}");
                     }
                     return heap_val;
                 }
@@ -3973,7 +4141,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             ty = self
                 .type_visitor()
                 .get_rustc_place_type(place, self.bv.current_span);
-            debug!("ty {:?}", ty);
+            debug!("ty {ty:?}");
         } else if ty.is_ptr_sized_integral() {
             let place_ty = self
                 .type_visitor()
@@ -4154,6 +4322,11 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     continue;
                 }
                 mir::ProjectionElem::Subslice { .. } => {}
+                mir::ProjectionElem::UnwrapUnsafeBinder(inner_ty) => {
+                    ty = self
+                        .type_visitor()
+                        .specialize_type(*inner_ty, &self.type_visitor().generic_argument_map);
+                }
             }
             result = Path::new_qualified(result, Rc::new(selector));
             self.type_visitor_mut()
@@ -4177,7 +4350,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     if def.is_union() {
                         let variants = &def.variants();
                         assume!(variants.len() == 1); // only enums have more than one variant
-                        let variant = &variants[0usize.into()];
+                        let variant = &variants[VariantIdx::ZERO];
                         return PathSelector::UnionField {
                             case_index: field.index(),
                             num_cases: variant.fields.len(),
@@ -4241,6 +4414,23 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 // Dummy selector that will be ignored by caller.
                 PathSelector::Deref
             }
+            mir::ProjectionElem::UnwrapUnsafeBinder(_) => PathSelector::Field(0),
         }
+    }
+
+    /// Wrap the operand in an unsafe binder and assign to path.
+    #[logfn_inputs(TRACE)]
+    fn visit_wrap_unsafe_binder(
+        &mut self,
+        path: Rc<Path>,
+        operand: &mir::Operand<'tcx>,
+        ty: rustc_middle::ty::Ty<'tcx>,
+    ) {
+        // Essentially modeled as a aggregate value with a single field.
+        // See https://github.com/rust-lang/rust/pull/130514
+        let inner_path = Path::new_field(path, 0);
+        self.type_visitor_mut()
+            .set_path_rustc_type(inner_path.clone(), ty);
+        self.visit_use(inner_path, operand);
     }
 }

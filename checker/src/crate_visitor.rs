@@ -82,45 +82,39 @@ impl<'compilation> CrateVisitor<'compilation, '_> {
 
         // Analyze all functions that are whitelisted or public
         let building_standard_summaries = std::env::var("MIRAI_START_FRESH").is_ok();
-        for local_def_id in self.tcx.hir().body_owners() {
+        for local_def_id in self.tcx.hir_body_owners() {
             let def_id = local_def_id.to_def_id();
             let name = utils::summary_key_str(self.tcx, def_id);
             if let Some(selections) = &selected_functions {
                 if !self.included_in(selections.as_ref(), name.as_ref(), def_id) {
                     if self.options.single_func.is_none() {
-                        debug!(
-                            "skipping function {} as it is not selected for analysis",
-                            name
-                        );
+                        debug!("skipping function {name} as it is not selected for analysis",);
                     }
                     continue;
                 }
-                info!("analyzing selected function {}", name);
+                info!("analyzing selected function {name}");
             } else if !building_standard_summaries {
                 if !utils::is_public(def_id, self.tcx) && def_id != entry_fn_def_id {
-                    debug!("skipping function {} as it is not public", name);
+                    debug!("skipping function {name} as it is not public");
                     continue;
                 } else if self
                     .tcx
                     .generics_of(def_id)
                     .requires_monomorphization(self.tcx)
                 {
-                    debug!("skipping function {} as it is generic", name);
+                    debug!("skipping function {name} as it is generic");
                     continue;
                 } else if self.tcx.is_const_fn(def_id) {
-                    debug!("skipping function {} as it is a constant function", name);
+                    debug!("skipping function {name} as it is a constant function");
                     continue;
                 } else if utils::is_higher_order_function(def_id, self.tcx) {
-                    debug!(
-                        "skipping function {} as it is a higher order function",
-                        name
-                    );
+                    debug!("skipping function {name} as it is a higher order function");
                     continue;
                 } else {
-                    info!("analyzing function {}", name);
+                    info!("analyzing function {name}");
                 }
             } else {
-                info!("analyzing function {}", name);
+                info!("analyzing function {name}");
             }
             self.call_graph.add_croot(def_id);
             self.analyze_body(def_id);
@@ -145,7 +139,7 @@ impl<'compilation> CrateVisitor<'compilation, '_> {
                 if fns.is_empty() {
                     info!("Could not extract any tests from main entry point");
                 } else {
-                    info!("analyzing functions: {:?}", fns);
+                    info!("analyzing functions: {fns:?}");
                 }
                 Some(fns)
             } else {
@@ -252,7 +246,7 @@ impl<'compilation> CrateVisitor<'compilation, '_> {
                     db.cancel();
                 }
             }
-            print!("{}, analyzed, {}", self.file_name, num_diags);
+            print!("{}, analyzed, {num_diags}", self.file_name);
         } else if self.test_run {
             let mut expected_errors = expected_errors::ExpectedErrors::new(self.file_name);
             let mut diags = vec![];

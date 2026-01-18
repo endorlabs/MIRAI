@@ -1099,10 +1099,8 @@ impl Expression {
                 | KnownNames::StdIntrinsicsLog10f16
                 | KnownNames::StdIntrinsicsLog2f16
                 | KnownNames::StdIntrinsicsLogf16
-                | KnownNames::StdIntrinsicsNearbyintf16
-                | KnownNames::StdIntrinsicsRintf16
                 | KnownNames::StdIntrinsicsRoundf16
-                | KnownNames::StdIntrinsicsRevenf16
+                | KnownNames::StdIntrinsicsRoundTiesEvenf16
                 | KnownNames::StdIntrinsicsSinf16
                 | KnownNames::StdIntrinsicsSqrtf16
                 | KnownNames::StdIntrinsicsTruncf16 => ExpressionType::F16,
@@ -1115,10 +1113,8 @@ impl Expression {
                 | KnownNames::StdIntrinsicsLog10f32
                 | KnownNames::StdIntrinsicsLog2f32
                 | KnownNames::StdIntrinsicsLogf32
-                | KnownNames::StdIntrinsicsNearbyintf32
-                | KnownNames::StdIntrinsicsRintf32
                 | KnownNames::StdIntrinsicsRoundf32
-                | KnownNames::StdIntrinsicsRevenf32
+                | KnownNames::StdIntrinsicsRoundTiesEvenf32
                 | KnownNames::StdIntrinsicsSinf32
                 | KnownNames::StdIntrinsicsSqrtf32
                 | KnownNames::StdIntrinsicsTruncf32 => ExpressionType::F32,
@@ -1131,10 +1127,8 @@ impl Expression {
                 | KnownNames::StdIntrinsicsLog10f64
                 | KnownNames::StdIntrinsicsLog2f64
                 | KnownNames::StdIntrinsicsLogf64
-                | KnownNames::StdIntrinsicsNearbyintf64
-                | KnownNames::StdIntrinsicsRintf64
                 | KnownNames::StdIntrinsicsRoundf64
-                | KnownNames::StdIntrinsicsRevenf64
+                | KnownNames::StdIntrinsicsRoundTiesEvenf64
                 | KnownNames::StdIntrinsicsSinf64
                 | KnownNames::StdIntrinsicsSqrtf64
                 | KnownNames::StdIntrinsicsTruncf64 => ExpressionType::F64,
@@ -1147,8 +1141,6 @@ impl Expression {
                 // | KnownNames::StdIntrinsicsLog10f128
                 // | KnownNames::StdIntrinsicsLog2f128
                 // | KnownNames::StdIntrinsicsLogf128
-                // | KnownNames::StdIntrinsicsNearbyintf128
-                // | KnownNames::StdIntrinsicsRintf128
                 // | KnownNames::StdIntrinsicsRoundf128
                 // | KnownNames::StdIntrinsicsRevenf128
                 // | KnownNames::StdIntrinsicsSinf128

@@ -268,10 +268,7 @@ impl<'fixed, 'analysis, 'compilation, 'tcx>
                     if let Some(pred_exit_condition) = pred_state.exit_conditions.get(&bb) {
                         if pred_exit_condition.as_bool_if_known().unwrap_or(true) {
                             trace!(
-                                "pred {:?} exits on condition {:?} with {:?}",
-                                pred_bb,
-                                pred_exit_condition,
-                                pred_state
+                                "pred {pred_bb:?} exits on condition {pred_exit_condition:?} with {pred_state:?}"
                             );
                             Some((pred_state.clone(), pred_exit_condition.clone()))
                         } else {
@@ -319,7 +316,7 @@ impl<'fixed, 'analysis, 'compilation, 'tcx>
                 .map(|(_, c)| c.clone())
                 .reduce(|c1, c2| c1.or(c2))
                 .unwrap();
-            trace!("entry_condition {:?}", entry_condition);
+            trace!("entry_condition {entry_condition:?}");
             let mut state = predecessor_states_and_conditions
                 .into_iter()
                 .reduce(|(state1, cond1), (state2, cond2)| {
