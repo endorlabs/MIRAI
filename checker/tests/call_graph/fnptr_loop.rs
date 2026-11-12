@@ -82,7 +82,7 @@ commit;
       "local": true
     },
     {
-      "name": "/fnptr_loop/fn2(u32,&'^0.Named(DefId(0:7 ~ fnptr_loop[39bd]::fn2::'_), \"'_\") Binder { value: fn(u32) -> u32, bound_vars: [] })->u32",
+      "name": "/fnptr_loop/fn2(u32,&'^0.Named(DefId(0:7 ~ fnptr_loop[f1b3]::fn2::'_)) Binder { value: fn(u32) -> u32, bound_vars: [] })->u32",
       "file_index": 0,
       "first_line": 12,
       "local": true
@@ -130,4 +130,5 @@ commit;
       0
     ]
   ]
-}*/
+}
+*/

@@ -77,7 +77,7 @@ pub fn contains_function<'tcx>(ty: Ty<'tcx>, tcx: TyCtxt<'tcx>) -> bool {
     if let TyKind::Adt(def, args) = ty.kind() {
         for variant in def.variants().iter() {
             for field in variant.fields.iter() {
-                let field_ty = field.ty(tcx, args);
+                let field_ty = field.ty(tcx, args).skip_normalization();
                 if contains_function(field_ty, tcx) {
                     return true;
                 }
@@ -92,7 +92,7 @@ pub fn contains_function<'tcx>(ty: Ty<'tcx>, tcx: TyCtxt<'tcx>) -> bool {
 pub fn is_public(def_id: DefId, tcx: TyCtxt<'_>) -> bool {
     use rustc_hir::def_id::LocalDefId;
 
-    if tcx.hir().get_if_local(def_id).is_some() {
+    if tcx.hir_get_if_local(def_id).is_some() {
         let def_id = def_id.expect_local();
         match tcx
             .resolutions(())
@@ -109,7 +109,11 @@ pub fn is_public(def_id: DefId, tcx: TyCtxt<'_>) -> bool {
                         ..
                     })
                     | Node::Item(rustc_hir::Item {
-                        kind: rustc_hir::ItemKind::Use(_, rustc_hir::UseKind::ListStem),
+                        kind:
+                            rustc_hir::ItemKind::Use(rustc_hir::UseTree {
+                                kind: rustc_hir::UseKind::Nested { .. },
+                                ..
+                            }),
                         ..
                     })
                     | Node::OpaqueTy(..) => {
@@ -117,7 +121,7 @@ pub fn is_public(def_id: DefId, tcx: TyCtxt<'_>) -> bool {
                             .is_public()
                     }
                     Node::ImplItem(..) => {
-                        let parent_def_id: LocalDefId = tcx.hir().get_parent_item(hir_id).def_id;
+                        let parent_def_id: LocalDefId = tcx.hir_get_parent_item(hir_id).def_id;
                         match tcx.hir_node_by_def_id(parent_def_id) {
                             Node::Item(rustc_hir::Item {
                                 kind:
@@ -127,13 +131,14 @@ pub fn is_public(def_id: DefId, tcx: TyCtxt<'_>) -> bool {
                                     }),
                                 ..
                             }) => tr
+                                .trait_ref
                                 .path
                                 .res
                                 .opt_def_id()
                                 .map_or_else(
                                     || {
                                         tcx.sess.dcx().span_delayed_bug(
-                                            tr.path.span,
+                                            tr.trait_ref.path.span,
                                             "trait without a def-id",
                                         );
                                         ty::Visibility::Public
@@ -216,7 +221,7 @@ fn append_mangled_type<'tcx>(str: &mut String, ty: Ty<'tcx>, tcx: TyCtxt<'tcx>) 
         TyKind::Adt(def, subs) => {
             str.push_str(qualified_type_name(tcx, def.did()).as_str());
             for sub in *subs {
-                if let GenericArgKind::Type(ty) = sub.unpack() {
+                if let GenericArgKind::Type(ty) = sub.kind() {
                     str.push('_');
                     append_mangled_type(str, ty, tcx);
                 }
@@ -226,7 +231,7 @@ fn append_mangled_type<'tcx>(str: &mut String, ty: Ty<'tcx>, tcx: TyCtxt<'tcx>) 
             str.push_str("closure_");
             str.push_str(qualified_type_name(tcx, *def_id).as_str());
             for sub in subs.as_closure().args {
-                if let GenericArgKind::Type(ty) = sub.unpack() {
+                if let GenericArgKind::Type(ty) = sub.kind() {
                     str.push('_');
                     append_mangled_type(str, ty, tcx);
                 }
@@ -241,7 +246,7 @@ fn append_mangled_type<'tcx>(str: &mut String, ty: Ty<'tcx>, tcx: TyCtxt<'tcx>) 
                 );
                 str.push_str(qualified_type_name(tcx, principal.def_id).as_str());
                 for sub in principal.args {
-                    if let GenericArgKind::Type(ty) = sub.unpack() {
+                    if let GenericArgKind::Type(ty) = sub.kind() {
                         str.push('_');
                         append_mangled_type(str, ty, tcx);
                     }
@@ -255,8 +260,8 @@ fn append_mangled_type<'tcx>(str: &mut String, ty: Ty<'tcx>, tcx: TyCtxt<'tcx>) 
         TyKind::FnDef(def_id, subs) => {
             str.push_str("fn_");
             str.push_str(qualified_type_name(tcx, *def_id).as_str());
-            for sub in *subs {
-                if let GenericArgKind::Type(ty) = sub.unpack() {
+            for sub in subs.skip_binder() {
+                if let GenericArgKind::Type(ty) = sub.kind() {
                     str.push('_');
                     append_mangled_type(str, ty, tcx);
                 }
@@ -266,7 +271,7 @@ fn append_mangled_type<'tcx>(str: &mut String, ty: Ty<'tcx>, tcx: TyCtxt<'tcx>) 
             str.push_str("coroutine_");
             str.push_str(qualified_type_name(tcx, *def_id).as_str());
             for sub in subs.as_coroutine().args {
-                if let GenericArgKind::Type(ty) = sub.unpack() {
+                if let GenericArgKind::Type(ty) = sub.kind() {
                     str.push('_');
                     append_mangled_type(str, ty, tcx);
                 }
@@ -278,17 +283,25 @@ fn append_mangled_type<'tcx>(str: &mut String, ty: Ty<'tcx>, tcx: TyCtxt<'tcx>) 
                 append_mangled_type(str, ty, tcx)
             }
         }
-        TyKind::Alias(rustc_middle::ty::Opaque, rustc_middle::ty::AliasTy { def_id, args, .. }) => {
+        TyKind::Alias(
+            _,
+            rustc_middle::ty::AliasTy {
+                kind: rustc_middle::ty::Opaque { def_id },
+                args,
+                ..
+            },
+        ) => {
             str.push_str("impl_");
             str.push_str(qualified_type_name(tcx, *def_id).as_str());
             for sub in *args {
-                if let GenericArgKind::Type(ty) = sub.unpack() {
+                if let GenericArgKind::Type(ty) = sub.kind() {
                     str.push('_');
                     append_mangled_type(str, ty, tcx);
                 }
             }
         }
         TyKind::Str => str.push_str("str"),
+        TyKind::Pat(base, _) => append_mangled_type(str, *base, tcx),
         TyKind::Array(ty, _) => {
             str.push_str("array_");
             append_mangled_type(str, *ty, tcx);
@@ -334,10 +347,16 @@ fn append_mangled_type<'tcx>(str: &mut String, ty: Ty<'tcx>, tcx: TyCtxt<'tcx>) 
             str.push_str("generic_par_");
             str.push_str(param_ty.name.as_str());
         }
-        TyKind::Alias(rustc_middle::ty::Projection, projection_ty) => {
-            append_mangled_type(str, projection_ty.self_ty(), tcx);
+        TyKind::Alias(
+            _,
+            projection_ty @ rustc_middle::ty::AliasTy {
+                kind: rustc_middle::ty::Projection { def_id },
+                ..
+            },
+        ) => {
+            append_mangled_type(str, projection_ty.args.type_at(0), tcx);
             str.push_str("_as_");
-            str.push_str(qualified_type_name(tcx, projection_ty.def_id).as_str());
+            str.push_str(qualified_type_name(tcx, *def_id).as_str());
         }
         TyKind::Never => {
             str.push('_');
@@ -401,7 +420,7 @@ pub fn summary_key_str(tcx: TyCtxt<'_>, def_id: DefId) -> Rc<str> {
                     | DefKind::Union
                     | DefKind::Enum
                     | DefKind::Variant
-                    | DefKind::TyAlias { .. }
+                    | DefKind::TyAlias
                     | DefKind::Impl { .. },
             ) {
                 name.push('_');
@@ -496,7 +515,7 @@ pub fn def_id_display_name(tcx: TyCtxt<'_>, def_id: DefId) -> String {
 /// Returns false if any of the generic arguments are themselves generic
 pub fn are_concrete(gen_args: GenericArgsRef<'_>) -> bool {
     for gen_arg in gen_args.iter() {
-        if let GenericArgKind::Type(ty) = gen_arg.unpack() {
+        if let GenericArgKind::Type(ty) = gen_arg.kind() {
             if !is_concrete(ty.kind()) {
                 return false;
             }
@@ -508,13 +527,14 @@ pub fn are_concrete(gen_args: GenericArgsRef<'_>) -> bool {
 /// Determines if the given type is fully concrete.
 pub fn is_concrete(ty: &TyKind<'_>) -> bool {
     match ty {
+        TyKind::Pat(base, _) => is_concrete(base.kind()),
         TyKind::Adt(_, gen_args)
         | TyKind::Closure(_, gen_args)
-        | TyKind::FnDef(_, gen_args)
         | TyKind::Coroutine(_, gen_args)
         | TyKind::Alias(_, rustc_middle::ty::AliasTy { args: gen_args, .. }) => {
             are_concrete(gen_args)
         }
+        TyKind::FnDef(_, gen_args) => are_concrete(gen_args.skip_binder()),
         TyKind::Tuple(types) => types.iter().all(|t| is_concrete(t.kind())),
         TyKind::Bound(..)
         | TyKind::Dynamic(..)
@@ -534,7 +554,16 @@ pub fn pretty_print_mir(tcx: TyCtxt<'_>, def_id: DefId) {
     ) {
         let mut stdout = std::io::stdout();
         stdout.write_fmt(format_args!("{def_id:?}")).unwrap();
-        rustc_middle::mir::write_mir_pretty(tcx, Some(def_id), &mut stdout).unwrap();
+        rustc_middle::mir::pretty::MirWriter::new(tcx)
+            .write_mir_fn(tcx.optimized_mir(def_id), &mut stdout)
+            .unwrap();
         let _ = stdout.flush();
     }
+}
+
+/// Compares source locations without relying on compiler-internal span identities.
+pub fn compare_spans(left: &[rustc_span::Span], right: &[rustc_span::Span]) -> std::cmp::Ordering {
+    left.iter()
+        .map(|span| (span.lo(), span.hi()))
+        .cmp(right.iter().map(|span| (span.lo(), span.hi())))
 }

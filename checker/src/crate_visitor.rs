@@ -20,7 +20,6 @@ use log_derive::{logfn, logfn_inputs};
 use mirai_annotations::*;
 use rustc_errors::Diag;
 use rustc_hir::def_id::{DefId, DefIndex};
-use rustc_middle::mir;
 use rustc_middle::ty::{GenericArgsRef, TyCtxt};
 use rustc_session::Session;
 
@@ -42,11 +41,11 @@ use crate::utils;
 // 'compilation is the lifetime of the call to MiraiCallbacks::after_analysis.
 // 'tcx is the lifetime of the closure call that calls analyze_with_mirai, which calls analyze_some_bodies.
 pub struct CrateVisitor<'compilation, 'tcx> {
-    pub buffered_diagnostics: Vec<Diag<'compilation, ()>>,
+    pub buffered_diagnostics: Vec<Diag<'compilation>>,
     pub constant_time_tag_cache: Option<Tag>,
     pub constant_time_tag_not_found: bool,
     pub constant_value_cache: ConstantValueCache<'tcx>,
-    pub diagnostics_for: HashMap<DefId, Vec<Diag<'compilation, ()>>>,
+    pub diagnostics_for: HashMap<DefId, Vec<Diag<'compilation>>>,
     pub file_name: &'compilation str,
     pub generic_args_cache: HashMap<DefId, GenericArgsRef<'tcx>>,
     pub known_names_cache: KnownNamesCache,
@@ -82,7 +81,7 @@ impl<'compilation> CrateVisitor<'compilation, '_> {
 
         // Analyze all functions that are whitelisted or public
         let building_standard_summaries = std::env::var("MIRAI_START_FRESH").is_ok();
-        for local_def_id in self.tcx.hir().body_owners() {
+        for local_def_id in self.tcx.hir_body_owners() {
             let def_id = local_def_id.to_def_id();
             let name = utils::summary_key_str(self.tcx, def_id);
             if let Some(selections) = &selected_functions {
@@ -139,9 +138,9 @@ impl<'compilation> CrateVisitor<'compilation, '_> {
         if let Some(func_name) = &self.options.single_func {
             Some(vec![func_name.clone()])
         } else if self.options.test_only {
-            // Extract test functions from the main test runner.
-            if let Some((entry_def_id, _)) = self.tcx.entry_fn(()) {
-                let fns = self.extract_test_fns(entry_def_id);
+            // Read the descriptors generated for the test runner.
+            if self.tcx.entry_fn(()).is_some() {
+                let fns = self.extract_test_fns();
                 if fns.is_empty() {
                     info!("Could not extract any tests from main entry point");
                 } else {
@@ -171,7 +170,7 @@ impl<'compilation> CrateVisitor<'compilation, '_> {
     /// and collect any diagnostics into the buffer.
     #[logfn(TRACE)]
     fn analyze_body(&mut self, def_id: DefId) {
-        let mut diagnostics: Vec<Diag<'compilation, ()>> = Vec::new();
+        let mut diagnostics: Vec<Diag<'compilation>> = Vec::new();
         let mut active_calls_map: HashMap<DefId, u64> = HashMap::new();
         let mut body_visitor = BodyVisitor::new(
             self,
@@ -194,51 +193,14 @@ impl<'compilation> CrateVisitor<'compilation, '_> {
         checked_assume!(old_diags.is_none());
     }
 
-    /// Extract test functions from the promoted constants of a test runner main function.
-    ///
-    /// Currently, the #[test] attribute generates code like this:
-    ///
-    ///     extern crate test;
-    ///
-    ///     pub fn main() -> () {
-    ///       test::test_main_static(&[&test, ...)...])
-    ///     }
-    ///
-    ///     pub const test: test:TestDescAndFn = TestDecAndFn{
-    ///       ...,
-    ///       testfn: test::StaticTestFn(|| test::assert_test_result(test())
-    ///     };
-    ///
-    ///     pub fn test() { <original user test code> }
-    ///
-    /// We can thus find the names (but not def def_id's) of the test functions in the main
-    /// method (via const test in the example). However, the constant slice in main will be promoted
-    /// into a constant initializer function in MIR, so we need to look there.
-    /// We therefore iterate overall promoted functions belonging to the main function, looking for
-    /// a statement like `_n = const <test name>` which loads the constant for a given test.
-    ///
-    /// This method is indeed not very stable and may break on changes to the compilation
-    /// scheme or the test framework.
-    fn extract_test_fns(&self, def_id: DefId) -> Vec<String> {
-        let mut result = vec![];
-        for body in self.tcx.promoted_mir(def_id).iter() {
-            for b in body.basic_blocks.iter() {
-                for s in &b.statements {
-                    // The statement we are looking for has the form
-                    // `Assign(_, Rvalue(Operand::Constant(ConstantKind::Unevaluated({def, ..}, _))))`
-                    if let mir::StatementKind::Assign(box (
-                        _,
-                        mir::Rvalue::Use(mir::Operand::Constant(box ref con)),
-                    )) = s.kind
-                    {
-                        if let mir::Const::Unevaluated(c, _) = con.const_ {
-                            result.push(utils::def_id_display_name(self.tcx, c.def));
-                        }
-                    }
-                }
-            }
-        }
-        result
+    /// Reads test names from the compiler-generated test descriptors.
+    fn extract_test_fns(&self) -> Vec<String> {
+        self.tcx
+            .hir_body_owners()
+            .filter_map(|def_id| {
+                rustc_attr_ir::find_attr!(self.tcx, def_id.to_def_id(), RustcTestMarker(name) => name.to_string())
+            })
+            .collect()
     }
 
     /// Emit any diagnostics or, if testing, check that they are as expected.
@@ -276,14 +238,8 @@ impl<'compilation> CrateVisitor<'compilation, '_> {
                     diagnostics.push(db);
                 }
             }
-            fn compare_diagnostics<'a>(x: &Diag<'a, ()>, y: &Diag<'a, ()>) -> Ordering {
-                if x.span.primary_spans().lt(y.span.primary_spans()) {
-                    Ordering::Less
-                } else if x.span.primary_spans().gt(y.span.primary_spans()) {
-                    Ordering::Greater
-                } else {
-                    Ordering::Equal
-                }
+            fn compare_diagnostics<'a>(x: &Diag<'a>, y: &Diag<'a>) -> Ordering {
+                utils::compare_spans(x.span.primary_spans(), y.span.primary_spans())
             }
             diagnostics.sort_by(compare_diagnostics);
             for d in diagnostics.into_iter() {

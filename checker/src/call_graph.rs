@@ -610,7 +610,7 @@ impl<'tcx> CallGraph<'tcx> {
     /// edges for every excluded node) to all edges that do not have an excluded endpoint.
     fn condense_edge_set(&self, excluded: &MidpointExcludedMap) -> HashSet<RawEdge> {
         let mut condensed_edges = HashSet::<RawEdge>::new();
-        for (_, (in_nodes, out_nodes)) in excluded.iter() {
+        for (in_nodes, out_nodes) in excluded.values() {
             let out_nodes2 = self.reachable_raw_edges(excluded, out_nodes);
             for (in_node_id, in_type) in in_nodes.iter() {
                 if !excluded.contains_key(in_node_id) {
@@ -998,7 +998,7 @@ impl<'tcx> CallGraph<'tcx> {
         );
         // Output type relations
         let mut index_to_type = HashMap::<TypeId, Box<str>>::new();
-        for (_, edge_type) in self.edge_types.iter() {
+        for edge_type in self.edge_types.values() {
             if used_types.contains(&edge_type.id) {
                 index_to_type.insert(edge_type.id, edge_type.name.to_owned());
             }
@@ -1378,7 +1378,7 @@ impl CallSiteOutput {
         let mut calls = vec![];
         let mut sites: Vec<(&rustc_span::Span, &(DefId, DefId))> =
             call_graph.call_sites.iter().collect();
-        sites.sort_by(|a, b| a.0.cmp(b.0));
+        sites.sort_by_key(|(span, _)| (span.lo(), span.hi()));
         for (loc, (caller, callee)) in sites.iter() {
             let source_loc = loc.source_callsite();
             if let Ok(line_and_file) = source_map.span_to_lines(source_loc) {
@@ -1429,8 +1429,15 @@ impl CallSiteOutput {
                 v.insert(index);
                 let mut file_name = None;
                 if let rustc_span::FileName::Real(real_fname) = fname {
-                    if let Some(p) = real_fname.remapped_path_if_available().to_str() {
-                        file_name = p.split("/lib/rustlib/src").last().map(|s| s.to_string());
+                    if let Some(p) = real_fname
+                        .path(rustc_span::RemapPathScopeComponents::DIAGNOSTICS)
+                        .to_str()
+                    {
+                        let portable_path = p.replace('\\', "/");
+                        file_name = portable_path
+                            .split("/lib/rustlib/src")
+                            .last()
+                            .map(|s| s.to_string());
                     }
                 }
                 files.push(file_name.unwrap_or_else(|| "unknown".into()));

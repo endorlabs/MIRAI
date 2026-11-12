@@ -12,11 +12,11 @@ use std::{f16, f64};
 use log_derive::*;
 
 use mirai_annotations::*;
+use rustc_abi::VariantIdx;
 use rustc_hir::def_id::DefId;
 use rustc_middle::mir;
 use rustc_middle::ty::ConstKind;
 use rustc_middle::ty::{GenericArg, GenericArgKind, GenericArgsRef, Ty, TyKind, UintTy};
-use rustc_target::abi::VariantIdx;
 
 use crate::abstract_value::{AbstractValue, AbstractValueTrait};
 use crate::block_visitor::BlockVisitor;
@@ -218,7 +218,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 .skip_binder()
                 .fn_sig(tcx)
                 .abi();
-            let resolved_instance = if abi == rustc_target::spec::abi::Abi::Rust {
+            let resolved_instance = if abi == rustc_abi::ExternAbi::Rust {
                 Some(rustc_middle::ty::Instance::try_resolve(
                     tcx,
                     typing_env,
@@ -473,6 +473,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
     /// result is false, just carry on with the normal logic.
     #[logfn_inputs(TRACE)]
     pub fn handled_as_special_function_call(&mut self) -> bool {
+        self.unpack_allocator_arguments();
         match self.callee_known_name {
             KnownNames::StdCloneClone => {
                 checked_assume!(self.actual_argument_types.len() == 1);
@@ -619,6 +620,10 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 self.handle_write_bytes();
                 return true;
             }
+            KnownNames::StdIntrinsicsAtomicXchg => {
+                self.handle_atomic_exchange();
+                return true;
+            }
             KnownNames::StdMemReplace => {
                 self.handle_mem_replace();
                 return true;
@@ -659,6 +664,46 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
             }
         }
         false
+    }
+
+    fn unpack_allocator_arguments(&mut self) {
+        let alignment_index = match self.callee_known_name {
+            KnownNames::RustAlloc | KnownNames::RustAllocZeroed => 1,
+            KnownNames::RustDealloc | KnownNames::RustRealloc => 2,
+            _ => return,
+        };
+        if self.actual_argument_types[alignment_index].is_adt() {
+            let alignment = Path::new_discriminant(Path::new_field(
+                self.actual_args[alignment_index].0.clone(),
+                0,
+            ))
+            .canonicalize(&self.block_visitor.bv.current_environment);
+            let ty = self.block_visitor.bv.tcx.types.usize;
+            let value = self
+                .block_visitor
+                .bv
+                .lookup_path_and_refine_result(alignment.clone(), ty);
+            self.actual_args[alignment_index] = (alignment, value);
+            self.actual_argument_types[alignment_index] = ty;
+        }
+        if matches!(
+            self.callee_known_name,
+            KnownNames::RustDealloc | KnownNames::RustRealloc
+        ) && self.actual_argument_types[0].is_adt()
+        {
+            let pointer = Path::new_field(self.actual_args[0].0.clone(), 0)
+                .canonicalize(&self.block_visitor.bv.current_environment);
+            let ty = Ty::new_mut_ptr(
+                self.block_visitor.bv.tcx,
+                self.block_visitor.bv.tcx.types.u8,
+            );
+            let value = self
+                .block_visitor
+                .bv
+                .lookup_path_and_refine_result(pointer.clone(), ty);
+            self.actual_args[0] = (pointer, value);
+            self.actual_argument_types[0] = ty;
+        }
     }
 
     /// If the self parameter is &std::Option::None, the call to std::Clone::clone
@@ -868,53 +913,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                     KnownNames::StdPanickingBeginPanic => {
                         self.coerce_to_string(&self.actual_args[0].0.clone())
                     }
-                    _ => {
-                        let arguments_struct_path = self.actual_args[0].0.clone();
-                        let pieces_path_fat = Path::new_field(arguments_struct_path.clone(), 0)
-                            .canonicalize(&self.block_visitor.bv.current_environment);
-                        let pieces_path_thin = Path::new_field(pieces_path_fat.clone(), 0);
-                        let pieces_path_len = Path::new_length(pieces_path_fat);
-                        let len_val = self.block_visitor.bv.lookup_path_and_refine_result(
-                            pieces_path_len,
-                            self.block_visitor.bv.tcx.types.usize,
-                        );
-                        let len = if let Expression::CompileTimeConstant(ConstantDomain::U128(v)) =
-                            &len_val.expression
-                        {
-                            *v
-                        } else {
-                            1u128
-                        };
-                        let args_path_fat = Path::new_field(arguments_struct_path, 2)
-                            .canonicalize(&self.block_visitor.bv.current_environment);
-                        let args_path_len = Path::new_length(args_path_fat);
-                        let arg_len_val = self.block_visitor.bv.lookup_path_and_refine_result(
-                            args_path_len,
-                            self.block_visitor.bv.tcx.types.usize,
-                        );
-                        let num_args =
-                            if let Expression::CompileTimeConstant(ConstantDomain::U128(v)) =
-                                &arg_len_val.expression
-                            {
-                                *v
-                            } else {
-                                1u128
-                            };
-
-                        let mut msg = String::new();
-                        for i in 0..len {
-                            let index = Rc::new(i.into());
-                            let piece_path_fat = Path::new_index(pieces_path_thin.clone(), index)
-                                .canonicalize(&self.block_visitor.bv.current_environment);
-                            msg += self.coerce_to_string(&piece_path_fat).as_ref();
-                            if i < num_args {
-                                msg += "{}";
-                                // todo: attach arg value to precondition and let caller refine them
-                                // and turn them into strings suitable for display in the diagnostics
-                            }
-                        }
-                        Rc::from(msg)
-                    }
+                    _ => self.coerce_fmt_arguments_to_string(&self.actual_args[0].0.clone()),
                 };
                 if msg.contains("entered unreachable code")
                     || msg.contains("not yet implemented")
@@ -1045,6 +1044,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
     fn try_to_inline_special_function(&mut self) -> Rc<AbstractValue> {
         match self.callee_known_name {
             KnownNames::RustAlloc => self.handle_rust_alloc(),
+            KnownNames::RustNoAllocShimIsUnstable => Rc::new(ConstantDomain::Unit.into()),
             KnownNames::RustAllocZeroed => self.handle_rust_alloc_zeroed(),
             KnownNames::RustRealloc => self.handle_rust_realloc(),
             KnownNames::StdIntrinsicsArithOffset => self.handle_arith_offset(),
@@ -1330,15 +1330,21 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                     args.as_coroutine().args,
                     &self.type_visitor().generic_argument_map,
                 )),
-                TyKind::FnDef(_, args)
-                | TyKind::Alias(rustc_middle::ty::Opaque, rustc_middle::ty::AliasTy { args, .. }) => {
-                    Some(
-                        self.type_visitor().specialize_generic_args(
-                            args,
-                            &self.type_visitor().generic_argument_map,
-                        ),
-                    )
-                }
+                TyKind::FnDef(_, args) => Some(self.type_visitor().specialize_generic_args(
+                    args.skip_binder(),
+                    &self.type_visitor().generic_argument_map,
+                )),
+                TyKind::Alias(
+                    _,
+                    rustc_middle::ty::AliasTy {
+                        kind: rustc_middle::ty::Opaque { .. },
+                        args,
+                        ..
+                    },
+                ) => Some(
+                    self.type_visitor()
+                        .specialize_generic_args(args, &self.type_visitor().generic_argument_map),
+                ),
                 _ => self
                     .block_visitor
                     .bv
@@ -2078,7 +2084,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
             ),
             Some(rustc_gen_args) => {
                 checked_assume!(rustc_gen_args.len() == 1);
-                match rustc_gen_args[0].unpack() {
+                match rustc_gen_args[0].kind() {
                     GenericArgKind::Type(ty) => match ty.kind() {
                         TyKind::Adt(def, _) if def.is_enum() => {}
                         TyKind::Coroutine(..) => {}
@@ -2146,7 +2152,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
             .type_visitor()
             .get_dereferenced_type(self.actual_argument_types[0]);
         if let Ok(ty_and_layout) = self.type_visitor().layout_of(t) {
-            return Rc::new((ty_and_layout.layout.align().pref.bytes() as u128).into());
+            return Rc::new((ty_and_layout.layout.align().abi.bytes() as u128).into());
         }
         // todo: need an expression that resolves to the value pref alignment once the value is known (typically after call site refinement).
         let path = self.block_visitor.visit_rh_place(&self.destination);
@@ -2349,6 +2355,27 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
 
     /// Moves `source` into the referenced `dest`, returning the previous `dest` value.
     #[logfn_inputs(TRACE)]
+    fn handle_atomic_exchange(&mut self) {
+        let value_type = self
+            .type_visitor()
+            .get_dereferenced_type(self.actual_argument_types[0]);
+        let destination = Path::new_deref(
+            self.actual_args[0].0.clone(),
+            ExpressionType::from(value_type.kind()),
+        )
+        .canonicalize(&self.block_visitor.bv.current_environment);
+        let old_value = self
+            .block_visitor
+            .bv
+            .lookup_path_and_refine_result(destination.clone(), value_type);
+        self.block_visitor
+            .bv
+            .update_value_at(destination, self.actual_args[1].1.clone());
+        let result = self.block_visitor.visit_lh_place(&self.destination);
+        self.block_visitor.bv.update_value_at(result, old_value);
+        self.use_entry_condition_as_exit_condition();
+    }
+
     fn handle_mem_replace(&mut self) {
         checked_assume!(self.actual_args.len() == 2);
         let target_type = ExpressionType::from(
@@ -2571,7 +2598,14 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
             &count_value.expression
         {
             if let TyKind::Adt(..) | TyKind::Tuple(..) = &elem_type.kind() {
-                for i in 0..(*count as usize) {
+                let field_count = match elem_type.kind() {
+                    TyKind::Adt(def, _) => {
+                        def.variants().iter().next().map_or(0, |v| v.fields.len())
+                    }
+                    TyKind::Tuple(fields) => fields.len(),
+                    _ => unreachable!(),
+                };
+                for i in 0..if *count == 0 { 0 } else { field_count } {
                     let dest_field = Path::new_field(dest_path.clone(), i);
                     let field_type = self
                         .type_visitor()
@@ -3136,6 +3170,29 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
         }
     }
 
+    fn coerce_fmt_arguments_to_string(&mut self, arguments: &Rc<Path>) -> Rc<str> {
+        let template_path = Path::new_field(Path::new_field(arguments.clone(), 0), 0)
+            .canonicalize(&self.block_visitor.bv.current_environment);
+        let pointer_ty = Ty::new_imm_ptr(
+            self.block_visitor.bv.tcx,
+            self.block_visitor.bv.tcx.types.u8,
+        );
+        let template = self
+            .block_visitor
+            .bv
+            .lookup_path_and_refine_result(template_path, pointer_ty);
+        let environment = &self.block_visitor.bv.current_environment;
+        if let Some(literal) = template.try_resolve_as_ref_to_str(environment) {
+            return literal;
+        }
+        if let Some(bytes) = template.try_resolve_as_byte_array(environment) {
+            if let Some(message) = decode_format_template(&bytes) {
+                return Rc::from(message);
+            }
+        }
+        Rc::from("explicit panic")
+    }
+
     /// Extracts the string from an AbstractDomain that is required to be a reference to a string literal.
     /// This is the case for helper MIRAI helper functions that are hidden in the documentation
     /// and that are required to be invoked via macros that ensure that the argument providing
@@ -3197,7 +3254,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 checked_assume!(rustc_gen_args.len() == 2);
 
                 // The second generic argument of the function call is the tag type.
-                let tag_rustc_type = match rustc_gen_args[1].unpack() {
+                let tag_rustc_type = match rustc_gen_args[1].kind() {
                     GenericArgKind::Type(rustc_type) => rustc_type,
                     _ => {
                         // The rust type checker should ensure that the second generic argument is a type.
@@ -3210,7 +3267,7 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 // The tag type should be a generic ADT whose first parameter is a constant.
                 let tag_adt_def;
                 let tag_substs_ref = match tag_rustc_type.kind() {
-                    TyKind::Adt(adt_def, substs_ref) if substs_ref.len() > 0 => {
+                    TyKind::Adt(adt_def, substs_ref) if !substs_ref.is_empty() => {
                         tag_adt_def = adt_def;
                         substs_ref
                     }
@@ -3227,15 +3284,15 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 };
 
                 let is_u128 = |kind: ConstKind| {
-                    if let ConstKind::Value(ty, _) = kind {
-                        *ty.kind() == TyKind::Uint(UintTy::U128)
+                    if let ConstKind::Value(value) = kind {
+                        *value.ty.kind() == TyKind::Uint(UintTy::U128)
                     } else {
                         false
                     }
                 };
 
                 // Extract the tag type's first parameter.
-                let tag_propagation_set_rustc_const = match tag_substs_ref[0].unpack() {
+                let tag_propagation_set_rustc_const = match tag_substs_ref[0].kind() {
                     GenericArgKind::Const(rustc_const) if is_u128(rustc_const.kind()) => {
                         rustc_const
                     }
@@ -3298,5 +3355,63 @@ impl<'call, 'block, 'analysis, 'compilation, 'tcx>
                 self.block_visitor.bv.cv.constant_time_tag_cache = Some(*tag);
             }
         }
+    }
+}
+
+/// Reads the compiler's formatting template, keeping placeholders in diagnostic messages.
+fn decode_format_template(mut bytes: &[u8]) -> Option<String> {
+    let mut message = String::new();
+    loop {
+        let (&opcode, rest) = bytes.split_first()?;
+        bytes = rest;
+        let len = match opcode {
+            0 => return Some(message),
+            1..=0x7f => opcode as usize,
+            0x80 => {
+                let len = u16::from_le_bytes(bytes.get(..2)?.try_into().ok()?) as usize;
+                bytes = &bytes[2..];
+                len
+            }
+            0xc0..=0xff => {
+                message.push_str("{}");
+                let fields = usize::from(opcode & 1 != 0) * 4
+                    + usize::from(opcode & 2 != 0) * 2
+                    + usize::from(opcode & 4 != 0) * 2
+                    + usize::from(opcode & 8 != 0) * 2;
+                bytes = bytes.get(fields..)?;
+                continue;
+            }
+            _ => return None,
+        };
+        message.push_str(std::str::from_utf8(bytes.get(..len)?).ok()?);
+        bytes = &bytes[len..];
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::decode_format_template;
+
+    #[test]
+    fn formatting_template_keeps_literals_and_placeholders() {
+        assert_eq!(
+            decode_format_template(b"\x06hello \xc0\x01!\0"),
+            Some("hello {}!".into())
+        );
+        assert_eq!(
+            decode_format_template(b"\x80\x02\x00\xc3\xa9\0"),
+            Some("é".into())
+        );
+    }
+
+    #[test]
+    fn formatting_template_skips_placeholder_options() {
+        assert_eq!(
+            decode_format_template(b"\xff\0\0\0\0\0\0\0\0\0\0\x01!\0"),
+            Some("{}!".into())
+        );
+        assert_eq!(decode_format_template(b"\x80\0"), None);
+        assert_eq!(decode_format_template(b"\x04abc"), None);
+        assert_eq!(decode_format_template(b"\xc1\0"), None);
     }
 }

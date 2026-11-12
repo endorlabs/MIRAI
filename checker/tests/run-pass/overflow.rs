@@ -10,7 +10,11 @@ use std::io::{Cursor, Read};
 pub fn read_to_end(r: &mut Cursor<&[u8]>, buf: &mut Vec<u8>) {
     let mut len = buf.len();
     loop {
+        // MIRAI does not retain the read-length bound across this loop.
         match r.read(&mut buf[len..]) {
+            //~ possible range start index {} out of range for slice of length {}
+            //~ related location
+            //~ related location
             Ok(n) => {
                 assume!(len < usize::MAX - n);
                 len += n

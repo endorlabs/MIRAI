@@ -5,15 +5,11 @@
 //
 
 #![allow(internal_features)]
-#![feature(allocator_api)]
 #![feature(core_intrinsics)]
-#![feature(discriminant_kind)]
 #![feature(f16)]
 #![feature(f128)]
 #![feature(hashmap_internals)]
 #![feature(pattern)]
-#![feature(ptr_internals)]
-#![feature(ptr_metadata)]
 #![feature(ptr_alignment_type)]
 #![allow(unexpected_cfgs)]
 

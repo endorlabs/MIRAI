@@ -73,7 +73,7 @@ commit;
   ],
   "callables": [
     {
-      "name": "/fnptr_fold/fn1(u32,&'^0.Named(DefId(0:7 ~ fnptr_fold[7f17]::fn1::'_), \"'_\") Binder { value: fn(u32) -> u32, bound_vars: [] })->u32",
+      "name": "/fnptr_fold/fn1(u32,&'^0.Named(DefId(0:7 ~ fnptr_fold[24df]::fn1::'_)) Binder { value: fn(u32) -> u32, bound_vars: [] })->u32",
       "file_index": 0,
       "first_line": 10,
       "local": true
@@ -97,15 +97,15 @@ commit;
       "local": true
     },
     {
-      "name": "/std/std::io::_print(std::fmt::Arguments<'^0.Named(DefId(1:14103 ~ std[8b2b]::io::stdio::_print::'_), \"'_\")>)->()",
+      "name": "/std/std::io::_print(std::fmt::Arguments<'^0.Named(DefId(1:14657 ~ std[e288]::io::stdio::_print::'_))>)->()",
       "file_index": 1,
-      "first_line": 1232,
+      "first_line": 1315,
       "local": false
     },
     {
-      "name": "/core/std::fmt::Arguments::<'a>::new_const(&'a/#0 [&'static str; N/#1])->std::fmt::Arguments<'a/#0>",
+      "name": "/core/std::fmt::Arguments::<'a>::from_str(&'static str)->std::fmt::Arguments<'a/#0>",
       "file_index": 2,
-      "first_line": 591,
+      "first_line": 815,
       "local": true
     }
   ],
@@ -146,4 +146,5 @@ commit;
       5
     ]
   ]
-}*/
+}
+*/

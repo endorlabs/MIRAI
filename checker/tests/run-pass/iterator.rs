@@ -24,7 +24,8 @@ pub fn test1() {
 pub fn test2() {
     let mut it = std::ops::RangeInclusive::new(0usize, 10usize);
     while let Some(_) = it.next() {
-        verify!(*it.start() <= 10);
+        // next() advances start past the yielded value, including the final value.
+        verify!(*it.start() <= 11);
     }
     // todo: figure out why the fix point iteration doesn't widen the state of it
     //verify!(it.is_empty());

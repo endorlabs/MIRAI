@@ -14,8 +14,6 @@
 // While pretty bad, it is a lot less bad than having to write our own compiler, so here goes.
 #![allow(internal_features)]
 #![feature(rustc_private)]
-#![feature(array_chunks)]
-#![feature(box_patterns)]
 #![feature(core_intrinsics)]
 #![feature(f16)]
 //#![feature(f128)]
@@ -26,6 +24,7 @@
 extern crate log;
 extern crate rustc_abi;
 extern crate rustc_ast;
+extern crate rustc_attr_ir;
 extern crate rustc_attr_parsing;
 extern crate rustc_data_structures;
 extern crate rustc_driver;

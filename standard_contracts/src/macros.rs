@@ -24,7 +24,7 @@ macro_rules! atomic_int {
             use std::ops::BitOrAssign;
             use std::ops::BitXorAssign;
             use std::ops::SubAssign;
-            let bw = std::intrinsics::size_of::<$t>();
+            let bw = std::mem::size_of::<$t>();
             precondition!((dst as usize) & (bw - 1) == 0);
             let result = *dst;
             Wrapping(*dst).$op(Wrapping(src));
@@ -36,7 +36,7 @@ macro_rules! atomic_int {
 macro_rules! atomic_nand {
     ($n:ident, $t:ty) => {
         pub unsafe fn $n(dst: *mut $t, src: $t) -> $t {
-            let bw = std::intrinsics::size_of::<$t>();
+            let bw = std::mem::size_of::<$t>();
             precondition!((dst as usize) & (bw - 1) == 0);
             let result = *dst;
             *dst = !(*dst ^ src);
@@ -48,7 +48,7 @@ macro_rules! atomic_nand {
 macro_rules! atomic_max_min {
     ($n:ident, $t:ty, $op:tt) => {
         pub unsafe fn $n(dst: *mut $t, src: $t) -> $t {
-            let bw = std::intrinsics::size_of::<$t>();
+            let bw = std::mem::size_of::<$t>();
             precondition!((dst as usize) & (bw-1) == 0);
             if *dst $op src {
                 src
@@ -62,7 +62,7 @@ macro_rules! atomic_max_min {
 macro_rules! atomic_cxchg {
     ($n:ident, $t:ty) => {
         pub unsafe fn $n(dst: *mut $t, old: $t, src: $t) -> ($t, bool) {
-            let bw = std::intrinsics::size_of::<$t>();
+            let bw = std::mem::size_of::<$t>();
             precondition!((dst as usize) & (bw - 1) == 0);
             if abstract_value!(true) {
                 *dst = src;
@@ -77,7 +77,7 @@ macro_rules! atomic_cxchg {
 macro_rules! atomic_load {
     ($n:ident, $t:ty) => {
         pub unsafe fn $n(src: *const $t) -> $t {
-            let bw = std::intrinsics::size_of::<$t>();
+            let bw = std::mem::size_of::<$t>();
             precondition!((src as usize) & (bw - 1) == 0);
             *src
         }
@@ -87,7 +87,7 @@ macro_rules! atomic_load {
 macro_rules! atomic_store {
     ($n:ident, $t:ty) => {
         pub unsafe fn $n(dst: *mut $t, val: $t) {
-            let bw = std::intrinsics::size_of::<$t>();
+            let bw = std::mem::size_of::<$t>();
             precondition!((dst as usize) & (bw - 1) == 0);
             *dst = val;
         }
@@ -97,7 +97,7 @@ macro_rules! atomic_store {
 macro_rules! atomic_xchg {
     ($n:ident, $t:ty) => {
         pub unsafe fn $n(dst: *mut $t, src: $t) -> $t {
-            let bw = std::intrinsics::size_of::<$t>();
+            let bw = std::mem::size_of::<$t>();
             precondition!((dst as usize) & (bw - 1) == 0);
             let result = *dst;
             *dst = src;
@@ -151,7 +151,7 @@ macro_rules! mul_with_overflow {
 macro_rules! rotate_left {
     ($t:ty, $n:ident) => {
         pub fn $n(x: $t, y: $t) -> $t {
-            let bw = std::intrinsics::size_of::<$t>() as $t;
+            let bw = std::mem::size_of::<$t>() as $t;
             (x << (y % bw)) | (x >> ((bw - y) % bw))
         }
     };
@@ -160,7 +160,7 @@ macro_rules! rotate_left {
 macro_rules! rotate_right {
     ($t:ty, $n:ident) => {
         pub fn $n(x: $t, y: $t) -> $t {
-            let bw = std::intrinsics::size_of::<$t>() as $t;
+            let bw = std::mem::size_of::<$t>() as $t;
             (x << ((bw - y) % bw)) | (x >> (y % bw))
         }
     };
@@ -266,7 +266,7 @@ macro_rules! unchecked_shl {
         pub fn $n(x: $t, y: usize) -> $t {
             use ::std::num::Wrapping;
             use std::ops::Shl;
-            precondition!(y <= std::intrinsics::size_of::<$t>());
+            precondition!(y <= std::mem::size_of::<$t>());
             Wrapping(x).shl(y).0
         }
     };
@@ -277,7 +277,7 @@ macro_rules! unchecked_shr {
         pub fn $n(x: $t, y: usize) -> $t {
             use ::std::num::Wrapping;
             use std::ops::Shr;
-            precondition!(y <= std::intrinsics::size_of::<$t>());
+            precondition!(y <= std::mem::size_of::<$t>());
             Wrapping(x).shr(y).0
         }
     };

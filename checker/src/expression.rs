@@ -1462,6 +1462,7 @@ impl From<&ConstantDomain> for ExpressionType {
 impl ExpressionType {
     pub fn from(ty_kind: &TyKind) -> ExpressionType {
         match ty_kind {
+            TyKind::Pat(base, _) => Self::from(base.kind()),
             TyKind::Adt(..) => ExpressionType::NonPrimitive,
             TyKind::Bool => ExpressionType::Bool,
             TyKind::Char => ExpressionType::Char,

@@ -492,13 +492,10 @@ impl ConstantDomain {
                         .unwrap_or(ConstantDomain::Bottom)
                 }
             }
-            (ConstantDomain::U128(val1), ConstantDomain::U128(val2)) => {
-                if *val2 == 0 {
-                    ConstantDomain::Bottom
-                } else {
-                    ConstantDomain::U128(*val1 / *val2)
-                }
-            }
+            (ConstantDomain::U128(val1), ConstantDomain::U128(val2)) => val1
+                .checked_div(*val2)
+                .map(ConstantDomain::U128)
+                .unwrap_or(ConstantDomain::Bottom),
             _ => ConstantDomain::Bottom,
         }
     }
@@ -862,12 +859,8 @@ impl ConstantDomain {
                         KnownNames::StdIntrinsicsLog10f16 => val.log10(),
                         KnownNames::StdIntrinsicsLog2f16 => val.log2(),
                         KnownNames::StdIntrinsicsLogf16 => val.ln(),
-                        KnownNames::StdIntrinsicsNearbyintf16 => unsafe {
-                            std::intrinsics::nearbyintf16(val)
-                        },
-                        KnownNames::StdIntrinsicsRintf16 => unsafe {
-                            std::intrinsics::rintf16(val)
-                        },
+                        KnownNames::StdIntrinsicsNearbyintf16
+                        | KnownNames::StdIntrinsicsRintf16 => val.round_ties_even(),
                         KnownNames::StdIntrinsicsRoundf16 => val.round(),
                         KnownNames::StdIntrinsicsRevenf16 => f16::round_ties_even(val),
                         KnownNames::StdIntrinsicsSinf16 => val.sin(),
@@ -891,12 +884,8 @@ impl ConstantDomain {
                         KnownNames::StdIntrinsicsLog10f32 => val.log10(),
                         KnownNames::StdIntrinsicsLog2f32 => val.log2(),
                         KnownNames::StdIntrinsicsLogf32 => val.ln(),
-                        KnownNames::StdIntrinsicsNearbyintf32 => unsafe {
-                            std::intrinsics::nearbyintf32(val)
-                        },
-                        KnownNames::StdIntrinsicsRintf32 => unsafe {
-                            std::intrinsics::rintf32(val)
-                        },
+                        KnownNames::StdIntrinsicsNearbyintf32
+                        | KnownNames::StdIntrinsicsRintf32 => val.round_ties_even(),
                         KnownNames::StdIntrinsicsRoundf32 => val.round(),
                         KnownNames::StdIntrinsicsRevenf32 => f32::round_ties_even(val),
                         KnownNames::StdIntrinsicsSinf32 => val.sin(),
@@ -920,12 +909,8 @@ impl ConstantDomain {
                         KnownNames::StdIntrinsicsLog10f64 => val.log10(),
                         KnownNames::StdIntrinsicsLog2f64 => val.log2(),
                         KnownNames::StdIntrinsicsLogf64 => val.ln(),
-                        KnownNames::StdIntrinsicsNearbyintf64 => unsafe {
-                            std::intrinsics::nearbyintf64(val)
-                        },
-                        KnownNames::StdIntrinsicsRintf64 => unsafe {
-                            std::intrinsics::rintf64(val)
-                        },
+                        KnownNames::StdIntrinsicsNearbyintf64
+                        | KnownNames::StdIntrinsicsRintf64 => val.round_ties_even(),
                         KnownNames::StdIntrinsicsRoundf64 => val.round(),
                         KnownNames::StdIntrinsicsRevenf64 => f64::round_ties_even(val),
                         KnownNames::StdIntrinsicsSinf64 => val.sin(),
@@ -1421,7 +1406,6 @@ impl ConstantDomain {
     /// When the source type and target types differ in length, bits are truncated
     /// or zero filled as appropriate.
     #[logfn(TRACE)]
-    #[allow(clippy::transmute_int_to_char)]
     pub fn transmute(&self, target_type: ExpressionType) -> Self {
         if target_type == ExpressionType::U128 {
             match self {
@@ -1441,7 +1425,7 @@ impl ConstantDomain {
             if let ConstantDomain::U128(val) = self_as_u128 {
                 match target_type {
                     ExpressionType::Char => unsafe {
-                        ConstantDomain::Char(std::mem::transmute::<u32, char>(val as u32))
+                        ConstantDomain::Char(char::from_u32_unchecked(val as u32))
                     },
                     ExpressionType::U8 => ConstantDomain::U128((val as u8) as u128),
                     ExpressionType::U16 => ConstantDomain::U128((val as u16) as u128),

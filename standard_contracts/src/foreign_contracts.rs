@@ -120,16 +120,16 @@ pub mod alloc {
         default_contract!(handle_error);
 
         pub mod implement_alloc_raw_vec_RawVec_generic_par_T_alloc_alloc_Global {
-            use std::ptr::Unique;
+            use std::ptr::NonNull;
 
             pub struct RawVec<T> {
-                ptr: Unique<T>,
+                ptr: NonNull<T>,
                 cap: usize,
             }
 
             pub fn NEW<T>() -> RawVec<T> {
                 RawVec {
-                    ptr: unsafe { Unique::new_unchecked(4 as *mut T) },
+                    ptr: NonNull::dangling(),
                     cap: 0,
                 }
             }
@@ -302,7 +302,7 @@ pub mod core {
 
         pub mod layout {
             pub mod implement_core_alloc_layout_Layout {
-                use core::ptr::Alignment;
+                use core::mem::Alignment;
 
                 pub fn max_size_for_align(align: Alignment) -> usize {
                     unsafe {
@@ -1235,7 +1235,7 @@ pub mod core {
         pub mod implement {
             pub mod to_bits {
                 pub fn ct_f64_to_u64(ct: f64) -> u64 {
-                    unsafe { std::mem::transmute::<f64, u64>(ct) }
+                    ct.to_bits()
                 }
             }
         }
@@ -1922,7 +1922,7 @@ pub mod core {
         // where
         //     T: Copy,
         // {
-        //     let bw = std::intrinsics::size_of::<T>();
+        //     let bw = std::mem::size_of::<T>();
         //     precondition!((src as usize) & (bw - 1) == 0);
         //     *src
         // }
@@ -1943,7 +1943,7 @@ pub mod core {
         // where
         //     T: Copy,
         // {
-        //     let bw = std::intrinsics::size_of::<T>();
+        //     let bw = std::mem::size_of::<T>();
         //     precondition!((src as usize) & (bw - 1) == 0);
         //     *src
         // }
@@ -1964,7 +1964,7 @@ pub mod core {
         // where
         //     T: Copy,
         // {
-        //     let bw = std::intrinsics::size_of::<T>();
+        //     let bw = std::mem::size_of::<T>();
         //     precondition!((src as usize) & (bw - 1) == 0);
         //     *src
         // }
@@ -1985,7 +1985,7 @@ pub mod core {
         // where
         //     T: Copy,
         // {
-        //     let bw = std::intrinsics::size_of::<T>();
+        //     let bw = std::mem::size_of::<T>();
         //     precondition!((src as usize) & (bw - 1) == 0);
         //     *src
         // }
@@ -2006,7 +2006,7 @@ pub mod core {
         // where
         //     T: Copy,
         // {
-        //     let bw = std::intrinsics::size_of::<T>();
+        //     let bw = std::mem::size_of::<T>();
         //     precondition!((dst as usize) & (bw - 1) == 0);
         //     *dst = val;
         // }
@@ -2027,7 +2027,7 @@ pub mod core {
         // where
         //     T: Copy,
         // {
-        //     let bw = std::intrinsics::size_of::<T>();
+        //     let bw = std::mem::size_of::<T>();
         //     precondition!((dst as usize) & (bw - 1) == 0);
         //     *dst = val;
         // }
@@ -2048,7 +2048,7 @@ pub mod core {
         // where
         //     T: Copy,
         // {
-        //     let bw = std::intrinsics::size_of::<T>();
+        //     let bw = std::mem::size_of::<T>();
         //     precondition!((dst as usize) & (bw - 1) == 0);
         //     *dst = val;
         // }
@@ -2069,7 +2069,7 @@ pub mod core {
         // where
         //     T: Copy,
         // {
-        //     let bw = std::intrinsics::size_of::<T>();
+        //     let bw = std::mem::size_of::<T>();
         //     precondition!((dst as usize) & (bw - 1) == 0);
         //     *dst = val;
         // }
@@ -2090,7 +2090,7 @@ pub mod core {
         // where
         //     T: Copy,
         // {
-        //     let bw = std::intrinsics::size_of::<T>();
+        //     let bw = std::mem::size_of::<T>();
         //     precondition!((dst as usize) & (bw - 1) == 0);
         //     precondition!((src as usize) & (bw - 1) == 0);
         //     let result = *dst;
@@ -2114,7 +2114,7 @@ pub mod core {
         // where
         //     T: Copy,
         // {
-        //     let bw = std::intrinsics::size_of::<T>();
+        //     let bw = std::mem::size_of::<T>();
         //     precondition!((dst as usize) & (bw - 1) == 0);
         //     precondition!((src as usize) & (bw - 1) == 0);
         //     let result = *dst;
@@ -2138,7 +2138,7 @@ pub mod core {
         // where
         //     T: Copy,
         // {
-        //     let bw = std::intrinsics::size_of::<T>();
+        //     let bw = std::mem::size_of::<T>();
         //     precondition!((dst as usize) & (bw - 1) == 0);
         //     precondition!((src as usize) & (bw - 1) == 0);
         //     let result = *dst;
@@ -2162,7 +2162,7 @@ pub mod core {
         // where
         //     T: Copy,
         // {
-        //     let bw = std::intrinsics::size_of::<T>();
+        //     let bw = std::mem::size_of::<T>();
         //     precondition!((dst as usize) & (bw - 1) == 0);
         //     precondition!((src as usize) & (bw - 1) == 0);
         //     let result = *dst;
@@ -2186,7 +2186,7 @@ pub mod core {
         // where
         //     T: Copy,
         // {
-        //     let bw = std::intrinsics::size_of::<T>();
+        //     let bw = std::mem::size_of::<T>();
         //     precondition!((dst as usize) & (bw - 1) == 0);
         //     precondition!((src as usize) & (bw - 1) == 0);
         //     let result = *dst;
@@ -4425,14 +4425,12 @@ pub mod core {
     }
 
     pub mod slice {
-        pub mod implement {
-            pub mod copy_from_slice {
-                fn len_mismatch_fail(dst_len: usize, src_len: usize) {
-                    panic!(
-                        "source slice length ({}) does not match destination slice length ({})",
-                        src_len, dst_len,
-                    );
-                }
+        pub mod copy_from_slice_impl {
+            fn len_mismatch_fail(dst_len: usize, src_len: usize) {
+                panic!(
+                    "copy_from_slice: source slice length ({}) does not match destination slice length ({})",
+                    src_len, dst_len,
+                );
             }
         }
 
@@ -4450,6 +4448,28 @@ pub mod core {
         }
 
         pub mod index {
+            pub fn slice_index_fail(start: usize, end: usize, len: usize) -> ! {
+                if start > len {
+                    panic!(
+                        "range start index {} out of range for slice of length {}",
+                        start, len
+                    );
+                }
+                if end > len {
+                    panic!(
+                        "range end index {} out of range for slice of length {}",
+                        end, len
+                    );
+                }
+                if start > end {
+                    panic!("slice index starts at {} but ends at {}", start, end);
+                }
+                panic!(
+                    "range end index {} out of range for slice of length {}",
+                    end, len
+                );
+            }
+
             pub fn slice_end_index_len_fail(index: usize, len: usize) {
                 panic!(
                     "range end index {} out of range for slice of length {}",

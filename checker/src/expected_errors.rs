@@ -34,7 +34,7 @@ impl ExpectedErrors {
 
     /// Checks if the given set of diagnostics matches the expected diagnostics.
     #[logfn_inputs(TRACE)]
-    pub fn check_messages(&mut self, diagnostics: &[Diag<'_, ()>]) -> bool {
+    pub fn check_messages(&mut self, diagnostics: &[Diag<'_>]) -> bool {
         for diag in diagnostics.iter() {
             if !self.remove_message(&diag.span, Self::expect_str(&diag.messages[0].0)) {
                 return false;

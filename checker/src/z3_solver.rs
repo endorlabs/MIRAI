@@ -382,7 +382,7 @@ impl Z3Solver {
         let left_ast = self.get_as_bool_z3_ast(&left.expression);
         let right_ast = self.get_as_bool_z3_ast(&right.expression);
         unsafe {
-            let tmp = vec![left_ast, right_ast];
+            let tmp = [left_ast, right_ast];
             operation(self.z3_context, 2, tmp.as_ptr())
         }
     }
@@ -534,7 +534,7 @@ impl Z3Solver {
                     let r = z3_sys::Z3_mk_fpa_is_nan(self.z3_context, right_ast);
                     let eq = z3_sys::Z3_mk_fpa_eq(self.z3_context, left_ast, right_ast);
                     let ne = z3_sys::Z3_mk_not(self.z3_context, eq);
-                    let tmp = vec![l, r, ne];
+                    let tmp = [l, r, ne];
                     z3_sys::Z3_mk_or(self.z3_context, 3, tmp.as_ptr())
                 } else {
                     z3_sys::Z3_mk_not(
@@ -1020,7 +1020,7 @@ impl Z3Solver {
         unsafe {
             let min_is_le = z3_sys::Z3_mk_le(self.z3_context, min_ast, operand_ast);
             let max_is_ge = z3_sys::Z3_mk_ge(self.z3_context, max_ast, operand_ast);
-            let tmp = vec![min_is_le, max_is_ge];
+            let tmp = [min_is_le, max_is_ge];
             z3_sys::Z3_mk_and(self.z3_context, 2, tmp.as_ptr())
         }
     }
@@ -1220,7 +1220,7 @@ impl Z3Solver {
                     float_op(self.z3_context, self.nearest_even, left_ast, right_ast),
                 )
             } else {
-                let tmp = vec![left_ast, right_ast];
+                let tmp = [left_ast, right_ast];
                 (false, int_op(self.z3_context, 2, tmp.as_ptr()))
             }
         }
@@ -1242,17 +1242,17 @@ impl Z3Solver {
         let (rf, right_ast) = self.get_as_numeric_z3_ast(&right.expression);
         checked_assume!(!(lf || rf));
         unsafe {
-            let tmp = vec![left_ast, right_ast];
+            let tmp = [left_ast, right_ast];
             let result = int_op(self.z3_context, 2, tmp.as_ptr());
             let min_ast = self.get_constant_as_ast(&result_type.min_value());
             let min_is_gt = z3_sys::Z3_mk_gt(self.z3_context, min_ast, result);
             let max_ast = self.get_constant_as_ast(&result_type.max_value());
             let max_is_lt = z3_sys::Z3_mk_lt(self.z3_context, max_ast, result);
-            let tmp = vec![min_is_gt, max_is_lt];
+            let tmp = [min_is_gt, max_is_lt];
             let result_overflows = z3_sys::Z3_mk_or(self.z3_context, 2, tmp.as_ptr());
             let left_in_range = self.get_range_check(left_ast, min_ast, max_ast);
             let right_in_range = self.get_range_check(right_ast, min_ast, max_ast);
-            let tmp = vec![left_in_range, right_in_range, result_overflows];
+            let tmp = [left_in_range, right_in_range, result_overflows];
             (false, z3_sys::Z3_mk_and(self.z3_context, 3, tmp.as_ptr()))
         }
     }
@@ -1290,7 +1290,7 @@ impl Z3Solver {
                     (false, {
                         let cond = z3_sys::Z3_mk_lt(self.z3_context, left_ast, self.zero);
                         let rem = z3_sys::Z3_mk_rem(self.z3_context, left_ast, right_ast);
-                        let tmp = vec![self.zero, rem];
+                        let tmp = [self.zero, rem];
                         let neg_rem = z3_sys::Z3_mk_sub(self.z3_context, 2, tmp.as_ptr());
                         z3_sys::Z3_mk_ite(self.z3_context, cond, neg_rem, rem)
                     })
@@ -1391,13 +1391,13 @@ impl Z3Solver {
             if result_type.is_signed_integer() {
                 let (fp, neg) = self.numeric_neg(operand);
                 checked_assume!(!fp); // The Rust type system should prevent this
-                let tmp = vec![neg, self.one];
+                let tmp = [neg, self.one];
                 (false, z3_sys::Z3_mk_sub(self.z3_context, 2, tmp.as_ptr()))
             } else {
                 let (fp, ast) = self.get_as_numeric_z3_ast(&operand.expression);
                 checked_assume!(!fp); // The Rust type system should prevent this
                 let max_ast = self.get_constant_as_ast(&result_type.max_value());
-                let tmp = vec![max_ast, ast];
+                let tmp = [max_ast, ast];
                 (false, z3_sys::Z3_mk_sub(self.z3_context, 2, tmp.as_ptr()))
             }
         }
@@ -1441,7 +1441,7 @@ impl Z3Solver {
                             } else {
                                 self.get_constant_as_ast(&modulo_constant)
                             };
-                            let args = vec![expr_ast, modulo_ast];
+                            let args = [expr_ast, modulo_ast];
                             let complement = z3_sys::Z3_mk_add(self.z3_context, 2, args.as_ptr());
                             let is_negative =
                                 z3_sys::Z3_mk_lt(self.z3_context, expr_ast, self.zero);
@@ -1632,7 +1632,7 @@ impl Z3Solver {
         checked_assume!(!(lf || rf));
         unsafe {
             let right_power = z3_sys::Z3_mk_power(self.z3_context, self.two, right_ast);
-            let tmp = vec![left_ast, right_power];
+            let tmp = [left_ast, right_power];
             (false, z3_sys::Z3_mk_mul(self.z3_context, 2, tmp.as_ptr()))
         }
     }
@@ -1808,6 +1808,7 @@ impl Z3Solver {
                 left,
                 right,
                 *result_type,
+                num_bits,
                 z3_sys::Z3_mk_bvadd_no_overflow,
                 z3_sys::Z3_mk_bvadd_no_underflow,
             ),
@@ -1825,6 +1826,7 @@ impl Z3Solver {
                 left,
                 right,
                 *result_type,
+                num_bits,
                 z3_sys::Z3_mk_bvmul_no_overflow,
                 z3_sys::Z3_mk_bvmul_no_underflow,
             ),
@@ -1842,6 +1844,7 @@ impl Z3Solver {
                 left,
                 right,
                 *result_type,
+                num_bits,
                 z3_sys::Z3_mk_bvsub_no_underflow,
                 z3_sys::Z3_mk_bvsub_no_overflow,
             ),
@@ -1957,6 +1960,7 @@ impl Z3Solver {
         left: &Rc<AbstractValue>,
         right: &Rc<AbstractValue>,
         result_type: ExpressionType,
+        output_bits: u32,
         no_overflow: unsafe extern "C" fn(
             c: z3_sys::Z3_context,
             t1: z3_sys::Z3_ast,
@@ -1977,14 +1981,14 @@ impl Z3Solver {
             let does_not_overflow = no_overflow(self.z3_context, left_bv, right_bv, is_signed);
             let overflows = if is_signed {
                 let does_not_underflow = no_underflow(self.z3_context, left_bv, right_bv);
-                let tmp = vec![does_not_overflow, does_not_underflow];
+                let tmp = [does_not_overflow, does_not_underflow];
                 let stays_in_range = z3_sys::Z3_mk_and(self.z3_context, 2, tmp.as_ptr());
                 z3_sys::Z3_mk_not(self.z3_context, stays_in_range)
             } else {
                 z3_sys::Z3_mk_not(self.z3_context, does_not_overflow)
             };
-            let bv_true = self.bv_constant(num_bits, &ConstantDomain::True);
-            let bv_false = self.bv_constant(num_bits, &ConstantDomain::False);
+            let bv_true = self.bv_constant(output_bits, &ConstantDomain::True);
+            let bv_false = self.bv_constant(output_bits, &ConstantDomain::False);
             z3_sys::Z3_mk_ite(self.z3_context, overflows, bv_true, bv_false)
         }
     }
@@ -2178,5 +2182,28 @@ impl Drop for Z3Solver {
         unsafe {
             z3_sys::Z3_del_context(self.z3_context);
         };
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn overflow_predicates_use_requested_bit_width() {
+        let solver = Z3Solver::new();
+        let expression = Expression::AddOverflows {
+            left: AbstractValue::make_typed_unknown(ExpressionType::I64, Path::new_parameter(1)),
+            right: AbstractValue::make_typed_unknown(ExpressionType::I64, Path::new_parameter(2)),
+            result_type: ExpressionType::I64,
+        };
+        for width in [1, 64, 128] {
+            let ast = solver.get_as_bv_z3_ast(&expression, width);
+            let sort = unsafe { z3_sys::Z3_get_sort(solver.z3_context, ast) };
+            assert_eq!(
+                unsafe { z3_sys::Z3_get_bv_sort_size(solver.z3_context, sort) },
+                width
+            );
+        }
     }
 }

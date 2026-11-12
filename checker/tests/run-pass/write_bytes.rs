@@ -32,7 +32,7 @@ pub fn t2() {
 fn foo2<T>(b: &mut T) {
     unsafe {
         let ptr = std::mem::transmute::<&mut T, *mut T>(b);
-        std::ptr::write_bytes(ptr, 0xfe, 4);
+        std::ptr::write_bytes(ptr, 0xfe, 1);
     }
 }
 

@@ -166,6 +166,8 @@ pub enum KnownNames {
     StdPanickingBeginPanicFmt,
     StdPtrSwapNonOverlapping,
     StdSliceCmpMemcmp,
+    RustNoAllocShimIsUnstable,
+    StdIntrinsicsAtomicXchg,
 }
 
 /// An analysis lifetime cache that contains a map from def ids to known names.
@@ -308,6 +310,7 @@ fn get_known_name_for_alloc_namespace(
                 "__rust_alloc_zeroed" => KnownNames::RustAllocZeroed,
                 "__rust_dealloc" => KnownNames::RustDealloc,
                 "__rust_realloc" => KnownNames::RustRealloc,
+                "__rust_no_alloc_shim_is_unstable_v2" => KnownNames::RustNoAllocShimIsUnstable,
             )
         }
         _ => None,
@@ -335,6 +338,7 @@ fn known_name_for_intrinsics_namespace(
         [current_segment] => match_names! (
             name_from_value_ns(current_segment)?,
             "arith_offset" => KnownNames::StdIntrinsicsArithOffset,
+            "atomic_xchg" => KnownNames::StdIntrinsicsAtomicXchg,
             "bitreverse" => KnownNames::StdIntrinsicsBitreverse,
             "bswap" => KnownNames::StdIntrinsicsBswap,
             "ceilf16" => KnownNames::StdIntrinsicsCeilf16,
@@ -505,7 +509,10 @@ fn known_name_for_ptr_namespace(path_segments: &[DisambiguatedDefPathData]) -> O
     match path_segments {
         [current_segment] => {
             let name = name_from_value_ns(current_segment)?;
-            (name == "swap_nonoverlapping").then_some(KnownNames::StdPtrSwapNonOverlapping)
+            match_names!(name,
+                "swap_nonoverlapping" => KnownNames::StdPtrSwapNonOverlapping,
+                "write_bytes" => KnownNames::StdIntrinsicsWriteBytes
+            )
         }
         [current_segment, middle_segment, last_segment] => {
             let current_name = name_from_type_ns(current_segment)?;

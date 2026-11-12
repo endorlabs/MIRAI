@@ -709,6 +709,14 @@ impl AbstractValue {
         AbstractValue::make_from(Expression::Reference(path), path_length)
     }
 
+    /// Records a type invariant on a fresh value without changing shared cached values.
+    pub fn with_non_null(value: &Rc<AbstractValue>) -> Rc<AbstractValue> {
+        Rc::new(AbstractValue {
+            is_non_null: RefCell::new(Some(true)),
+            ..value.as_ref().clone()
+        })
+    }
+
     /// Creates an abstract value about which nothing is known other than its type and address.
     #[logfn_inputs(TRACE)]
     pub fn make_typed_unknown(var_type: ExpressionType, path: Rc<Path>) -> Rc<AbstractValue> {
@@ -1973,23 +1981,26 @@ impl AbstractValueTrait for Rc<AbstractValue> {
                             return left.cast(target_type);
                         }
                     }
-                    Expression::Reference(..) if target_type.is_integer() => {
-                        // [(&x) as t] -> &x if t is an integer
+                    Expression::Reference(..)
+                        if target_type.is_integer()
+                            && target_type.bit_length()
+                                >= ExpressionType::ThinPointer.bit_length() =>
+                    {
+                        // Preserve the address only when the integer can hold all pointer bits.
                         return self.clone();
                     }
                     // [(v : t1) as target_type] -> (v: t1) if t1.max_value() == target_type.max_value()
                     Expression::Variable { var_type: t1, .. }
-                    | Expression::InitialParameterValue { var_type: t1, .. } => {
+                    | Expression::InitialParameterValue { var_type: t1, .. }
                         if t1.is_integer()
                             && target_type.is_unsigned_integer()
                             && t1
                                 .max_value()
                                 .equals(&target_type.max_value())
                                 .as_bool_if_known()
-                                .unwrap_or(false)
-                        {
-                            return self.clone();
-                        }
+                                .unwrap_or(false) =>
+                    {
+                        return self.clone();
                     }
                     _ => (),
                 }
@@ -2024,7 +2035,6 @@ impl AbstractValueTrait for Rc<AbstractValue> {
 
     /// Returns an element that is "self.cmp(other)".
     #[logfn_inputs(TRACE)]
-    #[must_use]
     fn compare(&self, other: Self) -> Self {
         let zero = Rc::new(ConstantDomain::I128(0).into());
         let one = Rc::new(ConstantDomain::I128(1).into());
@@ -2679,6 +2689,11 @@ impl AbstractValueTrait for Rc<AbstractValue> {
             return other.equals(self.clone());
         }
         match (&self.expression, &other.expression) {
+            (Expression::CompileTimeConstant(constant), _)
+                if constant.is_zero() && other.is_non_null() =>
+            {
+                return Rc::new(FALSE);
+            }
             // true == x -> x
             (Expression::CompileTimeConstant(ConstantDomain::True), _) => {
                 return other.clone();
@@ -2699,7 +2714,12 @@ impl AbstractValueTrait for Rc<AbstractValue> {
                 },
             ) if *tt1 == ExpressionType::ThinPointer && *tt2 == ExpressionType::ThinPointer => {
                 let operands_are_equal = x.equals(y.clone());
-                if operands_are_equal.is_compile_time_constant() {
+                if operands_are_equal.is_compile_time_constant()
+                    || (x.expression.infer_type() == y.expression.infer_type()
+                        && x.expression.infer_type().is_integer()
+                        && x.expression.infer_type().bit_length()
+                            <= ExpressionType::ThinPointer.bit_length())
+                {
                     return operands_are_equal;
                 }
             }
@@ -4012,6 +4032,11 @@ impl AbstractValueTrait for Rc<AbstractValue> {
             return other.not_equals(self.clone());
         }
         match (&self.expression, &other.expression) {
+            (Expression::CompileTimeConstant(constant), _)
+                if constant.is_zero() && other.is_non_null() =>
+            {
+                return Rc::new(TRUE);
+            }
             // true != x -> !x
             (Expression::CompileTimeConstant(ConstantDomain::True), _) => {
                 return other.logical_not();
@@ -4286,10 +4311,8 @@ impl AbstractValueTrait for Rc<AbstractValue> {
                         Expression::Or {
                             left: x2,
                             right: y2,
-                        } => {
-                            if self.eq(x2) {
-                                return self.or(y2.logical_not().and(z.clone()));
-                            }
+                        } if self.eq(x2) => {
+                            return self.or(y2.logical_not().and(z.clone()));
                         }
                         _ => {}
                     }
@@ -5734,6 +5757,20 @@ impl AbstractValueTrait for Rc<AbstractValue> {
             Expression::Join { left, right, .. } => left.is_non_null() && right.is_non_null(),
             Expression::Offset { left, .. } => left.is_non_null(),
             Expression::Reference(..) => true,
+            Expression::Cast {
+                operand,
+                target_type,
+            }
+            | Expression::Transmute {
+                operand,
+                target_type,
+            } if matches!(
+                target_type,
+                ExpressionType::ThinPointer | ExpressionType::Usize | ExpressionType::Isize
+            ) =>
+            {
+                operand.is_non_null()
+            }
             Expression::WidenedJoin { operand, .. } => operand.is_non_null(),
             _ => false,
         }
@@ -6872,6 +6909,18 @@ impl AbstractValueTrait for Rc<AbstractValue> {
     #[logfn_inputs(TRACE)]
     fn transmute(&self, target_type: ExpressionType) -> Rc<AbstractValue> {
         let expression_type = self.expression.infer_type();
+        if let Expression::Cast {
+            operand,
+            target_type: ExpressionType::ThinPointer,
+        } = &self.expression
+        {
+            if target_type == operand.expression.infer_type()
+                && target_type.is_integer()
+                && target_type.bit_length() == ExpressionType::ThinPointer.bit_length()
+            {
+                return operand.clone();
+            }
+        }
         if expression_type == target_type {
             self.clone()
         } else if target_type.is_integer()
@@ -7146,6 +7195,34 @@ impl AbstractValueTrait for Rc<AbstractValue> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn references_remain_non_null_after_address_conversion() {
+        let reference = AbstractValue::make_reference(Path::new_local(1, 0));
+        let zero: Rc<AbstractValue> = Rc::new(0u128.into());
+        let address = reference.transmute(ExpressionType::Usize);
+        assert_eq!(address.equals(zero.clone()).as_bool_if_known(), Some(false));
+        assert_eq!(
+            reference
+                .cast(ExpressionType::Usize)
+                .equals(zero.clone())
+                .as_bool_if_known(),
+            Some(false)
+        );
+        assert_eq!(zero.equals(zero.clone()).as_bool_if_known(), Some(true));
+        assert!(!reference.cast(ExpressionType::U8).is_non_null());
+        let address =
+            AbstractValue::make_typed_unknown(ExpressionType::Usize, Path::new_parameter(1));
+        let pointer = address.cast(ExpressionType::ThinPointer);
+        assert_eq!(pointer.transmute(ExpressionType::Usize), address);
+        let input = AbstractValue::make_initial_parameter_value(
+            ExpressionType::ThinPointer,
+            Path::new_parameter(2),
+        );
+        let valid_pointer = AbstractValue::with_non_null(&input);
+        assert!(valid_pointer.is_non_null());
+        assert!(!input.is_non_null());
+    }
 
     // Checks consistency of `Ord`, `PartialOrd`, `PartialEq` and `Eq` implementations for `AbstractValue`.
     #[test]

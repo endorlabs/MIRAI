@@ -134,9 +134,7 @@ fn main() {
             "rustc_command_line_arguments {:?}",
             rustc_command_line_arguments
         );
-        let compiler =
-            rustc_driver::RunCompiler::new(&rustc_command_line_arguments, &mut callbacks);
-        compiler.run()
+        rustc_driver::compiler_entrypoint(&rustc_command_line_arguments, &mut callbacks)
     });
     let exit_code = match result {
         Ok(_) => rustc_driver::EXIT_SUCCESS,

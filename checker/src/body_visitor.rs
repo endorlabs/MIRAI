@@ -16,6 +16,7 @@ use mirai_annotations::*;
 use rustc_errors::Diag;
 use rustc_hir::def_id::DefId;
 use rustc_middle::mir;
+use rustc_middle::ty::consts::ConstExt;
 use rustc_middle::ty::{AdtDef, Const, GenericArgsRef, Ty, TyCtxt, TyKind, UintTy};
 
 use crate::abstract_value::{self, AbstractValue, AbstractValueTrait, BOTTOM};
@@ -46,7 +47,7 @@ pub struct BodyVisitor<'analysis, 'compilation, 'tcx> {
     pub tcx: TyCtxt<'tcx>,
     pub def_id: DefId,
     pub mir: &'tcx mir::Body<'tcx>,
-    pub buffered_diagnostics: &'analysis mut Vec<Diag<'compilation, ()>>,
+    pub buffered_diagnostics: &'analysis mut Vec<Diag<'compilation>>,
     pub active_calls_map: &'analysis mut HashMap<DefId, u64>,
 
     pub already_reported_errors_for_call_to: HashSet<Rc<AbstractValue>>,
@@ -99,7 +100,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
     pub fn new(
         crate_visitor: &'analysis mut CrateVisitor<'compilation, 'tcx>,
         def_id: DefId,
-        buffered_diagnostics: &'analysis mut Vec<Diag<'compilation, ()>>,
+        buffered_diagnostics: &'analysis mut Vec<Diag<'compilation>>,
         active_calls_map: &'analysis mut HashMap<DefId, u64>,
         type_cache: Rc<RefCell<TypeCache<'tcx>>>,
     ) -> BodyVisitor<'analysis, 'compilation, 'tcx> {
@@ -108,12 +109,9 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
             .summary_cache
             .get_summary_key_for(def_id, tcx)
             .clone();
-        let mir = if tcx.is_const_fn(def_id) {
-            tcx.mir_for_ctfe(def_id)
-        } else {
-            let instance = rustc_middle::ty::InstanceKind::Item(def_id);
-            tcx.instance_mir(instance)
-        };
+        // Const functions can select different implementations at runtime. instance_mir
+        // selects runtime MIR for functions and CTFE MIR for actual constants/statics.
+        let mir = tcx.instance_mir(rustc_middle::ty::InstanceKind::Item(def_id));
         crate_visitor.call_graph.add_root(def_id);
         BodyVisitor {
             cv: crate_visitor,
@@ -328,7 +326,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
     /// Buffering diagnostics gives us the chance to sort them before printing them out,
     /// which is desirable for tools that compare the diagnostics from one run of MIRAI with another.
     #[logfn_inputs(TRACE)]
-    pub fn emit_diagnostic(&mut self, diagnostic_builder: Diag<'compilation, ()>) {
+    pub fn emit_diagnostic(&mut self, diagnostic_builder: Diag<'compilation>) {
         if (self.treat_as_foreign || !self.def_id.is_local())
             && !matches!(self.cv.options.diag_level, DiagLevel::Paranoid)
         {
@@ -442,7 +440,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                 local_val
             }
         };
-        let result = if refined_val.is_top() {
+        let mut result = if refined_val.is_top() {
             if path.path_length() < k_limits::MAX_PATH_LENGTH {
                 let mut result = None;
                 if let PathEnum::QualifiedPath {
@@ -518,7 +516,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                     };
                     if result_type != ExpressionType::NonPrimitive {
                         self.current_environment
-                            .strong_update_value_at(path, result.clone());
+                            .strong_update_value_at(path.clone(), result.clone());
                     }
                     result
                 })
@@ -533,13 +531,41 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                 };
                 if result_type != ExpressionType::NonPrimitive {
                     self.current_environment
-                        .strong_update_value_at(path, result.clone());
+                        .strong_update_value_at(path.clone(), result.clone());
                 }
                 result
             }
         } else {
             refined_val
         };
+        // Valid reference and pattern-typed input values cannot contain a null pointer.
+        let is_reference_data_pointer = if let PathEnum::QualifiedPath {
+            qualifier,
+            selector,
+            ..
+        } = &path.value
+        {
+            **selector == PathSelector::Field(0)
+                && matches!(
+                    self.type_visitor()
+                        .get_path_rustc_type(qualifier, self.current_span)
+                        .kind(),
+                    TyKind::Ref(..)
+                )
+        } else {
+            false
+        };
+        if result_type == ExpressionType::ThinPointer
+            && matches!(result.expression, Expression::InitialParameterValue { .. })
+            && (is_reference_data_pointer
+                || matches!(result_rustc_type.kind(), TyKind::Ref(..))
+                || matches!(result_rustc_type.kind(), TyKind::Pat(_, pattern)
+                    if matches!(**pattern, rustc_middle::ty::PatternKind::NotNull)))
+        {
+            result = AbstractValue::with_non_null(&result);
+            self.current_environment
+                .strong_update_value_at(path, result.clone());
+        }
         if result_type == ExpressionType::Bool
             && self.current_environment.entry_condition.implies(&result)
         {
@@ -1520,16 +1546,16 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                                         updated_value_map.insert_mut(path.clone(), new_reference);
                                     }
                                 }
-                                Expression::Variable { path: p, var_type } => {
-                                    if *p == *qualifier || p.is_rooted_by(qualifier) {
-                                        let new_block_path =
-                                            p.replace_root(qualifier, new_block_path.clone());
-                                        let new_variable = AbstractValue::make_typed_unknown(
-                                            *var_type,
-                                            new_block_path,
-                                        );
-                                        updated_value_map.insert_mut(path.clone(), new_variable);
-                                    }
+                                Expression::Variable { path: p, var_type }
+                                    if *p == *qualifier || p.is_rooted_by(qualifier) =>
+                                {
+                                    let new_block_path =
+                                        p.replace_root(qualifier, new_block_path.clone());
+                                    let new_variable = AbstractValue::make_typed_unknown(
+                                        *var_type,
+                                        new_block_path,
+                                    );
+                                    updated_value_map.insert_mut(path.clone(), new_variable);
                                 }
                                 _ => (),
                             }
@@ -1731,7 +1757,7 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                         .specialize_generic_args(args, &self.type_visitor().generic_argument_map);
                     for (i, field) in def.all_fields().enumerate() {
                         let target_type = self.type_visitor().specialize_type(
-                            field.ty(self.tcx, args),
+                            field.ty(self.tcx, args).skip_normalization(),
                             &self.type_visitor().generic_argument_map,
                         );
                         let target_path = Path::new_union_field(qualifier.clone(), i, *num_cases);
@@ -1816,7 +1842,10 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
             let variant = def.variants().iter().next().expect("at least one variant");
             for (i, field) in variant.fields.iter().enumerate() {
                 let field_path = Path::new_field(path.clone(), i);
-                let field_ty = field.ty(tcx, args);
+                let field_ty = self.type_visitor().specialize_type(
+                    field.ty(tcx, args).skip_normalization(),
+                    &self.type_visitor().generic_argument_map,
+                );
                 debug!("field_path: {:?}, field_ty: {:?}", field_path, field_ty);
                 if let TyKind::Adt(def, args) = field_ty.kind() {
                     self.add_leaf_fields_for(field_path, def, args, tcx, accumulator)
@@ -2689,12 +2718,12 @@ impl<'analysis, 'compilation, 'tcx> BodyVisitor<'analysis, 'compilation, 'tcx> {
                         );
                         let source_field = def.all_fields().nth(*case_index).unwrap();
                         let source_type = self.type_visitor().specialize_type(
-                            source_field.ty(self.tcx, generic_args),
+                            source_field.ty(self.tcx, generic_args).skip_normalization(),
                             &self.type_visitor().generic_argument_map,
                         );
                         for (i, field) in def.all_fields().enumerate() {
                             let target_type = self.type_visitor().specialize_type(
-                                field.ty(self.tcx, generic_args),
+                                field.ty(self.tcx, generic_args).skip_normalization(),
                                 &self.type_visitor().generic_argument_map,
                             );
                             let target_path =

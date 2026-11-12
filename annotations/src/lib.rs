@@ -837,10 +837,10 @@ macro_rules! debug_checked_precondition_ne {
 #[macro_export]
 macro_rules! unrecoverable {
     ($fmt:expr) => (
-        panic!(concat!("unrecoverable: ", stringify!($fmt)));
+        panic!(concat!("unrecoverable: ", stringify!($fmt)))
     );
     ($fmt:expr, $($arg:tt)+) => (
-        panic!(concat!("unrecoverable: ", stringify!($fmt)), $($arg)+);
+        panic!(concat!("unrecoverable: ", stringify!($fmt)), $($arg)+)
     );
 }
 

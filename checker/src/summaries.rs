@@ -108,7 +108,7 @@ pub struct Summary {
 /// Bundles together the condition of a precondition with the provenance (place where defined) of
 /// the condition, along with a diagnostic message to use when the precondition is not (might not be)
 /// satisfied.
-#[derive(Serialize, Deserialize, Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Serialize, Deserialize, Clone, Debug, Eq, PartialEq)]
 pub struct Precondition {
     /// The condition that must be satisfied when calling a function that has this precondition.
     pub condition: Rc<AbstractValue>,
@@ -149,10 +149,11 @@ impl Summary {
         if p2.is_empty() {
             return false;
         }
-        if p1[0].spans < p2[0].spans {
+        let span_order = utils::compare_spans(&p1[0].spans, &p2[0].spans);
+        if span_order == Ordering::Less {
             return false;
         }
-        if p1[0].spans > p2[0].spans {
+        if span_order == Ordering::Greater {
             return Self::is_subset_of_preconditions(p1, &p2[1..]);
         }
         if !p1[0].condition.subset(&p2[0].condition) {
@@ -239,7 +240,11 @@ pub fn summarize(
         vec![]
     };
 
-    preconditions.sort();
+    preconditions.sort_by(|a, b| {
+        (&a.condition, &a.message, &a.provenance)
+            .cmp(&(&b.condition, &b.message, &b.provenance))
+            .then_with(|| utils::compare_spans(&a.spans, &b.spans))
+    });
     side_effects.sort();
 
     Summary {
@@ -506,25 +511,22 @@ impl<'tcx> SummaryCache<'tcx> {
         let mut entries = Vec::new();
         for (key, value) in self.def_id_cache.iter() {
             let fully_qualified_name = self.key_cache.get(key).unwrap().to_string();
-            let file_name;
-            let source;
-            if tcx.is_mir_available(*key) {
-                let mir = if tcx.is_const_fn(*key) {
-                    tcx.mir_for_ctfe(*key)
-                } else {
-                    let instance = rustc_middle::ty::InstanceKind::Item(*key);
-                    tcx.instance_mir(instance)
-                };
-                file_name = source_map.span_to_filename(mir.span).into_local_path();
-                source = source_map
-                    .span_to_snippet(mir.span)
-                    .ok()
-                    .unwrap_or_default();
+            let (file_name, source) = if tcx.is_mir_available(*key) {
+                let mir = tcx.instance_mir(rustc_middle::ty::InstanceKind::Item(*key));
+                (
+                    source_map.span_to_filename(mir.span).into_local_path(),
+                    source_map
+                        .span_to_snippet(mir.span)
+                        .ok()
+                        .unwrap_or_default(),
+                )
             } else {
                 let span = tcx.def_span(*key);
-                file_name = source_map.span_to_filename(span).into_local_path();
-                source = source_map.span_to_snippet(span).ok().unwrap_or_default();
-            }
+                (
+                    source_map.span_to_filename(span).into_local_path(),
+                    source_map.span_to_snippet(span).ok().unwrap_or_default(),
+                )
+            };
             let mut path = None;
             if let Some(mut p) = file_name {
                 if p.is_absolute() {

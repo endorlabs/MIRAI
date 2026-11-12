@@ -10,7 +10,7 @@ jobs:
   clippy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Run Clippy
         run: |
@@ -22,20 +22,19 @@ jobs:
       VCPKG_ROOT: ${{ github.workspace }}/vcpkg
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           submodules: recursive
 
-      - name: vcpkg build z3
-        uses: johnwason/vcpkg-action@v5
-        id: vcpkg
+      - name: Check out vcpkg
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          pkgs: z3
-          triplet: arm64-osx
-          cache-key: macos-latest
-          revision: master
-          token: ${{ github.token }}
-          extra-args: --clean-buildtrees-after-build
+          repository: microsoft/vcpkg
+          path: vcpkg
+      - name: Build Z3 with vcpkg
+        run: |
+          "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+          "$VCPKG_ROOT/vcpkg" install z3:arm64-osx --clean-buildtrees-after-build
 
       - name: Execute tests
         run: |
@@ -63,7 +62,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Install MIRAI
         run: |

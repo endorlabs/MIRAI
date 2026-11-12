@@ -11,20 +11,21 @@ use std::rc::Rc;
 use log_derive::*;
 
 use mirai_annotations::*;
+use rustc_abi::{FieldIdx, Primitive, TagEncoding, VariantIdx, Variants};
 use rustc_hir::def_id::DefId;
 use rustc_index::{Idx, IndexVec};
 use rustc_middle::mir;
 use rustc_middle::mir::interpret::{alloc_range, GlobalAlloc, Scalar};
 use rustc_middle::mir::{ConstValue, UnwindTerminateReason};
 use rustc_middle::ty::adjustment::PointerCoercion;
+use rustc_middle::ty::consts::ConstExt;
 use rustc_middle::ty::TypingMode;
 use rustc_middle::ty::{
     Const, CoroutineArgsExt, FloatTy, IntTy, ParamConst, ScalarInt, Ty, TyKind, UintTy, ValTree,
     VariantDef,
 };
 use rustc_middle::ty::{GenericArg, GenericArgsRef};
-use rustc_span::source_map::Spanned;
-use rustc_target::abi::{FieldIdx, Primitive, TagEncoding, VariantIdx, Variants};
+use rustc_span::Spanned;
 use rustc_trait_selection::infer::TyCtxtInferExt;
 
 use crate::abstract_value::{self, AbstractValue, AbstractValueTrait, BOTTOM};
@@ -111,26 +112,27 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
     fn visit_statement(&mut self, location: mir::Location, statement: &mir::Statement<'tcx>) {
         debug!("env {:?}", self.bv.current_environment);
         self.bv.current_location = location;
-        let mir::Statement { kind, source_info } = statement;
+        let mir::Statement {
+            kind, source_info, ..
+        } = statement;
         self.bv.current_span = source_info.span;
         match kind {
-            mir::StatementKind::Assign(box (place, rvalue)) => self.visit_assign(place, rvalue),
+            mir::StatementKind::Assign(assignment) => {
+                let (place, rvalue) = &**assignment;
+                self.visit_assign(place, rvalue);
+            }
             mir::StatementKind::ConstEvalCounter => (),
             mir::StatementKind::FakeRead(..) => assume_unreachable!(),
             mir::StatementKind::SetDiscriminant {
                 place,
                 variant_index,
             } => self.visit_set_discriminant(place, *variant_index),
-            mir::StatementKind::Deinit(box place) => {
-                self.visit_deinit(place);
-            }
             mir::StatementKind::StorageLive(local) => self.visit_storage_live(*local),
             mir::StatementKind::StorageDead(local) => self.visit_storage_dead(*local),
-            mir::StatementKind::Retag(retag_kind, place) => self.visit_retag(*retag_kind, place),
             mir::StatementKind::PlaceMention(_) => (),
             mir::StatementKind::AscribeUserType(..) => assume_unreachable!(),
             mir::StatementKind::Coverage(..) => (),
-            mir::StatementKind::Intrinsic(box non_diverging_intrinsic) => {
+            mir::StatementKind::Intrinsic(non_diverging_intrinsic) => {
                 self.visit_non_diverging_intrinsic(non_diverging_intrinsic);
             }
             mir::StatementKind::Nop => (),
@@ -208,7 +210,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
     fn visit_set_discriminant(
         &mut self,
         place: &mir::Place<'tcx>,
-        variant_index: rustc_target::abi::VariantIdx,
+        variant_index: rustc_abi::VariantIdx,
     ) {
         let target_path = Path::new_discriminant(self.visit_rh_place(place));
         let ty = self
@@ -228,22 +230,6 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         }
     }
 
-    /// Deinitializes the place.
-    ///
-    /// This writes `uninit` bytes to the entire place.
-    #[logfn_inputs(TRACE)]
-    fn visit_deinit(&mut self, place: &mir::Place<'tcx>) {
-        // let target_path = self.visit_lh_place(place);
-        // let value_map = self.bv.current_environment.value_map.clone();
-        // for (path, _) in value_map
-        //     .iter()
-        //     .filter(|(p, _)| (**p) == target_path || p.is_rooted_by(&target_path))
-        // {
-        //     self.bv
-        //         .update_value_at(path.clone(), abstract_value::BOTTOM.into());
-        // }
-    }
-
     /// Start a live range for the storage of the local.
     #[logfn_inputs(TRACE)]
     fn visit_storage_live(&mut self, local: mir::Local) {}
@@ -261,20 +247,6 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         self.bv.update_value_at(path, abstract_value::BOTTOM.into());
     }
 
-    /// Retag references in the given place, ensuring they got fresh tags.  This is
-    /// part of the Stacked Borrows model. These statements are currently only interpreted
-    /// by miri and only generated when "-Z mir-emit-retag" is passed.
-    /// See <https://internals.rust-lang.org/t/stacked-borrows-an-aliasing-model-for-rust/8153/>
-    /// for more details.
-    #[logfn_inputs(TRACE)]
-    fn visit_retag(&self, retag_kind: mir::RetagKind, place: &mir::Place<'tcx>) {
-        // This seems to be an intermediate artifact of MIR generation and is related to aliasing.
-        // We assume (and will attempt to enforce) that no aliasing of mutable pointers are present
-        // in the programs we check.
-        //
-        // Therefore we simply ignore this.
-    }
-
     /// Calls a specialized visitor for each kind of terminator.
     #[logfn_inputs(DEBUG)]
     fn visit_terminator(
@@ -287,7 +259,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         self.bv.current_location = location;
         self.bv.current_span = source_info.span;
         match kind {
-            mir::TerminatorKind::Goto { target } => self.visit_goto(*target),
+            mir::TerminatorKind::Goto { target, .. } => self.visit_goto(*target),
             mir::TerminatorKind::SwitchInt { discr, targets } => {
                 self.visit_switch_int(discr, discr.ty(self.bv.mir, self.bv.tcx), targets)
             }
@@ -300,6 +272,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 target,
                 unwind,
                 replace,
+                ..
             } => self.visit_drop(place, *target, *unwind, *replace),
             mir::TerminatorKind::Call {
                 func,
@@ -645,7 +618,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         let mut callee_generic_arguments = self
             .type_visitor()
             .specialize_generic_args(generic_args, &self.type_visitor().generic_argument_map);
-        let actual_args: Vec<(Rc<Path>, Rc<AbstractValue>)> = args
+        let mut actual_args: Vec<(Rc<Path>, Rc<AbstractValue>)> = args
             .iter()
             .map(|arg| {
                 (
@@ -654,7 +627,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 )
             })
             .collect();
-        let actual_argument_types: Vec<Ty<'tcx>> = args
+        let mut actual_argument_types: Vec<Ty<'tcx>> = args
             .iter()
             .map(|arg| {
                 let arg_ty = self.get_operand_rustc_type(&arg.node);
@@ -673,6 +646,21 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 }
             })
             .collect();
+        if self.get_operand_rustc_type(func).is_fn_ptr()
+            && self.bv.tcx.is_closure_like(callee_def_id)
+            && self.bv.tcx.optimized_mir(callee_def_id).arg_count == actual_args.len() + 1
+        {
+            let closure_type =
+                Ty::new_closure(self.bv.tcx, callee_def_id, callee_generic_arguments);
+            actual_args.insert(
+                0,
+                (
+                    Path::new_computed(func_to_call.clone()),
+                    func_to_call.clone(),
+                ),
+            );
+            actual_argument_types.insert(0, closure_type);
+        }
         let callee_generic_argument_map = self.type_visitor().get_generic_arguments_map(
             callee_def_id,
             callee_generic_arguments,
@@ -685,7 +673,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         if !actual_argument_types.is_empty() && !utils::are_concrete(callee_generic_arguments) {
             let fty = self.bv.tcx.type_of(callee_def_id).skip_binder();
             if let TyKind::FnDef(_, args) = fty.kind() {
-                for (i, generic_ty_arg) in args.types().enumerate() {
+                for (i, generic_ty_arg) in args.skip_binder().types().enumerate() {
                     if let TyKind::Param(t_par) = generic_ty_arg.kind() {
                         if t_par.name.as_str() == "Self" {
                             let mut gen_args: Vec<GenericArg<'_>> =
@@ -1013,8 +1001,12 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     .type_visitor()
                     .specialize_type(closure_ty, &self.type_visitor().generic_argument_map);
                 if let TyKind::Alias(
-                    rustc_middle::ty::Opaque,
-                    rustc_middle::ty::AliasTy { def_id, args, .. },
+                    _,
+                    rustc_middle::ty::AliasTy {
+                        kind: rustc_middle::ty::Opaque { def_id },
+                        args,
+                        ..
+                    },
                 ) = specialized_closure_ty.kind()
                 {
                     let args = self
@@ -1028,26 +1020,34 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     specialized_closure_ty = self.type_visitor().specialize_type(closure_ty, &map);
                 }
                 match specialized_closure_ty.kind() {
-                    TyKind::Closure(def_id, args)
-                    | TyKind::Coroutine(def_id, args)
-                    | TyKind::FnDef(def_id, args) => {
+                    TyKind::Closure(def_id, args) | TyKind::Coroutine(def_id, args) => {
                         return extract_func_ref(self.visit_function_reference(
                             *def_id,
                             specialized_closure_ty,
                             Some(args),
                         ));
                     }
+                    TyKind::FnDef(def_id, args) => {
+                        return extract_func_ref(self.visit_function_reference(
+                            *def_id,
+                            specialized_closure_ty,
+                            Some(args.skip_binder()),
+                        ));
+                    }
                     TyKind::Ref(_, ty, _) => {
                         let specialized_closure_ty = self
                             .type_visitor()
                             .specialize_type(*ty, &self.type_visitor().generic_argument_map);
-                        if let TyKind::Closure(def_id, args) | TyKind::FnDef(def_id, args) =
-                            specialized_closure_ty.kind()
-                        {
+                        let function = match specialized_closure_ty.kind() {
+                            TyKind::Closure(def_id, args) => Some((*def_id, *args)),
+                            TyKind::FnDef(def_id, args) => Some((*def_id, args.skip_binder())),
+                            _ => None,
+                        };
+                        if let Some((def_id, args)) = function {
                             let fun_ty = self.bv.tcx.type_of(def_id).skip_binder();
                             // since specialized_closure_ty is specialized, fun_ty and args should be specialized as well.
                             return extract_func_ref(self.visit_function_reference(
-                                *def_id,
+                                def_id,
                                 fun_ty,
                                 Some(args),
                             ));
@@ -1624,6 +1624,10 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             match msg {
                 BoundsCheck { .. } => "index out of bounds",
                 MisalignedPointerDereference { .. } => "misaligned pointer dereference",
+                NullPointerDereference => "null pointer dereference",
+                NullReferenceConstructed => "constructing a null reference",
+                InvalidEnumConstruction(_) => "constructing an invalid enum discriminant",
+                ResumedAfterDrop(_) => "coroutine resumed after being dropped",
                 Overflow(BinOp::Add, _, _) => "attempt to add with overflow",
                 Overflow(BinOp::Sub, _, _) => "attempt to subtract with overflow",
                 Overflow(BinOp::Mul, _, _) => "attempt to multiply with overflow",
@@ -1721,7 +1725,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
     #[logfn_inputs(TRACE)]
     fn visit_rvalue(&mut self, path: Rc<Path>, rvalue: &mir::Rvalue<'tcx>) {
         match rvalue {
-            mir::Rvalue::Use(operand) => {
+            mir::Rvalue::Use(operand, _) => {
                 self.visit_use(path, operand);
             }
             mir::Rvalue::Repeat(operand, count) => {
@@ -1739,18 +1743,13 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     .specialize_type(*ty, &self.type_visitor().generic_argument_map);
                 self.visit_cast(path, *cast_kind, operand, specialized_ty);
             }
-            mir::Rvalue::BinaryOp(bin_op, box (left_operand, right_operand)) => {
+            mir::Rvalue::BinaryOp(bin_op, operands) => {
+                let (left_operand, right_operand) = &**operands;
                 if let Some(bin_op) = bin_op.overflowing_to_wrapping() {
                     self.visit_checked_binary_op(path, bin_op, left_operand, right_operand);
                 } else {
                     self.visit_binary_op(path, *bin_op, left_operand, right_operand);
                 };
-            }
-            mir::Rvalue::NullaryOp(null_op, ty) => {
-                let specialized_ty = self
-                    .type_visitor()
-                    .specialize_type(*ty, &self.type_visitor().generic_argument_map);
-                self.visit_nullary_op(path, null_op, specialized_ty);
             }
             mir::Rvalue::UnaryOp(unary_op, operand) => {
                 self.visit_unary_op(path, *unary_op, operand);
@@ -1761,12 +1760,10 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             mir::Rvalue::Aggregate(aggregate_kind, operands) => {
                 self.visit_aggregate(path, aggregate_kind, operands);
             }
-            mir::Rvalue::ShallowInitBox(operand, ty) => {
-                self.visit_shallow_init_box(path, operand, *ty);
-            }
-            mir::Rvalue::CopyForDeref(place) => {
+            mir::Rvalue::CopyForDeref(place) | mir::Rvalue::Reborrow(_, _, place) => {
                 self.visit_used_copy(path, place);
             }
+            mir::Rvalue::WrapUnsafeBinder(operand, _) => self.visit_use(path, operand),
         }
     }
 
@@ -1774,6 +1771,10 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
     #[logfn_inputs(TRACE)]
     fn visit_use(&mut self, path: Rc<Path>, operand: &mir::Operand<'tcx>) {
         match operand {
+            mir::Operand::RuntimeChecks(_) => {
+                let value = self.visit_operand(operand);
+                self.bv.update_value_at(path, value);
+            }
             mir::Operand::Copy(place) => {
                 self.visit_used_copy(path, place);
             }
@@ -2048,6 +2049,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         ty: rustc_middle::ty::Ty<'tcx>,
     ) {
         match cast_kind {
+            mir::CastKind::Subtype => self.visit_use(path, operand),
             // An exposing pointer to address cast. A cast between a pointer and an integer type, or
             // between a function pointer and an integer type.
             // See the docs on `expose_addr` for more details.
@@ -2062,7 +2064,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 let (is_move, place) = match operand {
                     mir::Operand::Copy(place) => (false, place),
                     mir::Operand::Move(place) => (true, place),
-                    mir::Operand::Constant(..) => {
+                    mir::Operand::Constant(..) | mir::Operand::RuntimeChecks(_) => {
                         // Compile time constant pointers can arise from first class function values.
                         // Such pointers are thin.
                         let result = self.visit_operand(operand);
@@ -2139,12 +2141,12 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 self.bv
                     .copy_or_move_elements(path, source_path, ty, is_move);
             }
-            mir::CastKind::Transmute => {
+            mir::CastKind::Transmute | mir::CastKind::BoxDerefTransmute => {
                 let source_type = self.get_operand_rustc_type(operand);
                 let (source_path, target_path) = match operand {
                     mir::Operand::Copy(place) |
                     mir::Operand::Move(place) => (self.visit_lh_place(place), path),
-                    mir::Operand::Constant(..) => {
+                    mir::Operand::Constant(..) | mir::Operand::RuntimeChecks(_) => {
                         let source_value = self.visit_operand(operand);
                         let source_path = Path::get_as_path(source_value.clone());
                         let target_path = if source_value.is_function() {
@@ -2158,9 +2160,14 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 self.bv.copy_and_transmute(
                     source_path,
                     source_type,
-                    target_path,
+                    target_path.clone(),
                     ty,
                 );
+                if matches!(cast_kind, mir::CastKind::BoxDerefTransmute) {
+                    // Extracting the pointer from a valid Box preserves its non-null invariant.
+                    let pointer = self.bv.lookup_path_and_refine_result(target_path.clone(), ty);
+                    self.bv.update_value_at(target_path, AbstractValue::with_non_null(&pointer));
+                }
             }
             // Remaining unclassified casts.
             mir::CastKind::IntToInt
@@ -2171,6 +2178,26 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             | mir::CastKind::PtrToPtr => {
                 let source_type = self.get_operand_rustc_type(operand);
                 let mut source_value = self.visit_operand(operand);
+                if matches!(cast_kind, mir::CastKind::PtrToPtr) {
+                    if let (TyKind::RawPtr(mut pointee, _), TyKind::RawPtr(target, _), Expression::Reference(pointee_path)) =
+                        (source_type.kind(), ty.kind(), &source_value.expression)
+                    {
+                        let mut field_path = pointee_path.clone();
+                        // Raw pointer casts can expose the field at offset zero of a
+                        // single-field struct, such as an atomic alignment wrapper.
+                        while pointee != *target {
+                            let TyKind::Adt(def, args) = pointee.kind() else { break };
+                            if !def.is_struct() || def.non_enum_variant().fields.len() != 1 {
+                                break;
+                            }
+                            field_path = Path::new_field(field_path, 0);
+                            pointee = self.type_visitor().get_field_type(def, args, 0);
+                        }
+                        if pointee == *target {
+                            source_value = AbstractValue::make_reference(field_path.canonicalize(&self.bv.current_environment));
+                        }
+                    }
+                }
                 if source_type.is_enum() {
                     let enum_path = Path::get_as_path(source_value);
                     let discr_path = Path::new_discriminant(enum_path);
@@ -2225,12 +2252,17 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         let source_type = self
             .type_visitor()
             .get_path_rustc_type(p, self.bv.current_span);
-        // Now write the length alongside the thin pointer
-        if let TyKind::Array(_, len) = self
-            .type_visitor()
-            .get_dereferenced_type(source_type)
-            .kind()
-        {
+        // Unsizing can also happen through wrappers such as MaybeUninit<[T; N]>.
+        let mut pointee = self.type_visitor().get_dereferenced_type(source_type);
+        while crate::type_visitor::is_transparent_wrapper(pointee) {
+            let unwrapped = self.type_visitor().remove_transparent_wrapper(pointee);
+            if unwrapped == pointee {
+                break;
+            }
+            pointee = unwrapped;
+        }
+        // Now write the length alongside the thin pointer.
+        if let TyKind::Array(_, len) = pointee.kind() {
             let length_path = target_path.add_or_replace_selector(Rc::new(PathSelector::Field(1)));
             let length_value = self.visit_const(len);
             self.bv.update_value_at(length_path, length_value);
@@ -2418,66 +2450,6 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         (result, overflow_flag)
     }
 
-    /// Create a value based on the given type and assign it to path.
-    #[logfn_inputs(TRACE)]
-    fn visit_nullary_op(
-        &mut self,
-        path: Rc<Path>,
-        null_op: &mir::NullOp,
-        ty: rustc_middle::ty::Ty<'tcx>,
-    ) {
-        let (len, alignment) = if let Ok(ty_and_layout) = self.type_visitor().layout_of(ty) {
-            let layout = ty_and_layout.layout;
-            (
-                Rc::new((layout.size().bytes() as u128).into()),
-                Rc::new((layout.align().abi.bytes() as u128).into()),
-            )
-        } else {
-            let type_index = self.type_visitor().get_index_for(self.bv.tcx.types.u128);
-            //todo: need expressions that eventually refines into the actual layout size/alignment
-            (
-                AbstractValue::make_typed_unknown(
-                    ExpressionType::U128,
-                    Path::new_local(998, type_index),
-                ),
-                AbstractValue::make_typed_unknown(
-                    ExpressionType::U128,
-                    Path::new_local(997, type_index),
-                ),
-            )
-        };
-        let value = match null_op {
-            mir::NullOp::AlignOf => alignment,
-            mir::NullOp::SizeOf => len,
-            mir::NullOp::OffsetOf(fields) => {
-                if let Ok(ty_and_layout) = self.type_visitor().layout_of(ty) {
-                    let offset_in_bytes = self
-                        .bv
-                        .tcx
-                        .offset_of_subfield(
-                            self.type_visitor().get_typing_env(),
-                            ty_and_layout,
-                            fields.iter(),
-                        )
-                        .bytes();
-                    Rc::new((offset_in_bytes as u128).into())
-                } else {
-                    //todo: need expression that eventually refines into the actual offset
-                    let type_index = self.type_visitor().get_index_for(self.bv.tcx.types.u128);
-                    AbstractValue::make_typed_unknown(
-                        ExpressionType::U128,
-                        Path::new_local(996, type_index),
-                    )
-                }
-            }
-            mir::NullOp::UbChecks => {
-                let val = self.bv.tcx.sess.opts.debug_assertions;
-                Rc::new(val.into())
-            }
-        };
-        self.bv.update_value_at(path, value);
-    }
-
     /// Apply the given unary operator to the operand and assign to path.
     #[logfn_inputs(TRACE)]
     fn visit_unary_op(&mut self, path: Rc<Path>, un_op: mir::UnOp, operand: &mir::Operand<'tcx>) {
@@ -2559,9 +2531,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             }
             mir::AggregateKind::Adt(def, variant_idx, args, _, case_index) => {
                 let mut path = path;
-                let adt_def = self.bv.tcx.adt_def(def);
+                let adt_def = self.bv.tcx.adt_def(*def);
                 let variant_def = &adt_def.variants()[*variant_idx];
-                let adt_ty = self.bv.tcx.type_of(def).skip_binder();
+                let adt_ty = self.bv.tcx.type_of(*def).skip_binder();
                 if adt_def.is_enum() {
                     let discr_path = Path::new_discriminant(path.clone());
                     let discr_ty = adt_ty.discriminant_ty(self.bv.tcx);
@@ -2586,10 +2558,10 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     let case_index = case_index.unwrap_or(0usize.into());
                     let field_path = Path::new_union_field(path, case_index.into(), num_cases);
                     let field = &variant_def.fields[case_index];
-                    let field_ty = field.ty(self.bv.tcx, args);
+                    let field_ty = field.ty(self.bv.tcx, args).skip_normalization();
                     self.type_visitor_mut()
                         .set_path_rustc_type(field_path.clone(), field_ty);
-                    self.visit_use(field_path, &operands[0usize.into()]);
+                    self.visit_use(field_path, &operands[FieldIdx::from_usize(0)]);
                     return;
                 }
                 if variant_def.fields.is_empty() {
@@ -2598,10 +2570,10 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 }
                 for (i, field) in variant_def.fields.iter().enumerate() {
                     let field_path = Path::new_field(path.clone(), i);
-                    let field_ty = field.ty(self.bv.tcx, args);
+                    let field_ty = field.ty(self.bv.tcx, args).skip_normalization();
                     self.type_visitor_mut()
                         .set_path_rustc_type(field_path.clone(), field_ty);
-                    if let Some(operand) = operands.get(i.into()) {
+                    if let Some(operand) = operands.get(FieldIdx::from_usize(i)) {
                         self.visit_use(field_path, operand);
                     } else {
                         debug!(
@@ -2645,37 +2617,26 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             // creating a thin pointer. If you're just converting between thin pointers,
             // you may want an [`Rvalue::Cast`] with [`CastKind::PtrToPtr`] instead.
             mir::AggregateKind::RawPtr(ty, mutbl) => {
+                let pointee_type = self
+                    .type_visitor()
+                    .specialize_type(*ty, &self.type_visitor().generic_argument_map);
+                let pointer_type = Ty::new_ptr(self.bv.tcx, pointee_type, *mutbl);
+                if !self.type_visitor().is_slice_pointer(pointer_type.kind()) {
+                    self.type_visitor_mut()
+                        .set_path_rustc_type(path.clone(), pointer_type);
+                    self.visit_use(path, &operands[FieldIdx::from_usize(0)]);
+                    return;
+                }
                 let thin_pointer_path = Path::new_field(path.clone(), 0);
-                let pointer_type = Ty::new_ptr(self.bv.tcx, *ty, *mutbl);
+                let thin_pointer_type =
+                    self.get_operand_rustc_type(&operands[FieldIdx::from_usize(0)]);
                 self.type_visitor_mut()
-                    .set_path_rustc_type(thin_pointer_path.clone(), pointer_type);
-                self.visit_use(thin_pointer_path, &operands[0usize.into()]);
+                    .set_path_rustc_type(thin_pointer_path.clone(), thin_pointer_type);
+                self.visit_use(thin_pointer_path, &operands[FieldIdx::from_usize(0)]);
                 let metadata_path = Path::new_field(path, 1);
-                self.visit_use(metadata_path, &operands[1usize.into()]);
+                self.visit_use(metadata_path, &operands[FieldIdx::from_usize(1)]);
             }
         }
-    }
-
-    /// Transmutes a `*mut u8` into shallow-initialized `Box<T>`.
-    ///
-    /// This is different from a normal transmute because dataflow analysis will treat the box
-    /// as initialized but its content as uninitialized.
-    #[logfn_inputs(TRACE)]
-    fn visit_shallow_init_box(
-        &mut self,
-        path: Rc<Path>,
-        operand: &mir::Operand<'tcx>,
-        ty: Ty<'tcx>,
-    ) {
-        // Box.0 = Unique, Unique.0 = NonNullPtr, NonNullPtr.0 = source thin pointer
-        let value_path = Path::new_field(Path::new_field(Path::new_field(path, 0), 0), 0);
-        let ty = self
-            .type_visitor()
-            .specialize_type(ty, &self.type_visitor().generic_argument_map);
-        self.type_visitor_mut()
-            .set_path_rustc_type(value_path.clone(), ty);
-        // todo: set value_path to boxed type
-        self.visit_use(value_path, operand);
     }
 
     /// Returns the path (location/lh-value) of the given operand.
@@ -2683,7 +2644,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
     fn get_operand_path(&mut self, operand: &mir::Operand<'tcx>) -> Rc<Path> {
         match operand {
             mir::Operand::Copy(place) | mir::Operand::Move(place) => self.visit_rh_place(place),
-            mir::Operand::Constant(..) => Path::new_computed(self.visit_operand(operand)),
+            mir::Operand::Constant(..) | mir::Operand::RuntimeChecks(_) => {
+                Path::get_as_path(self.visit_operand(operand))
+            }
         }
     }
 
@@ -2698,6 +2661,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 let mir::ConstOperand { const_, .. } = constant.borrow();
                 const_.ty()
             }
+            mir::Operand::RuntimeChecks(_) => self.bv.tcx.types.bool,
         }
     }
 
@@ -2706,6 +2670,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
     #[logfn_inputs(TRACE)]
     fn visit_operand(&mut self, operand: &mir::Operand<'tcx>) -> Rc<AbstractValue> {
         match operand {
+            mir::Operand::RuntimeChecks(checks) => Rc::new(checks.value(self.bv.cv.session).into()),
             mir::Operand::Copy(place) => self.visit_copy(place),
             mir::Operand::Move(place) => self.visit_move(place),
             mir::Operand::Constant(constant) => {
@@ -2767,6 +2732,23 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         let mut args = self
             .type_visitor()
             .specialize_generic_args(unevaluated.args, &self.type_visitor().generic_argument_map);
+        if unevaluated.promoted.is_none() && utils::are_concrete(args) {
+            let specialized = mir::UnevaluatedConst {
+                args,
+                ..*unevaluated
+            };
+            let evaluated = self.bv.tcx.const_eval_resolve(
+                rustc_middle::ty::TypingEnv::fully_monomorphized(),
+                specialized,
+                self.bv.current_span,
+            );
+            if let Ok(value) = evaluated {
+                let ty = self
+                    .type_visitor()
+                    .specialize_type(lty, &self.type_visitor().generic_argument_map);
+                return self.visit_const_value(value, ty);
+            }
+        }
         self.bv.cv.generic_args_cache.insert(def_id, args);
         let path = match unevaluated.promoted {
             Some(promoted) => {
@@ -2838,7 +2820,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
     #[logfn_inputs(TRACE)]
     pub fn visit_const(&mut self, literal: &Const<'tcx>) -> Rc<AbstractValue> {
         let mut kind = literal.kind();
-        if let rustc_middle::ty::ConstKind::Unevaluated(_unevaluated) = &kind {
+        if let rustc_middle::ty::ConstKind::Alias(..) = &kind {
             let infcx = self
                 .bv
                 .tcx
@@ -2870,18 +2852,20 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             // ZSTs, integers, `bool`, `char` and small structs are represented as scalars.
             // See the `ScalarInt` documentation for how `ScalarInt` guarantees that equal values
             // of these types have the same representation.
-            rustc_middle::ty::ConstKind::Value(lty, ValTree::Leaf(scalar_int)) => {
-                let (data, size) = Self::get_scalar_int_data(scalar_int);
-                self.get_constant_value_from_scalar(*lty, data, size)
-            }
             // The fields of any kind of aggregate. Structs, tuples and arrays are represented by
             // listing their fields' values in order.
             // Enums are represented by storing their discriminant as a field, followed by all
             // the fields of the variant.
-            rustc_middle::ty::ConstKind::Value(lty, val_tree) => {
-                let (heap_block, heap_path) = self.get_heap_block_and_path(*lty, val_tree);
-                self.deserialize_val_tree(val_tree, heap_path, *lty);
-                heap_block
+            rustc_middle::ty::ConstKind::Value(value) => {
+                if let Some(scalar_int) = value.try_to_leaf() {
+                    let (data, size) = Self::get_scalar_int_data(&scalar_int);
+                    self.get_constant_value_from_scalar(value.ty, data, size)
+                } else {
+                    let (heap_block, heap_path) =
+                        self.get_heap_block_and_path(value.ty, &value.valtree);
+                    self.deserialize_val_tree(&value.valtree, heap_path, value.ty);
+                    heap_block
+                }
             }
             _ => {
                 debug!("kind {:?}", kind);
@@ -2908,18 +2892,27 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
     fn deserialize_fields(
         &mut self,
         args: GenericArgsRef<'tcx>,
-        mut val_tree_iter: std::slice::Iter<ValTree<'tcx>>,
+        mut val_tree_iter: impl Iterator<Item = Const<'tcx>>,
         heap_path: Rc<Path>,
         variant: &VariantDef,
     ) {
         for (i, field) in variant.fields.iter().enumerate() {
             let field_path = Path::new_field(heap_path.clone(), i);
-            let field_ty = field.ty(self.bv.tcx, args);
+            let field_ty = field.ty(self.bv.tcx, args).skip_normalization();
             if let Some(val_tree) = val_tree_iter.next() {
-                self.deserialize_val_tree(val_tree, field_path, field_ty);
+                self.deserialize_const(&val_tree, field_path, field_ty);
             } else {
                 debug!("variant has more fields than was serialized {:?}", variant);
             }
+        }
+    }
+
+    fn deserialize_const(&mut self, value: &Const<'tcx>, path: Rc<Path>, ty: Ty<'tcx>) {
+        if let Some(value) = value.try_to_value() {
+            self.deserialize_val_tree(&value.valtree, path, ty);
+        } else {
+            let value = self.visit_const(value);
+            self.bv.update_value_at(path, value);
         }
     }
 
@@ -2929,24 +2922,25 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         target_path: Rc<Path>,
         ty: Ty<'tcx>,
     ) {
-        match val_tree {
-            ValTree::Leaf(scalar_int) => {
+        match &***val_tree {
+            rustc_middle::ty::ValTreeKind::Leaf(scalar_int) => {
                 let (data, size) = Self::get_scalar_int_data(scalar_int);
                 let const_value = self.get_constant_value_from_scalar(ty, data, size);
                 self.bv.update_value_at(target_path, const_value);
             }
-            ValTree::Branch(val_trees) => match ty.kind() {
+            rustc_middle::ty::ValTreeKind::Branch(val_trees) => match ty.kind() {
                 TyKind::Adt(def, args) if def.is_enum() => {
                     let mut val_tree_iter = val_trees.iter();
-                    let variant_index =
-                        if let Some(ValTree::Leaf(scalar_int)) = val_tree_iter.next() {
-                            self.get_enum_variant_index(scalar_int, ty, &target_path)
-                        } else {
-                            unreachable!(
-                                "serialized enum value without a discriminant value {:?} {:?}",
-                                def, val_trees
-                            );
-                        };
+                    let variant_index = if let Some(scalar_int) =
+                        val_tree_iter.next().and_then(|c| c.try_to_leaf())
+                    {
+                        self.get_enum_variant_index(&scalar_int, ty, &target_path)
+                    } else {
+                        unreachable!(
+                            "serialized enum value without a discriminant value {:?} {:?}",
+                            def, val_trees
+                        );
+                    };
                     let variant = &def.variants()[variant_index];
                     self.deserialize_fields(args, val_tree_iter, target_path, variant);
                 }
@@ -2963,7 +2957,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     for (i, field_ty) in types.iter().enumerate() {
                         let field_path = Path::new_field(target_path.clone(), i);
                         if let Some(val_tree) = val_tree_iter.next() {
-                            self.deserialize_val_tree(val_tree, field_path, field_ty);
+                            self.deserialize_const(&val_tree, field_path, field_ty);
                         } else {
                             debug!("tuple has more fields than was serialized {:?}", ty);
                         }
@@ -2981,7 +2975,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                             self.get_u128_const_val(i as u128),
                         );
                         if let Some(val_tree) = val_tree_iter.next() {
-                            self.deserialize_val_tree(val_tree, elem_path, *elem_type);
+                            self.deserialize_const(&val_tree, elem_path, *elem_type);
                         } else {
                             debug!("array has more elements than was serialized {:?}", ty);
                         }
@@ -2996,7 +2990,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
 
     fn get_scalar_int_data(scalar_int: &ScalarInt) -> (u128, usize) {
         let size = scalar_int.size();
-        let data: u128 = scalar_int.try_to_bits(size).unwrap();
+        let data: u128 = scalar_int.to_bits(size);
         (data, size.bytes() as usize)
     }
 
@@ -3005,7 +2999,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
     /// presumably because these values are used and produced by MIRI.
     /// Sadly, this means that MIRAI has to have a lot of duplicated logic.
     #[logfn_inputs(TRACE)]
-    fn visit_const_value(&mut self, val: ConstValue<'tcx>, lty: Ty<'tcx>) -> Rc<AbstractValue> {
+    fn visit_const_value(&mut self, val: ConstValue, lty: Ty<'tcx>) -> Rc<AbstractValue> {
         match val {
             // The raw bytes of a simple value.
             ConstValue::Scalar(Scalar::Int(scalar_int)) => {
@@ -3020,17 +3014,17 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             // We also store the size of the pointer, such that a `Scalar` always knows how big it is.
             // The size is always the pointer size of the current target, but this is not information
             // that we always have readily available.
-            ConstValue::Scalar(Scalar::Ptr(ptr, _size)) => {
+            ConstValue::Scalar(Scalar::Ptr(ptr, pointer_size)) => {
                 match self.bv.tcx.try_get_global_alloc(ptr.provenance.alloc_id()) {
                     Some(GlobalAlloc::Memory(alloc)) => {
                         let alloc_len = alloc.inner().len() as u64;
-                        let offset_bytes = ptr.into_parts().1.bytes();
+                        let offset_bytes = ptr.prov_and_relative_offset().1.bytes();
                         // The Rust compiler should ensure this.
                         assume!(alloc_len > offset_bytes);
                         let size = alloc_len - offset_bytes;
                         let range = alloc_range(
-                            ptr.into_parts().1,
-                            rustc_target::abi::Size::from_bytes(size),
+                            ptr.prov_and_relative_offset().1,
+                            rustc_abi::Size::from_bytes(size),
                         );
                         let bytes = if size > 0
                             && alloc.inner().provenance().range_empty(range, &self.bv.tcx)
@@ -3046,8 +3040,8 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                                     Some(GlobalAlloc::Memory(alloc)) => {
                                         let size = alloc.inner().len() as u64;
                                         let range = alloc_range(
-                                            rustc_target::abi::Size::from_bytes(0),
-                                            rustc_target::abi::Size::from_bytes(size),
+                                            rustc_abi::Size::from_bytes(0),
+                                            rustc_abi::Size::from_bytes(size),
                                         );
                                         bytes = alloc
                                             .inner()
@@ -3137,9 +3131,20 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         }
                     }
                     Some(GlobalAlloc::Function { instance }) => {
-                        let def_id = instance.def.def_id();
+                        let (def_id, instance_args) = match instance.def {
+                            rustc_middle::ty::InstanceKind::Shim(
+                                rustc_middle::ty::ShimKind::ClosureOnce { closure, .. },
+                            ) => {
+                                let TyKind::Closure(_, args) = instance.args.type_at(0).kind()
+                                else {
+                                    unreachable!("closure shim without a closure type");
+                                };
+                                (closure, *args)
+                            }
+                            _ => (instance.def.def_id(), instance.args),
+                        };
                         let args = self.type_visitor().specialize_generic_args(
-                            instance.args,
+                            instance_args,
                             &self.type_visitor().generic_argument_map,
                         );
                         let fn_ty = self.bv.tcx.type_of(def_id).skip_binder();
@@ -3184,6 +3189,14 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                             )
                             .0
                     }
+                    Some(GlobalAlloc::TypeId { .. }) => {
+                        // Code generation erases TypeId provenance and uses the scalar offset.
+                        self.get_constant_value_from_scalar(
+                            lty,
+                            ptr.into_raw_parts().1.bytes() as u128,
+                            pointer_size.get() as usize,
+                        )
+                    }
                     None => unreachable!("missing allocation {:?}", ptr.provenance),
                 }
             }
@@ -3192,13 +3205,14 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
             ConstValue::ZeroSized => self.get_constant_value_from_scalar(lty, 0, 0),
 
             // Used only for `&[u8]` and `&str`
-            ConstValue::Slice { data, meta } => {
-                let size = rustc_target::abi::Size::from_bytes(meta);
+            ConstValue::Slice { alloc_id, meta } => {
+                let data = self.bv.tcx.global_alloc(alloc_id).unwrap_memory();
+                let size = rustc_abi::Size::from_bytes(meta);
                 let bytes = data
                     .inner()
                     .get_bytes_strip_provenance(
                         &self.bv.tcx,
-                        alloc_range(rustc_target::abi::Size::ZERO, size),
+                        alloc_range(rustc_abi::Size::ZERO, size),
                     )
                     .unwrap();
                 let slice = &bytes[0..];
@@ -3293,6 +3307,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         self.type_visitor_mut()
             .set_path_rustc_type(target_path.clone(), ty);
         match ty.kind() {
+            TyKind::Pat(base, _) => self.deserialize_constant_bytes(target_path, bytes, *base),
             TyKind::Adt(def, args) if def.is_enum() => {
                 trace!("deserializing {:?} {:?}", def, args);
                 trace!("def.repr() {:?}", def.repr());
@@ -3309,16 +3324,16 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         bytes[0] as u128
                     } else if len < 4 {
                         tag_length = 2;
-                        u16::from_ne_bytes(*bytes.array_chunks().next().unwrap()) as u128
+                        u16::from_ne_bytes(*bytes.as_chunks().0.iter().next().unwrap()) as u128
                     } else if len < 8 {
                         tag_length = 4;
-                        u32::from_ne_bytes(*bytes.array_chunks().next().unwrap()) as u128
+                        u32::from_ne_bytes(*bytes.as_chunks().0.iter().next().unwrap()) as u128
                     } else if len < 16 {
                         tag_length = 8;
-                        u64::from_ne_bytes(*bytes.array_chunks().next().unwrap()) as u128
+                        u64::from_ne_bytes(*bytes.as_chunks().0.iter().next().unwrap()) as u128
                     } else {
                         tag_length = 16;
-                        u128::from_ne_bytes(*bytes.array_chunks().next().unwrap())
+                        u128::from_ne_bytes(*bytes.as_chunks().0.iter().next().unwrap())
                     };
                     let (discr_signed, discr_bits, discr_index, discr_has_data) =
                         self.get_discriminator_info(data, &enum_ty_layout);
@@ -3339,7 +3354,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                             trace!("deserializing field({}) {:?}", i, field);
                             trace!("bytes_left_deserialize {:?}", bytes_left_to_deserialize);
                             let field_path = Path::new_field(target_path.clone(), i);
-                            let field_ty = field.ty(self.bv.tcx, args);
+                            let field_ty = field.ty(self.bv.tcx, args).skip_normalization();
                             trace!(
                                 "field ty layout {:?}",
                                 self.type_visitor().layout_of(field_ty)
@@ -3355,28 +3370,30 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 bytes_left_to_deserialize
             }
             TyKind::Adt(def, args) => {
-                trace!("deserializing {:?} {:?}", def, args);
+                let layout = self.type_visitor().layout_of(ty).ok();
                 let mut bytes_left_to_deserialize = bytes;
                 for variant in def.variants().iter() {
-                    trace!("deserializing variant {:?}", variant);
                     bytes_left_to_deserialize = bytes;
                     for (i, field) in variant.fields.iter().enumerate() {
-                        trace!("deserializing field({}) {:?}", i, field);
-                        trace!("bytes_left_deserialize {:?}", bytes_left_to_deserialize);
                         let field_path = Path::new_field(target_path.clone(), i);
-                        let field_ty = field.ty(self.bv.tcx, args);
-                        trace!(
-                            "field ty layout {:?}",
-                            self.type_visitor().layout_of(field_ty)
+                        let field_ty = self.type_visitor().specialize_type(
+                            field.ty(self.bv.tcx, args).skip_normalization(),
+                            &self.type_visitor().generic_argument_map,
                         );
-                        bytes_left_to_deserialize = self.deserialize_constant_bytes(
-                            field_path,
-                            bytes_left_to_deserialize,
-                            field_ty,
-                        );
+                        let field_bytes = if let Some(layout) = &layout {
+                            &bytes[layout.fields.offset(i).bytes_usize()..]
+                        } else {
+                            bytes_left_to_deserialize
+                        };
+                        bytes_left_to_deserialize =
+                            self.deserialize_constant_bytes(field_path, field_bytes, field_ty);
                     }
                 }
-                bytes_left_to_deserialize
+                if let Some(layout) = layout {
+                    &bytes[layout.size.bytes_usize()..]
+                } else {
+                    bytes_left_to_deserialize
+                }
             }
             TyKind::Array(elem_type, length) => {
                 let length = self.bv.get_array_length(length);
@@ -3397,82 +3414,102 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     .bv
                     .cv
                     .constant_value_cache
-                    .get_char_for(*ch_ptr)
+                    .get_char_for(ch_ptr.read_unaligned())
                     .clone();
                 self.bv.update_value_at(target_path, Rc::new(ch.into()));
                 &bytes[4..]
             },
             TyKind::Int(IntTy::Isize) => unsafe {
                 let int_ptr = bytes.as_ptr() as *const isize;
-                let i = self.bv.get_i128_const_val((*int_ptr) as i128);
+                let i = self
+                    .bv
+                    .get_i128_const_val((int_ptr.read_unaligned()) as i128);
                 self.bv.update_value_at(target_path, i);
                 let size = std::mem::size_of::<isize>();
                 &bytes[size..]
             },
             TyKind::Int(IntTy::I8) => unsafe {
                 let int_ptr = bytes.as_ptr() as *const i8;
-                let i = self.bv.get_i128_const_val((*int_ptr) as i128);
+                let i = self
+                    .bv
+                    .get_i128_const_val((int_ptr.read_unaligned()) as i128);
                 self.bv.update_value_at(target_path, i);
                 &bytes[1..]
             },
             TyKind::Int(IntTy::I16) => unsafe {
                 let int_ptr = bytes.as_ptr() as *const i16;
-                let i = self.bv.get_i128_const_val((*int_ptr) as i128);
+                let i = self
+                    .bv
+                    .get_i128_const_val((int_ptr.read_unaligned()) as i128);
                 self.bv.update_value_at(target_path, i);
                 &bytes[2..]
             },
             TyKind::Int(IntTy::I32) => unsafe {
                 let int_ptr = bytes.as_ptr() as *const i32;
-                let i = self.bv.get_i128_const_val((*int_ptr) as i128);
+                let i = self
+                    .bv
+                    .get_i128_const_val((int_ptr.read_unaligned()) as i128);
                 self.bv.update_value_at(target_path, i);
                 &bytes[4..]
             },
             TyKind::Int(IntTy::I64) => unsafe {
                 let int_ptr = bytes.as_ptr() as *const i64;
-                let i = self.bv.get_i128_const_val((*int_ptr) as i128);
+                let i = self
+                    .bv
+                    .get_i128_const_val((int_ptr.read_unaligned()) as i128);
                 self.bv.update_value_at(target_path, i);
                 &bytes[8..]
             },
             TyKind::Int(IntTy::I128) => unsafe {
                 let int_ptr = bytes.as_ptr() as *const i128;
-                let i = self.bv.get_i128_const_val(*int_ptr);
+                let i = self.bv.get_i128_const_val(int_ptr.read_unaligned());
                 self.bv.update_value_at(target_path, i);
                 &bytes[16..]
             },
             TyKind::Uint(UintTy::Usize) => unsafe {
                 let uint_ptr = bytes.as_ptr() as *const usize;
-                let u = self.bv.get_u128_const_val((*uint_ptr) as u128);
+                let u = self
+                    .bv
+                    .get_u128_const_val((uint_ptr.read_unaligned()) as u128);
                 self.bv.update_value_at(target_path, u);
                 let size = std::mem::size_of::<isize>();
                 &bytes[size..]
             },
             TyKind::Uint(UintTy::U8) => unsafe {
                 let uint_ptr = bytes.as_ptr();
-                let u = self.bv.get_u128_const_val((*uint_ptr) as u128);
+                let u = self
+                    .bv
+                    .get_u128_const_val((uint_ptr.read_unaligned()) as u128);
                 self.bv.update_value_at(target_path, u);
                 &bytes[1..]
             },
             TyKind::Uint(UintTy::U16) => unsafe {
                 let uint_ptr = bytes.as_ptr() as *const u16;
-                let u = self.bv.get_u128_const_val((*uint_ptr) as u128);
+                let u = self
+                    .bv
+                    .get_u128_const_val((uint_ptr.read_unaligned()) as u128);
                 self.bv.update_value_at(target_path, u);
                 &bytes[2..]
             },
             TyKind::Uint(UintTy::U32) => unsafe {
                 let uint_ptr = bytes.as_ptr() as *const u32;
-                let u = self.bv.get_u128_const_val((*uint_ptr) as u128);
+                let u = self
+                    .bv
+                    .get_u128_const_val((uint_ptr.read_unaligned()) as u128);
                 self.bv.update_value_at(target_path, u);
                 &bytes[4..]
             },
             TyKind::Uint(UintTy::U64) => unsafe {
                 let uint_ptr = bytes.as_ptr() as *const u64;
-                let u = self.bv.get_u128_const_val((*uint_ptr) as u128);
+                let u = self
+                    .bv
+                    .get_u128_const_val((uint_ptr.read_unaligned()) as u128);
                 self.bv.update_value_at(target_path, u);
                 &bytes[8..]
             },
             TyKind::Uint(UintTy::U128) => unsafe {
                 let uint_ptr = bytes.as_ptr() as *const u128;
-                let u = self.bv.get_u128_const_val(*uint_ptr);
+                let u = self.bv.get_u128_const_val(uint_ptr.read_unaligned());
                 self.bv.update_value_at(target_path, u);
                 &bytes[16..]
             },
@@ -3482,7 +3519,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     .bv
                     .cv
                     .constant_value_cache
-                    .get_f32_for(*uint_ptr)
+                    .get_f32_for(uint_ptr.read_unaligned())
                     .clone();
                 self.bv.update_value_at(target_path, Rc::new(f.into()));
                 &bytes[4..]
@@ -3493,7 +3530,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     .bv
                     .cv
                     .constant_value_cache
-                    .get_f64_for(*uint_ptr)
+                    .get_f64_for(uint_ptr.read_unaligned())
                     .clone();
                 self.bv.update_value_at(target_path, Rc::new(f.into()));
                 &bytes[8..]
@@ -3545,27 +3582,45 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 &[]
             }
             TyKind::Tuple(types) => {
+                let layout = self.type_visitor().layout_of(ty).ok();
                 let mut bytes_left_deserialize = bytes;
                 for (i, field_ty) in types.iter().enumerate() {
                     let field_path = Path::new_field(target_path.clone(), i);
-                    bytes_left_deserialize = self.deserialize_constant_bytes(
-                        field_path,
-                        bytes_left_deserialize,
-                        field_ty,
-                    );
+                    let field_bytes = if let Some(layout) = &layout {
+                        &bytes[layout.fields.offset(i).bytes_usize()..]
+                    } else {
+                        bytes_left_deserialize
+                    };
+                    bytes_left_deserialize =
+                        self.deserialize_constant_bytes(field_path, field_bytes, field_ty);
                 }
-                bytes_left_deserialize
+                if let Some(layout) = layout {
+                    &bytes[layout.size.bytes_usize()..]
+                } else {
+                    bytes_left_deserialize
+                }
             }
             // todo: bytes is the serialization of the captured state of a closure/generator
             // deserialize that and return a heap block that represents the closure state + func ptr
+            TyKind::FnDef(def_id, args) => {
+                let fun_ty = self.bv.tcx.type_of(*def_id).skip_binder();
+                let value = self
+                    .visit_function_reference(*def_id, fun_ty, Some(args.skip_binder()))
+                    .clone();
+                self.bv.update_value_at(target_path, Rc::new(value.into()));
+                &[]
+            }
             TyKind::Closure(def_id, args)
-            | TyKind::FnDef(def_id, args)
             | TyKind::Coroutine(def_id, args, ..)
             | TyKind::Alias(
-                rustc_middle::ty::Opaque,
-                rustc_middle::ty::AliasTy { def_id, args, .. },
+                _,
+                rustc_middle::ty::AliasTy {
+                    kind: rustc_middle::ty::Opaque { def_id },
+                    args,
+                    ..
+                },
             ) => {
-                let fun_ty = self.bv.tcx.type_of(def_id).skip_binder();
+                let fun_ty = self.bv.tcx.type_of(*def_id).skip_binder();
                 // since ty is specialized, fun_ty and args should be specialized as well.
                 let func_val = Rc::new(
                     self.visit_function_reference(*def_id, fun_ty, Some(args))
@@ -3790,8 +3845,8 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         // `Some` is the identity function (with a non-null reference).
                         trace!("untagged_variant {:?}", untagged_variant);
                         trace!("niche_start {:?}", niche_start);
-                        let variants_start = niche_variants.start().as_u32();
-                        let variants_end = niche_variants.end().as_u32();
+                        let variants_start = niche_variants.start.as_u32();
+                        let variants_end = niche_variants.last.as_u32();
                         let variant = if data >= niche_start
                             && variants_end >= variants_start
                             && (data - niche_start) <= (variants_end - variants_start).into()
@@ -3804,11 +3859,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         } else {
                             trace!("data {:?}", data);
                             discr_has_data = true;
-                            let fields = &variants[untagged_variant].fields;
+                            let fields = &variants[untagged_variant].field_offsets;
                             checked_assume!(
-                                fields.count() == 1
-                                    && fields.offset(0).bytes() == 0
-                                    && fields.memory_index(0) == 0,
+                                fields.len() == 1 && fields[FieldIdx::from_usize(0)].bytes() == 0,
                                 "the data containing variant should contain a single sub-component"
                             );
                             untagged_variant
@@ -3831,6 +3884,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
         data: u128,
         size: usize,
     ) -> Rc<AbstractValue> {
+        if let TyKind::Pat(base, _) = ty.kind() {
+            return self.get_constant_value_from_scalar(*base, data, size);
+        }
         Rc::new(
             match ty.kind() {
                 TyKind::Bool => {
@@ -3894,9 +3950,10 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     let specialized_ty = self
                         .type_visitor()
                         .specialize_type(ty, &self.type_visitor().generic_argument_map);
-                    let specialized_args = self
-                        .type_visitor()
-                        .specialize_generic_args(args, &self.type_visitor().generic_argument_map);
+                    let specialized_args = self.type_visitor().specialize_generic_args(
+                        args.skip_binder(),
+                        &self.type_visitor().generic_argument_map,
+                    );
                     self.visit_function_reference(*def_id, specialized_ty, Some(specialized_args))
                 }
                 _ => {
@@ -4065,8 +4122,11 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         .update_value_at(Path::new_function(base_path.clone()), func_val);
                 }
                 TyKind::Alias(
-                    rustc_middle::ty::Opaque,
-                    rustc_middle::ty::AliasTy { def_id, .. },
+                    _,
+                    rustc_middle::ty::AliasTy {
+                        kind: rustc_middle::ty::Opaque { def_id },
+                        ..
+                    },
                 ) => {
                     let aliased_ty = self.bv.tcx.type_of(*def_id).skip_binder();
                     // since ty is specialized, aliased_ty should be specialized as well.
@@ -4083,7 +4143,11 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     }
                 }
                 TyKind::FnDef(def_id, generic_args) => {
-                    let func_const = self.visit_function_reference(*def_id, ty, Some(generic_args));
+                    let func_const = self.visit_function_reference(
+                        *def_id,
+                        ty,
+                        Some(generic_args.skip_binder()),
+                    );
                     let func_val = Rc::new(func_const.clone().into());
                     self.bv
                         .update_value_at(Path::new_function(base_path.clone()), func_val);
@@ -4114,8 +4178,8 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 mir::ProjectionElem::Deref => {
                     let type_visitor = &mut self.type_visitor_mut();
                     if ty.is_box() {
-                        // Deref the pointer at field 0 of the Unique pointer at field 0 of the box
-                        result = Path::new_field(Path::new_field(result, 0), 0);
+                        // Box.0 is Unique, Unique.0 is NonNull, NonNull.0 is the pointer.
+                        result = Path::new_field(Path::new_field(Path::new_field(result, 0), 0), 0);
                         ty = ty.boxed_ty().expect("ty.is_box()");
                     } else if type_visitor.is_slice_pointer(ty.kind()) {
                         // Deref the thin pointer part of the slice pointer
@@ -4149,8 +4213,13 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                         &[*elem],
                     );
                 }
-                mir::ProjectionElem::Subtype { .. } => continue,
-                mir::ProjectionElem::OpaqueCast(_) => {
+                mir::ProjectionElem::UnwrapUnsafeBinder(unwrapped) => {
+                    ty = *unwrapped;
+                    self.type_visitor_mut()
+                        .set_path_rustc_type(result.clone(), ty);
+                    continue;
+                }
+                mir::ProjectionElem::OpaqueCast(_) | mir::ProjectionElem::PhantomDeref => {
                     continue;
                 }
                 mir::ProjectionElem::Subslice { .. } => {}
@@ -4177,7 +4246,7 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                     if def.is_union() {
                         let variants = &def.variants();
                         assume!(variants.len() == 1); // only enums have more than one variant
-                        let variant = &variants[0usize.into()];
+                        let variant = &variants[VariantIdx::from_usize(0)];
                         return PathSelector::UnionField {
                             case_index: field.index(),
                             num_cases: variant.fields.len(),
@@ -4233,11 +4302,9 @@ impl<'block, 'analysis, 'compilation, 'tcx> BlockVisitor<'block, 'analysis, 'com
                 };
                 PathSelector::Downcast(name_str, index.as_usize(), tag_value)
             }
-            mir::ProjectionElem::Subtype(_) => {
-                // Dummy selector that will be ignored by caller.
-                PathSelector::Deref
-            }
-            mir::ProjectionElem::OpaqueCast(_) => {
+            mir::ProjectionElem::OpaqueCast(_)
+            | mir::ProjectionElem::UnwrapUnsafeBinder(_)
+            | mir::ProjectionElem::PhantomDeref => {
                 // Dummy selector that will be ignored by caller.
                 PathSelector::Deref
             }

@@ -74,7 +74,7 @@ commit;
       "local": true
     },
     {
-      "name": "/generic/Gen::<T>::bar(&'^0.Named(DefId(0:12 ~ generic[fc3c]::{impl#0}::bar::'_), \"'_\") Gen<T/#0>,T/#0)->()",
+      "name": "/generic/Gen::<T>::bar(&'^0.Named(DefId(0:12 ~ generic[42a7]::{impl#0}::bar::'_)) Gen<T/#0>,T/#0)->()",
       "file_index": 0,
       "first_line": 14,
       "local": true
@@ -102,4 +102,5 @@ commit;
       2
     ]
   ]
-}*/
+}
+*/

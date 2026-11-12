@@ -74,11 +74,12 @@ impl rustc_driver::Callbacks for MiraiCallbacks {
     /// Called before creating the compiler instance
     #[logfn(TRACE)]
     fn config(&mut self, config: &mut interface::Config) {
-        self.file_name = config
-            .input
-            .source_name()
-            .prefer_remapped_unconditionaly()
-            .to_string();
+        self.file_name = match &config.input {
+            rustc_session::config::Input::File(path) => path.to_string_lossy().into_owned(),
+            rustc_session::config::Input::Str { name, .. } => name
+                .display(rustc_span::RemapPathScopeComponents::DIAGNOSTICS)
+                .to_string(),
+        };
         info!("Processing input file: {}", self.file_name);
         if config.opts.test {
             info!("in test only mode");
@@ -105,11 +106,10 @@ impl rustc_driver::Callbacks for MiraiCallbacks {
         tcx: TyCtxt<'tcx>,
     ) -> Compilation {
         compiler.sess.dcx().abort_if_errors();
-        if self
-            .output_directory
-            .to_str()
-            .expect("valid string")
-            .contains("/build/")
+        if tcx
+            .crate_name(rustc_hir::def_id::LOCAL_CRATE)
+            .as_str()
+            .starts_with("build_script_")
         {
             // No need to analyze a build script, but do generate code.
             return Compilation::Continue;
@@ -130,7 +130,7 @@ impl MiraiCallbacks {
     #[logfn(TRACE)]
     fn analyze_with_mirai<'tcx>(&mut self, compiler: &interface::Compiler, tcx: TyCtxt<'tcx>) {
         if self.options.print_function_names {
-            for local_def_id in tcx.hir().body_owners() {
+            for local_def_id in tcx.hir_body_owners() {
                 let def_id = local_def_id.to_def_id();
                 let span = tcx.def_span(def_id);
                 eprint!("{span:?}: ");

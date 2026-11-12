@@ -50,9 +50,9 @@ fn run_pass() {
     let extern_deps = vec![
         (
             "mirai_annotations",
-            find_extern_library("mirai_annotations"),
+            find_extern_library("mirai_annotations", false),
         ),
-        ("contracts", find_extern_library("contracts")),
+        ("contracts", find_extern_library("contracts", true)),
     ];
     let mut run_pass_path = PathBuf::from_str("tests/run-pass").unwrap();
     if !run_pass_path.exists() {
@@ -66,6 +66,43 @@ fn run_pass() {
     );
     assert_eq!(result, 0);
     run_call_graph_tests();
+}
+
+#[test]
+fn cargo_mirai_reports_errors() {
+    let project = TempDir::new().expect("failed to create a test project");
+    let cargo_mirai_source = PathBuf::from(env!("CARGO_BIN_EXE_cargo-mirai"));
+    let mut mirai = project.path().join("mirai");
+    if let Some(extension) = cargo_mirai_source.extension() {
+        mirai.set_extension(extension);
+    }
+    fs::copy(env!("CARGO_BIN_EXE_mirai"), mirai).expect("failed to stage mirai");
+    let cargo_mirai = project.path().join(cargo_mirai_source.file_name().unwrap());
+    fs::copy(cargo_mirai_source, &cargo_mirai).expect("failed to stage cargo-mirai");
+    fs::write(
+        project.path().join("Cargo.toml"),
+        "[package]\nname = \"mirai-smoke\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[workspace]\n",
+    )
+    .unwrap();
+    fs::create_dir(project.path().join("src")).unwrap();
+    fs::write(
+        project.path().join("src/main.rs"),
+        "fn divide(x: i32) -> i32 { 100 / x }\nfn main() { println!(\"{}\", divide(0)); }\n",
+    )
+    .unwrap();
+
+    let output = std::process::Command::new(cargo_mirai)
+        .arg("mirai")
+        .current_dir(project.path())
+        .env("CARGO_TARGET_DIR", project.path().join("target"))
+        .output()
+        .expect("failed to run cargo mirai");
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(output.status.success(), "{stderr}");
+    assert!(
+        stderr.contains("[MIRAI] attempt to divide by zero"),
+        "{stderr}"
+    );
 }
 
 // Run the tests in the tests/call_graph directory.
@@ -83,7 +120,7 @@ fn run_call_graph_tests() {
     assert_eq!(result, 0);
 }
 
-fn find_extern_library(base_name: &str) -> String {
+fn find_extern_library(base_name: &str, proc_macro: bool) -> String {
     let mut deps_path = PathBuf::from_str("../target/debug").unwrap();
     if !deps_path.exists() {
         deps_path = PathBuf::from_str("target/debug").unwrap();
@@ -98,7 +135,7 @@ fn find_extern_library(base_name: &str) -> String {
             continue;
         };
         let file_name = entry.file_name().to_str().unwrap_or("");
-        // On Windows we have either lib{base_name}.rlib or {base_name}.dll. We match any form.
+        // Windows omits the lib prefix for proc macros.
         if !file_name.starts_with(format!("lib{base_name}").as_str())
             && !file_name.starts_with(base_name)
         {
@@ -109,11 +146,14 @@ fn find_extern_library(base_name: &str) -> String {
             // but for different purpose. Skip this.
             continue;
         }
-        if !file_name.ends_with(".rlib")
-            && !file_name.ends_with(".dylib")
-            && !file_name.ends_with(".so")
-            && !file_name.ends_with(".dll")
-        {
+        let matches_kind = if proc_macro {
+            file_name.ends_with(".so")
+                || file_name.ends_with(".dylib")
+                || file_name.ends_with(".dll")
+        } else {
+            file_name.ends_with(".rmeta")
+        };
+        if !matches_kind {
             continue;
         }
         println!("resolving {}", entry.path().to_str().unwrap());
@@ -288,8 +328,6 @@ fn invoke_driver(
         sys_root,
         String::from("-Z"),
         String::from("span_free_formats"),
-        String::from("-Z"),
-        String::from("mir-emit-retag"),
     ];
     command_line_arguments.extend(rustc_args);
     if options.test_only {
@@ -303,8 +341,7 @@ fn invoke_driver(
 
     let mut call_backs = callbacks::MiraiCallbacks::test_runner(options);
     let result = std::panic::catch_unwind(move || {
-        let compiler = rustc_driver::RunCompiler::new(&command_line_arguments, &mut call_backs);
-        compiler.run()
+        rustc_driver::compiler_entrypoint(&command_line_arguments, &mut call_backs)
     });
     match result {
         Ok(_) => 0,
@@ -318,14 +355,11 @@ fn invoke_driver(
 // Parse expected or actual output into a map
 // from trimmed non-emptylines to counts.
 fn build_output_counter(output: &str) -> HashMap<&str, u32> {
-    let items: Vec<&str> = Vec::from_iter(
-        output
-            .split('\n')
-            .collect::<Vec<&str>>()
-            .iter()
-            .filter(|x| !x.is_empty())
-            .map(|x| x.trim()),
-    );
+    let items: Vec<&str> = output
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .collect();
     let mut counter = HashMap::<&str, u32>::new();
     for item in items.iter() {
         *counter.entry(item).or_insert(0) += 1;
@@ -340,6 +374,27 @@ fn compare_lines(actual: &str, expected: &str) -> bool {
     let actual_counter = build_output_counter(actual);
     let expected_counter = build_output_counter(expected);
     actual_counter == expected_counter
+}
+
+#[test]
+fn call_graph_snapshots_ignore_line_endings() {
+    let actual = "digraph {\n    0 -> 1\n}\n";
+    let expected = "\r\ndigraph {\r\n    0 -> 1\r\n}\r\n";
+    assert!(compare_lines(actual, expected));
+    assert!(!compare_lines(
+        actual,
+        "digraph {\n    0 -> 1\n    0 -> 1\n}\n"
+    ));
+}
+
+fn normalize_call_site_ids(output: &str) -> String {
+    // rustc's numeric definition IDs and crate hashes vary by toolchain and platform.
+    // Retain the symbol paths, signatures, locations, and call edges in the snapshot.
+    let ids = Regex::new(r"DefId\(\d+:\d+ ~ ").unwrap();
+    let hashes = Regex::new(r"([A-Za-z_][A-Za-z0-9_]*)\[[0-9a-f]{4,}\]").unwrap();
+    hashes
+        .replace_all(&ids.replace_all(output, "DefId("), "$1")
+        .into_owned()
 }
 
 // Checked call graph output types
@@ -407,6 +462,14 @@ fn check_call_graph_output(
         }
     };
     if let Ok(actual) = actual {
+        let (actual, expected) = if output_type == CallGraphOutputType::CallSites {
+            (
+                normalize_call_site_ids(&actual),
+                normalize_call_site_ids(&expected),
+            )
+        } else {
+            (actual, expected)
+        };
         if compare_lines(&expected, &actual) {
             0
         } else {
