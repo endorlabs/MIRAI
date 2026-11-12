@@ -37,17 +37,27 @@ jobs:
       - name: Set LIBCLANG_PATH
         run: echo "LIBCLANG_PATH=$((gcm clang).source -replace "clang.exe")" >> $env:GITHUB_ENV
         if: matrix.os == 'windows-latest'
-      - run: echo  Installing z3:${{ matrix.vcpkg_triplet }} on ${{ matrix.os }}.
-      - name: vcpkg build z3
-        uses: johnwason/vcpkg-action@3839b028ca2400865ef5e83a899f336b1b8fd711 # v5
-        id: vcpkg
+      - name: Check out vcpkg
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          pkgs: z3
-          triplet: ${{ matrix.vcpkg_triplet }}
-          cache-key: ${{ matrix.os }}
-          revision: master
-          token: ${{ github.token }}
-          extra-args: --clean-buildtrees-after-build
+          repository: microsoft/vcpkg
+          path: vcpkg
+      - name: Bootstrap vcpkg
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            cmd.exe /c 'vcpkg\bootstrap-vcpkg.bat -disableMetrics'
+          else
+            "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+          fi
+      - name: Build Z3 with vcpkg
+        shell: bash
+        run: |
+          vcpkg="$VCPKG_ROOT/vcpkg"
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            vcpkg="$VCPKG_ROOT/vcpkg.exe"
+          fi
+          "$vcpkg" install "z3:${{ matrix.vcpkg_triplet }}" --clean-buildtrees-after-build
       - name: Install MIRAI
         run: |
           cargo install --force --path ./checker --no-default-features --features=vcpkg
