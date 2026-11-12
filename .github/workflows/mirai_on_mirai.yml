@@ -43,21 +43,24 @@ jobs:
           repository: microsoft/vcpkg
           path: vcpkg
       - name: Bootstrap vcpkg
+        if: runner.os != 'Windows'
         shell: bash
         run: |
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            cmd.exe /c 'vcpkg\bootstrap-vcpkg.bat -disableMetrics'
-          else
-            "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
-          fi
+          "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+      - name: Bootstrap vcpkg on Windows
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: vcpkg\bootstrap-vcpkg.bat -disableMetrics
       - name: Build Z3 with vcpkg
+        if: runner.os != 'Windows'
         shell: bash
         run: |
-          vcpkg="./vcpkg/vcpkg"
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            vcpkg="./vcpkg/vcpkg.exe"
-          fi
-          "$vcpkg" install "z3:${{ matrix.vcpkg_triplet }}" --clean-buildtrees-after-build
+          "$VCPKG_ROOT/vcpkg" install "z3:${{ matrix.vcpkg_triplet }}" --clean-buildtrees-after-build
+      - name: Build Z3 with vcpkg on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          & "$env:VCPKG_ROOT\vcpkg.exe" install "z3:${{ matrix.vcpkg_triplet }}" --clean-buildtrees-after-build
       - name: Install MIRAI
         run: |
           cargo install --force --path ./checker --no-default-features --features=vcpkg
