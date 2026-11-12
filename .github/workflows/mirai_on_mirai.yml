@@ -53,9 +53,9 @@ jobs:
       - name: Build Z3 with vcpkg
         shell: bash
         run: |
-          vcpkg="$VCPKG_ROOT/vcpkg"
+          vcpkg="./vcpkg/vcpkg"
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            vcpkg="$VCPKG_ROOT/vcpkg.exe"
+            vcpkg="./vcpkg/vcpkg.exe"
           fi
           "$vcpkg" install "z3:${{ matrix.vcpkg_triplet }}" --clean-buildtrees-after-build
       - name: Install MIRAI
