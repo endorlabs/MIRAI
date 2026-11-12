@@ -1433,7 +1433,11 @@ impl CallSiteOutput {
                         .path(rustc_span::RemapPathScopeComponents::DIAGNOSTICS)
                         .to_str()
                     {
-                        file_name = p.split("/lib/rustlib/src").last().map(|s| s.to_string());
+                        let portable_path = p.replace('\\', "/");
+                        file_name = portable_path
+                            .split("/lib/rustlib/src")
+                            .last()
+                            .map(|s| s.to_string());
                     }
                 }
                 files.push(file_name.unwrap_or_else(|| "unknown".into()));

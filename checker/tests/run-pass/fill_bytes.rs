@@ -8,40 +8,32 @@
 
 // MIRAI_FLAGS --diag=verify
 
-#[cfg(not(windows))]
 use std::cell::UnsafeCell;
-#[cfg(not(windows))]
 use std::rc::Rc;
 
-#[cfg(not(windows))]
 pub struct BlockRng {
     pub results: &'static [u32],
     pub index: usize,
 }
 
-#[cfg(not(windows))]
 pub struct ThreadRng {
     rng: Rc<UnsafeCell<BlockRng>>,
 }
 
-#[cfg(not(windows))]
 static A: [u32; 32] = [0; 32];
 
 thread_local!(
-    #[cfg(not(windows))]
     static THREAD_RNG_KEY: Rc<UnsafeCell<BlockRng>> = {
         let r = BlockRng { results: &A, index: 0 };
         Rc::new(UnsafeCell::new(r))
     }
 );
 
-#[cfg(not(windows))]
 pub fn thread_rng() -> ThreadRng {
     let rng = THREAD_RNG_KEY.with(|t| t.clone());
     ThreadRng { rng }
 }
 
-#[cfg(not(windows))]
 impl ThreadRng {
     pub fn fill_bytes(&mut self, dest: &mut [u8]) {
         use core::cmp::min;
@@ -55,7 +47,6 @@ impl ThreadRng {
     }
 }
 
-#[cfg(not(windows))]
 pub fn new_with_temp_dir() {
     // let mut rng = thread_rng();
     // let mut bytes = [0_u8; 16];

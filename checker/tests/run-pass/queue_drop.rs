@@ -9,15 +9,16 @@
 #![allow(dead_code)]
 
 use std::cell::Cell;
+use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::thread::Thread;
 
 const RUNNING: usize = 0x1;
 const STATE_MASK: usize = 0x3;
 
 #[repr(align(4))] // Ensure the two lower bits are free to use as state bits.
 pub struct Waiter {
-    thread: Cell<Option<Thread>>,
+    // A scalar handle keeps this pointer test independent of the OS thread implementation.
+    thread: Cell<Option<NonZeroUsize>>,
     signaled: AtomicBool,
     next: *const Waiter,
 }
@@ -40,10 +41,9 @@ impl Drop for WaiterQueue<'_> {
             while !queue.is_null() {
                 let next = (*queue).next;
                 //~ related location
-                let thread = (*queue).thread.replace(None).unwrap(); //~ called `Option::unwrap()` on a `None` value
+                let _thread = (*queue).thread.replace(None).unwrap(); //~ called `Option::unwrap()` on a `None` value
                 (*queue).signaled.store(true, Ordering::Release);
                 queue = next;
-                thread.unpark();
             }
         }
     }

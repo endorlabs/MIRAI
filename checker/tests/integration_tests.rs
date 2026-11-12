@@ -71,9 +71,17 @@ fn run_pass() {
 #[test]
 fn cargo_mirai_reports_errors() {
     let project = TempDir::new().expect("failed to create a test project");
+    let cargo_mirai_source = PathBuf::from(env!("CARGO_BIN_EXE_cargo-mirai"));
+    let mut mirai = project.path().join("mirai");
+    if let Some(extension) = cargo_mirai_source.extension() {
+        mirai.set_extension(extension);
+    }
+    fs::copy(env!("CARGO_BIN_EXE_mirai"), mirai).expect("failed to stage mirai");
+    let cargo_mirai = project.path().join(cargo_mirai_source.file_name().unwrap());
+    fs::copy(cargo_mirai_source, &cargo_mirai).expect("failed to stage cargo-mirai");
     fs::write(
         project.path().join("Cargo.toml"),
-        "[package]\nname = \"mirai-smoke\"\nversion = \"0.1.0\"\nedition = \"2021\"\n",
+        "[package]\nname = \"mirai-smoke\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[workspace]\n",
     )
     .unwrap();
     fs::create_dir(project.path().join("src")).unwrap();
@@ -83,7 +91,7 @@ fn cargo_mirai_reports_errors() {
     )
     .unwrap();
 
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_cargo-mirai"))
+    let output = std::process::Command::new(cargo_mirai)
         .arg("mirai")
         .current_dir(project.path())
         .env("CARGO_TARGET_DIR", project.path().join("target"))
@@ -347,14 +355,11 @@ fn invoke_driver(
 // Parse expected or actual output into a map
 // from trimmed non-emptylines to counts.
 fn build_output_counter(output: &str) -> HashMap<&str, u32> {
-    let items: Vec<&str> = Vec::from_iter(
-        output
-            .split('\n')
-            .collect::<Vec<&str>>()
-            .iter()
-            .filter(|x| !x.is_empty())
-            .map(|x| x.trim()),
-    );
+    let items: Vec<&str> = output
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .collect();
     let mut counter = HashMap::<&str, u32>::new();
     for item in items.iter() {
         *counter.entry(item).or_insert(0) += 1;
@@ -369,6 +374,17 @@ fn compare_lines(actual: &str, expected: &str) -> bool {
     let actual_counter = build_output_counter(actual);
     let expected_counter = build_output_counter(expected);
     actual_counter == expected_counter
+}
+
+#[test]
+fn call_graph_snapshots_ignore_line_endings() {
+    let actual = "digraph {\n    0 -> 1\n}\n";
+    let expected = "\r\ndigraph {\r\n    0 -> 1\r\n}\r\n";
+    assert!(compare_lines(actual, expected));
+    assert!(!compare_lines(
+        actual,
+        "digraph {\n    0 -> 1\n    0 -> 1\n}\n"
+    ));
 }
 
 fn normalize_call_site_ids(output: &str) -> String {
